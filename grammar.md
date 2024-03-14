@@ -4,12 +4,16 @@ Keywords: `program`, `const`, `var`, `integer`, `begin`, `end`, `if`, `while`, `
 
 Helper symbols:
 ```
-Octal_prefix -> "0" | "&" 
-Hex_prefix   -> "0x" | "0X" | "$" 
+Octal_prefix -> 0
+			 -> &
 
-Digit        -> "0" | ... | "9" .
-Hex_digit    -> "A" | ... | "F" | "a" | ... | "f" | Digit
-Octal_digit  -> "0" | ... | "7" 
+Hex_prefix   -> 0x
+			 -> 0X 
+			 -> $ 
+
+Digit        -> 0 | ... | 9
+Hex_digit    -> A | ... | F | a | ... | f | Digit
+Octal_digit  -> 0 | ... | 7 
 
 Dec_number   -> Digit 
 			 -> Digit Dec_number
@@ -18,7 +22,7 @@ Hex_number   -> Hex_digit
 Octal_number -> Octal_digit
 			 -> Octal_digit Octal_number
 
-Id_symbol    -> "a" | ... | "z" | "A" | ... | "Z" | "_"
+Id_symbol    -> a | ... | z | A | ... | Z | _
 ```
 
 Elementary symbols:
