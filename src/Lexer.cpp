@@ -90,6 +90,11 @@ Token Lexer::next_token(std::istream & in) {
                 goto octal;
             }
             case '+':
+                _str_val += c;
+                goto plus;
+            case '-':
+                _str_val += c;
+                goto minus;
             case '*':
             case '/':
             case '%':
@@ -100,21 +105,25 @@ Token Lexer::next_token(std::istream & in) {
                 _str_val += c;
                 goto op;
             }
-            case '-':
-                _str_val += c;
-                goto minus;
             default: {
                 _str_val += c;
                 goto identifier;
             }
         }
 
+    plus:
+        c = in.peek();
+        if (isdigit(c)) {
+            goto dec;
+        }
+        return Token::Op_Plus;
+
     minus:
         c = in.peek();
-        if (isspace(c)) {
-            return Token::Op_Minus;
+        if (isdigit(c)) {
+            goto dec;
         }
-        goto dec;
+        return Token::Op_Minus;
 
     zero:
         c = in.get();
