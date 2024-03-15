@@ -89,7 +89,6 @@ Token Lexer::next_token() {
             goto minus;
         case '*':
         case '/':
-        case '%':
         case '<':
         case '>':
         case ':':
