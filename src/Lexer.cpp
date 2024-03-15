@@ -15,191 +15,183 @@ static inline bool is_id_symbol(char c) {
 }
 
 const std::unordered_map<std::string, Token> _keyword_map = {
-        {"program", Token::Program},
-        {"const", Token::Const},
-        {"var", Token::Var},
-        {"integer", Token::Integer},
-        {"begin", Token::Begin},
-        {"end", Token::End},
-        {"if", Token::If},
-        {"then", Token::Then},
-        {"while", Token::While},
-        {"do", Token::Do},
-        {"for", Token::For},
-        {"function", Token::Function},
-        {"procedure", Token::Procedure},
-        {"exit", Token::Exit},
-        {"and", Token::Op_And},
-        {"or", Token::Op_Or},
-        {"div", Token::Op_Div},
-        {"mod", Token::Op_Mod},
-        {"not", Token::Op_Not}
+        {"program",   Token(TokenType::Program, "program")},
+        {"const",     Token(TokenType::Const, "const")},
+        {"var",       Token(TokenType::Var, "var")},
+        {"integer",   Token(TokenType::Integer, "integer")},
+        {"begin",     Token(TokenType::Begin, "begin")},
+        {"end",       Token(TokenType::End, "end")},
+        {"if",        Token(TokenType::If, "if")},
+        {"then",      Token(TokenType::Then, "then")},
+        {"while",     Token(TokenType::While, "while")},
+        {"do",        Token(TokenType::Do, "do")},
+        {"for",       Token(TokenType::For, "for")},
+        {"function",  Token(TokenType::Function, "function")},
+        {"procedure", Token(TokenType::Procedure, "procedure")},
+        {"exit",      Token(TokenType::Exit, "exit")},
+        {"and",       Token(TokenType::Op_And, "and")},
+        {"or",        Token(TokenType::Op_Or, "or")},
+        {"div",       Token(TokenType::Op_Div, "div")},
+        {"mod",       Token(TokenType::Op_Mod, "mod")},
+        {"not",       Token(TokenType::Op_Not, "not")}
 };
 
 const std::unordered_map<std::string, Token> _op_map = {
-        {"+", Token::Op_Plus},
-        {"-", Token::Op_Minus},
-        {"*", Token::Op_Mul},
-        {"/", Token::Op_Div},
-        {"<", Token::Op_Lt},
-        {"<=", Token::Op_LtE},
-        {">", Token::Op_Gt},
-        {">=", Token::Op_GtE},
-        {"<>", Token::Op_NotEqual},
-        {"=", Token::Op_Equal},
-        {":=", Token::Op_Assign},
+        {"+",  Token(TokenType::Op_Plus, "+")},
+        {"-",  Token(TokenType::Op_Minus, "-")},
+        {"*",  Token(TokenType::Op_Mul, "*")},
+        {"/",  Token(TokenType::Op_Div, "/")},
+        {"<",  Token(TokenType::Op_Lt, "<")},
+        {"<=", Token(TokenType::Op_LtE, "<=")},
+        {">",  Token(TokenType::Op_Gt, ">")},
+        {">=", Token(TokenType::Op_GtE, ">=")},
+        {"<>", Token(TokenType::Op_NotEqual, "<>")},
+        {"=",  Token(TokenType::Op_Equal, "=")},
+        {":=", Token(TokenType::Op_Assign, ":=")},
 };
 
-int Lexer::get_int() const {
-    return _int_val;
-}
-
-const std::string Lexer::get_str() const {
-    return _str_val;
-}
-
-Token Lexer::next_token(std::istream & in) {
+Token Lexer::next_token() {
     char c;
-    _int_val = 0;
-    _str_val = {};
+    int int_val = 0;
+    std::string str_val;
 
     q0:
-        c = in.get();
-        if (in.eof()) {
-            return Token::EOI;
-        }
-        if (isspace(c)) {
-            goto q0;
-        }
-        if (isdigit(c)) {
-            goto dec;
-        }
+    c = _in.get();
+    if (_in.eof()) {
+        return Token(TokenType::EOI, 0);
+    }
+    if (isspace(c)) {
+        goto q0;
+    }
+    if (isdigit(c)) {
+        goto dec;
+    }
 
-        switch(c) {
-            case '(':
-                return Token::Par_Open;
-            case ')':
-                return Token::Par_Close;
-            case '0': {
-                _str_val += c;
-                goto zero;
-            }
-            case '$':
-                goto hex;
-            case '&': {
-                goto octal;
-            }
-            case '+':
-                _str_val += c;
-                goto plus;
-            case '-':
-                _str_val += c;
-                goto minus;
-            case '*':
-            case '/':
-            case '%':
-            case '<':
-            case '>':
-            case ':':
-            case '=': {
-                _str_val += c;
-                goto op;
-            }
-            default: {
-                _str_val += c;
-                goto identifier;
-            }
+    switch (c) {
+        case '(':
+            return Token(TokenType::Par_Open, "(");
+        case ')':
+            return Token(TokenType::Par_Close, ")");
+        case '0': {
+            str_val += c;
+            goto zero;
         }
-
-    plus:
-        c = in.peek();
-        if (isdigit(c)) {
-            goto dec;
-        }
-        return Token::Op_Plus;
-
-    minus:
-        c = in.peek();
-        if (isdigit(c)) {
-            goto dec;
-        }
-        return Token::Op_Minus;
-
-    zero:
-        c = in.get();
-        switch(c) {
-            case 'x':
-            case 'X': {
-                _str_val += c;
-                goto hex;
-            }
-            case '1':
-            case '2':
-            case '3':
-            case '4':
-            case '5':
-            case '6':
-            case '7': {
-                _str_val += c;
-                goto octal;
-            }
-            default: {
-                _int_val = 0;
-                return Token::IntVal;
-            }
-        }
-
-    hex:
-        c = in.peek();
-        if (is_hex_digit(c)) {
-            (void)in.get();
-            _str_val += c;
+        case '$':
             goto hex;
-        }
-        _int_val = std::stoi(_str_val, nullptr, 16);
-        return Token::IntVal;
-
-    octal:
-        c = in.peek();
-        if (is_octal_digit(c)) {
-            (void)in.get();
-            _str_val += c;
+        case '&': {
             goto octal;
         }
-        _int_val = std::stoi(_str_val, nullptr, 8);
-        return Token::IntVal;
-
-    dec:
-        c = in.peek();
-        if (isdigit(c)) {
-            (void)in.get();
-            _str_val += c;
-            goto dec;
+        case '+':
+            str_val += c;
+            goto plus;
+        case '-':
+            str_val += c;
+            goto minus;
+        case '*':
+        case '/':
+        case '%':
+        case '<':
+        case '>':
+        case ':':
+        case '=': {
+            str_val += c;
+            goto op;
         }
-        _int_val = std::stoi(_str_val, nullptr, 10);
-        return Token::IntVal;
-
-    op:
-        c = in.peek();
-        switch (c) {
-            case '=':
-            case '>': {
-                (void)in.get();
-                _str_val += c;
-            }
-        }
-        return _op_map.at(_str_val);
-
-    identifier:
-        c = in.peek();
-        if (!isspace(c) && is_id_symbol(c)) {
-            (void)in.get();
-            _str_val += c;
+        default: {
+            str_val += c;
             goto identifier;
         }
+    }
 
-        if (_keyword_map.contains(_str_val)) {
-            return _keyword_map.at(_str_val);
+    plus:
+    c = _in.peek();
+    if (isdigit(c)) {
+        goto dec;
+    }
+    return _op_map.at("+");
+
+    minus:
+    c = _in.peek();
+    if (isdigit(c)) {
+        goto dec;
+    }
+    return _op_map.at("-");
+
+    zero:
+    c = _in.get();
+    switch (c) {
+        case 'x':
+        case 'X': {
+            str_val += c;
+            goto hex;
         }
-        return Token::Identifier;
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7': {
+            str_val += c;
+            goto octal;
+        }
+        default: {
+            int_val = 0;
+            return Token(TokenType::IntVal, 0);
+        }
+    }
+
+    hex:
+    c = _in.peek();
+    if (is_hex_digit(c)) {
+        (void) _in.get();
+        str_val += c;
+        goto hex;
+    }
+    int_val = std::stoi(str_val, nullptr, 16);
+    return Token(TokenType::IntVal, int_val);
+
+    octal:
+    c = _in.peek();
+    if (is_octal_digit(c)) {
+        (void) _in.get();
+        str_val += c;
+        goto octal;
+    }
+    int_val = std::stoi(str_val, nullptr, 8);
+    return Token(TokenType::IntVal, int_val);
+
+    dec:
+    c = _in.peek();
+    if (isdigit(c)) {
+        (void) _in.get();
+        str_val += c;
+        goto dec;
+    }
+    int_val = std::stoi(str_val, nullptr, 10);
+    return Token(TokenType::IntVal, int_val);
+
+    op:
+    c = _in.peek();
+    switch (c) {
+        case '=':
+        case '>': {
+            (void) _in.get();
+            str_val += c;
+        }
+    }
+    return _op_map.at(str_val);
+
+    identifier:
+    c = _in.peek();
+    if (!isspace(c) && is_id_symbol(c)) {
+        (void) _in.get();
+        str_val += c;
+        goto identifier;
+    }
+
+    if (_keyword_map.contains(str_val)) {
+        return _keyword_map.at(str_val);
+    }
+    return Token(TokenType::Identifier, str_val);
 }
