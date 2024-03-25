@@ -114,7 +114,7 @@ If           -> if Cond_h then
 		   If_body_h
 	           If_else_h
 
-while        -> while Cond_h do Body_h
+While        -> while Cond_h do Body_h
 
 For_to       -> to
              -> downto
