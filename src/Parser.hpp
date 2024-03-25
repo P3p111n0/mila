@@ -42,6 +42,7 @@ class Parser {
 
     bool is_mul_operator(TokenType) const;
     bool is_add_operator(TokenType) const;
+    bool is_rel_operator(TokenType) const;
 };
 
 #endif // PJPPROJECT_PARSER_HPP

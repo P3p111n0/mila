@@ -84,3 +84,33 @@ class ASTNodeXor : public ASTNodeBinary {
   public:
     ASTNodeXor(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
 };
+
+class ASTNodeEq : public ASTNodeBinary {
+  public:
+    ASTNodeEq(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};
+
+class ASTNodeNotEq : public ASTNodeBinary {
+  public:
+    ASTNodeNotEq(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};
+
+class ASTNodeLt : public ASTNodeBinary {
+  public:
+    ASTNodeLt(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};
+
+class ASTNodeGt : public ASTNodeBinary {
+  public:
+    ASTNodeGt(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};
+
+class ASTNodeLtE : public ASTNodeBinary {
+  public:
+    ASTNodeLtE(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};
+
+class ASTNodeGtE : public ASTNodeBinary {
+  public:
+    ASTNodeGtE(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};

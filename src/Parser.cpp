@@ -28,6 +28,63 @@ bool Parser::is_add_operator(TokenType t) const {
     }
 }
 
+bool Parser::is_rel_operator(TokenType t) const {
+    switch(_lexer.peek().type()) {
+    case TokenType::Op_Equal:
+    case TokenType::Op_NotEqual:
+    case TokenType::Op_Lt:
+    case TokenType::Op_Gt:
+    case TokenType::Op_LtE:
+    case TokenType::Op_GtE:
+        return true;
+    default:
+        return false;
+    }
+}
+
+ASTNode * Parser::Expression() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Op_Minus:
+    case TokenType::Op_Plus:
+    case TokenType::Op_Not:
+    case TokenType::Identifier:
+    case TokenType::IntVal:
+    case TokenType::Par_Open: {
+        /* rule 20: Expression -> Add Expression_h */
+        ASTNode * lhs = Add();
+        while (is_rel_operator(_lexer.peek().type())) {
+            TokenType op = _lexer.get().type();
+            ASTNode * rhs = Add();
+            switch (op) {
+            case TokenType::Op_Equal:
+                lhs = new ASTNodeEq(lhs, rhs);
+                break;
+            case TokenType::Op_NotEqual:
+                lhs = new ASTNodeNotEq(lhs, rhs);
+                break;
+            case TokenType::Op_Lt:
+                lhs = new ASTNodeLt(lhs, rhs);
+                break;
+            case TokenType::Op_Gt:
+                lhs = new ASTNodeGt(lhs, rhs);
+                break;
+            case TokenType::Op_LtE:
+                lhs = new ASTNodeLtE(lhs, rhs);
+                break;
+            case TokenType::Op_GtE:
+                lhs = new ASTNodeGtE(lhs, rhs);
+                break;
+            default:
+                throw std::runtime_error("expr - this shouldnt happen");
+            }
+        }
+        return lhs;
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
 ASTNode * Parser::Add() {
     switch(_lexer.peek().type()) {
     case TokenType::Op_Minus:
