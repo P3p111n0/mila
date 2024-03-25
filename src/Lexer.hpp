@@ -22,6 +22,8 @@ enum class TokenType {
     Function,
     Procedure,
     Exit,
+    To,
+    Downto,
 
     // symbols
     Par_Open,
