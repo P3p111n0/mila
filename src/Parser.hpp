@@ -38,8 +38,10 @@ class Parser {
     ASTNode * Expression();
     ASTNode * Unary();
     ASTNode * Mul();
+    ASTNode * Add();
 
     bool is_mul_operator(TokenType) const;
+    bool is_add_operator(TokenType) const;
 };
 
 #endif // PJPPROJECT_PARSER_HPP

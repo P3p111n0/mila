@@ -16,6 +16,59 @@ bool Parser::is_mul_operator(TokenType t) const {
     }
 }
 
+bool Parser::is_add_operator(TokenType t) const {
+    switch(t) {
+    case TokenType::Op_Plus:
+    case TokenType::Op_Minus:
+    case TokenType::Op_Or:
+    case TokenType::Op_Xor:
+        return true;
+    default:
+        return false;
+    }
+}
+
+ASTNode * Parser::Add() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Op_Minus:
+    case TokenType::Op_Plus:
+    case TokenType::Op_Not:
+    case TokenType::Identifier:
+    case TokenType::IntVal:
+    case TokenType::Par_Open: {
+        /* rule 17: Add -> Mul Add_h */
+        ASTNode * lhs = Mul();
+        while (is_add_operator(_lexer.peek().type())) {
+            TokenType op = _lexer.get().type();
+            ASTNode * rhs = Mul();
+            switch (op) {
+            case TokenType::Op_Plus: {
+                lhs = new ASTNodeAdd(lhs, rhs);
+                break;
+            }
+            case TokenType::Op_Minus: {
+                lhs = new ASTNodeSub(lhs, rhs);
+                break;
+            }
+            case TokenType::Op_Or: {
+                lhs = new ASTNodeOr(lhs, rhs);
+                break;
+            }
+            case TokenType::Op_Xor: {
+                lhs = new ASTNodeXor(lhs, rhs);
+                break;
+            }
+            default:
+                throw std::runtime_error("add - this shouldnt happen");
+            }
+        }
+        return lhs;
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
 ASTNode * Parser::Mul() {
     switch(_lexer.peek().type()) {
     case TokenType::Op_Minus:
@@ -50,6 +103,7 @@ ASTNode * Parser::Mul() {
                 throw std::runtime_error("mul - this shouldnt happen");
             }
         }
+        return lhs;
     }
     default:
         throw std::runtime_error("ahoj");

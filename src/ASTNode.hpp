@@ -64,3 +64,23 @@ class ASTNodeAnd : public ASTNodeBinary {
   public:
     ASTNodeAnd(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
 };
+
+class ASTNodeAdd : public ASTNodeBinary {
+  public:
+    ASTNodeAdd(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};
+
+class ASTNodeSub : public ASTNodeBinary {
+  public:
+    ASTNodeSub(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};
+
+class ASTNodeOr : public ASTNodeBinary {
+  public:
+    ASTNodeOr(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};
+
+class ASTNodeXor : public ASTNodeBinary {
+  public:
+    ASTNodeXor(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};
