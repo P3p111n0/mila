@@ -95,11 +95,12 @@ Statement_h  -> Assignment
 	     -> Call 
 	     -> exit
 Statement    -> Statement_h
+             -> Statement_h ;
 	     -> Statement_h ; Statement
 Statement_s  -> Statement_h
+             -> Statement_h ;
 
 Type         -> integer
-
 
 Cond_h       -> Expression
 	     -> ( Expression )
@@ -115,10 +116,12 @@ If           -> if Cond_h then
 
 while        -> while Cond_h do Body_h
 
-For          -> for Assignment "to" Expression do Body_h
+For_to       -> to
+             -> downto
+For          -> for Assignment For_to Expression do Body_h
 
 Const_h      -> Identifier = Expression ; Const_h
-			 -> 
+             -> 
 Const        -> const Identifier = Expression ; Const_h
 
 Var_decl     -> Identifier : Type
@@ -126,13 +129,15 @@ Var_h	     -> Var_decl ; Var_h
 	     -> 
 Var          -> var Var_decl ; Var_h
 
-Var_opt		 -> Var
-	  	 ->
+Var_opt	     -> Var
+	     ->
 
-Const_opt	 -> Const
-		 ->
+Const_opt    -> Const
+	     ->
 
-Function_arg -> Var_decl , Function_h
+Fn_arg_h     -> , Var_decl Fn_arg_h
+             ->
+Function_arg -> Var_decl Fn_arg_h
 	     ->
 Function     -> function Identifier ( Function_arg ) : Type ;
 	                 Var_opt
@@ -142,13 +147,13 @@ Procedure    -> procedure Identifier ( Function_arg ) ;
 			  Var_opt
 			  begin Statement end ;
 
-Fn_prod		 -> Function
-		 -> Procedure
-		 ->
+Fn_prod	     -> Function Fn_prod
+	     -> Procedure Fn_prod
+             ->
 
-Call_h	         -> , Expression
-	         -> 
-Call_inner       -> Expression Call_h
-		 ->
-Call             -> Identifier ( Call_inner )
+Call_h	     -> , Expression
+	     -> 
+Call_inner   -> Expression Call_h
+	     ->
+Call         -> Identifier ( Call_inner )
 ```
