@@ -17,22 +17,22 @@
 #include "Lexer.hpp"
 
 class Parser {
-public:
+  public:
     Parser();
     ~Parser() = default;
 
     bool Parse();                    // parse
-    const llvm::Module& Generate();  // generate
+    const llvm::Module & Generate(); // generate
 
-private:
+  private:
     int getNextToken();
 
-    Lexer m_Lexer;                   // lexer is used to read tokens
-    int CurTok;                      // to keep the current token
+    Lexer m_Lexer; // lexer is used to read tokens
+    int CurTok;    // to keep the current token
 
-    llvm::LLVMContext MilaContext;   // llvm context
-    llvm::IRBuilder<> MilaBuilder;   // llvm builder
-    llvm::Module MilaModule;         // llvm module
+    llvm::LLVMContext MilaContext; // llvm context
+    llvm::IRBuilder<> MilaBuilder; // llvm builder
+    llvm::Module MilaModule;       // llvm module
 };
 
-#endif //PJPPROJECT_PARSER_HPP
+#endif // PJPPROJECT_PARSER_HPP

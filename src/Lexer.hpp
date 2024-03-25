@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include <iostream>
+#include <string>
 #include <variant>
 
 enum class TokenType {
@@ -50,35 +50,34 @@ enum class TokenType {
 };
 
 class Token {
-public:
+  public:
     Token(TokenType type, int val) : _type(type), _val(val) {}
     Token(TokenType type, std::string val) : _val(std::move(val)) {}
-    TokenType type() const {
-        return _type;
-    }
+    TokenType type() const { return _type; }
     int get_int() const {
-        switch(_val.index()) {
-            case 0:
-                return std::get<int>(_val);
-            case 1:
-                return 0;
+        switch (_val.index()) {
+        case 0:
+            return std::get<int>(_val);
+        case 1:
+            return 0;
         }
     }
     std::string get_str() const {
-        switch(_val.index()) {
-            case 0:
-                return std::to_string(std::get<int>(_val));
-            case 1:
-                return std::get<std::string>(_val);
+        switch (_val.index()) {
+        case 0:
+            return std::to_string(std::get<int>(_val));
+        case 1:
+            return std::get<std::string>(_val);
         }
     }
-private:
+
+  private:
     TokenType _type;
     std::variant<int, std::string> _val;
 };
 
 class Lexer {
-public:
+  public:
     Lexer() : _current(TokenType::EOI, 0), _in(std::cin) {
         _current = next_token();
     }
@@ -90,16 +89,15 @@ public:
     int get_int() const;
     const std::string get_str() const;
 
-    const Token & peek() const {
-        return _current;
-    }
+    const Token & peek() const { return _current; }
 
     Token get() {
         Token old = _current;
         _current = next_token();
         return old;
     }
-private:
+
+  private:
     Token next_token();
 
     Token _current;
