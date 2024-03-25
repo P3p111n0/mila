@@ -64,13 +64,12 @@ Mila         -> program Identifier ;
 			Fn_prod
 			begin Statement end .
 
-Factor       -> Call 
+Factor       -> Identifier Call_id 
 	     -> Integer 
-	     -> Identifier 
 	     -> ( Expression ) 
   
-Unary 	     -> - Dec_number
-             -> + Dec_number
+Unary 	     -> - Factor
+             -> + Factor
 	     -> not Factor
 	     -> Factor
   
@@ -94,27 +93,26 @@ Statement_h  -> Assignment
 	     -> For 
 	     -> Call 
 	     -> exit
-Statement    -> Statement_h
-             -> Statement_h ;
-	     -> Statement_h ; Statement
-Statement_s  -> Statement_h
-             -> Statement_h ;
+Stmt_1       -> ; Stmt_dup
+             ->
+Stmt_dup     -> Statement_h Stmt_1
+             ->
+Statement    -> Statement_h Stmt_1
 
 Type         -> integer
 
-Cond_h       -> Expression
-	     -> ( Expression )
-Body_h	     -> Statement_s
+Body_h	     -> Statement_h
 	     -> begin Statement end
 
-If_else_h    -> else Statement_s
-	     -> else begin Statement end
+If_else_h1   -> Statement_h
+             -> begin Statement end
+If_else_h    -> else If_else_h1
 	     ->
-If           -> if Cond_h then
+If           -> if Expression then
 		   If_body_h
 	           If_else_h
 
-While        -> while Cond_h do Body_h
+While        -> while Expression do Body_h
 
 For_to       -> to
              -> downto
@@ -155,5 +153,6 @@ Call_h	     -> , Expression
 	     -> 
 Call_inner   -> Expression Call_h
 	     ->
-Call         -> Identifier ( Call_inner )
+Call_id      -> ( Call_inner )
+             ->
 ```
