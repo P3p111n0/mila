@@ -15,6 +15,7 @@
 #include <llvm/IR/Verifier.h>
 
 #include "Lexer.hpp"
+#include "ASTNode.hpp"
 
 class Parser {
   public:
@@ -25,14 +26,20 @@ class Parser {
     const llvm::Module & Generate(); // generate
 
   private:
-    int getNextToken();
+    Token getNextToken();
 
-    Lexer m_Lexer; // lexer is used to read tokens
-    int CurTok;    // to keep the current token
+    Lexer _lexer; // lexer is used to read tokens
 
     llvm::LLVMContext MilaContext; // llvm context
     llvm::IRBuilder<> MilaBuilder; // llvm builder
     llvm::Module MilaModule;       // llvm module
+
+    ASTNode * Factor();
+    ASTNode * Expression();
+    ASTNode * Unary();
+    ASTNode * Mul();
+
+    bool is_mul_operator(TokenType) const;
 };
 
 #endif // PJPPROJECT_PARSER_HPP

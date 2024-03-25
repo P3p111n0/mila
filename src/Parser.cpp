@@ -4,8 +4,110 @@ Parser::Parser()
     : MilaContext(), MilaBuilder(MilaContext), MilaModule("mila", MilaContext) {
 }
 
+bool Parser::is_mul_operator(TokenType t) const {
+    switch (t) {
+    case TokenType::Op_Mul:
+    case TokenType::Op_Div:
+    case TokenType::Op_Mod:
+    case TokenType::Op_And:
+        return true;
+    default:
+        return false;
+    }
+}
+
+ASTNode * Parser::Mul() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Op_Minus:
+    case TokenType::Op_Plus:
+    case TokenType::Op_Not:
+    case TokenType::Identifier:
+    case TokenType::IntVal:
+    case TokenType::Par_Open: {
+        /* rule 14: Mul -> Unary Mul_h */
+        ASTNode * lhs = Unary();
+        while (is_mul_operator(_lexer.peek().type())) {
+            TokenType op = _lexer.get().type();
+            ASTNode * rhs = Unary();
+            switch (op) {
+            case TokenType::Op_Mul: {
+                lhs = new ASTNodeMul(lhs, rhs);
+                break;
+            }
+            case TokenType::Op_Div: {
+                lhs = new ASTNodeDiv(lhs, rhs);
+                break;
+            }
+            case TokenType::Op_Mod: {
+                lhs = new ASTNodeMod(lhs, rhs);
+                break;
+            }
+            case TokenType::Op_And: {
+                lhs = new ASTNodeAnd(lhs, rhs);
+                break;
+            }
+            default:
+                throw std::runtime_error("mul - this shouldnt happen");
+            }
+        }
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+ASTNode * Parser::Unary() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Op_Minus: {
+        /* rule 8: Unary -> - Factor */
+        _lexer.match(TokenType::Op_Minus);
+        ASTNode * arg = Factor();
+        return new ASTNodeUnaryMinus(arg);
+    }
+    case TokenType::Op_Plus: {
+        /* rule 9: Unary -> + Factor */
+        _lexer.match(TokenType::Op_Plus);
+        return Factor();
+    }
+    case TokenType::Op_Not: {
+        /* rule 10: Unary -> not Factor */
+        _lexer.match(TokenType::Op_Not);
+        ASTNode * arg = Factor();
+        return new ASTNodeNot(arg);
+    }
+    case TokenType::Identifier:
+    case TokenType::IntVal:
+    case TokenType::Par_Open:
+        /* rule 11: Unary -> Factor */
+        return Factor();
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+ASTNode * Parser::Factor() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Par_Open: { /* rule 4: Factor -> ( Expression ) */
+        _lexer.match(TokenType::Par_Open);
+        Expression();
+        _lexer.match(TokenType::Par_Close);
+        break;
+    }
+    case TokenType::IntVal: {
+        auto token = _lexer.get();
+        return new ASTNodeInt(token.get_int());
+    }
+    case TokenType::Identifier:
+        // identifier
+        break;
+
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
 bool Parser::Parse() {
-    getNextToken();
+    //getNextToken();
     return true;
 }
 
@@ -38,7 +140,7 @@ const llvm::Module & Parser::Generate() {
         MilaBuilder.CreateCall(
             MilaModule.getFunction("writeln"),
             {llvm::ConstantInt::get(MilaContext,
-                                    llvm::APInt(32, m_Lexer.numVal()))});
+                                    llvm::APInt(32, _lexer.numVal()))});
 
         // return 0
         MilaBuilder.CreateRet(
@@ -56,4 +158,4 @@ const llvm::Module & Parser::Generate() {
  * result Every function in the parser will assume that CurTok is the cureent
  * token that needs to be parsed
  */
-int Parser::getNextToken() { return CurTok = m_Lexer.gettok(); }
+//Token Parser::getNextToken() { return CurTok = _lexer.get(); }
