@@ -42,6 +42,7 @@ enum class TokenType {
     Op_GtE,
     Op_And,
     Op_Or,
+    Op_Xor,
     Op_Not,
 
     // values
@@ -86,9 +87,6 @@ class Lexer {
     }
     ~Lexer() = default;
 
-    int get_int() const;
-    const std::string get_str() const;
-
     const Token & peek() const { return _current; }
 
     Token get() {
@@ -96,6 +94,8 @@ class Lexer {
         _current = next_token();
         return old;
     }
+
+    bool match(TokenType);
 
   private:
     Token next_token();

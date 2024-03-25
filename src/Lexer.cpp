@@ -29,7 +29,9 @@ const std::unordered_map<std::string, Token> _keyword_map = {
     {"or", Token(TokenType::Op_Or, "or")},
     {"div", Token(TokenType::Op_Div, "div")},
     {"mod", Token(TokenType::Op_Mod, "mod")},
-    {"not", Token(TokenType::Op_Not, "not")}};
+    {"not", Token(TokenType::Op_Not, "not")},
+    {"xor", Token(TokenType::Op_Xor, "xor")}
+};
 
 const std::unordered_map<std::string, Token> _op_map = {
     {"+", Token(TokenType::Op_Plus, "+")},
@@ -44,6 +46,15 @@ const std::unordered_map<std::string, Token> _op_map = {
     {"=", Token(TokenType::Op_Equal, "=")},
     {":=", Token(TokenType::Op_Assign, ":=")},
 };
+
+bool Lexer::match(TokenType t) {
+    if (t != _current.type()) {
+        _current = next_token();
+        return false;
+    }
+    _current = next_token();
+    return true;
+}
 
 Token Lexer::next_token() {
     char c;
