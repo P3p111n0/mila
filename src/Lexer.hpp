@@ -79,6 +79,9 @@ private:
 
 class Lexer {
 public:
+    Lexer() : _current(TokenType::EOI, 0), _in(std::cin) {
+        _current = next_token();
+    }
     Lexer(std::istream & in) : _current(TokenType::EOI, 0), _in(in) {
         _current = next_token();
     }
