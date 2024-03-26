@@ -1,8 +1,8 @@
 #include "Parser.hpp"
 
 Parser::Parser()
-    : MilaContext(), MilaBuilder(MilaContext), MilaModule("mila", MilaContext) {
-}
+    : MilaContext(), MilaBuilder(MilaContext), MilaModule("mila", MilaContext),
+      _st(std::make_shared<SymbolTable>()) {}
 
 bool Parser::is_mul_operator(TokenType t) const {
     switch (t) {
@@ -17,7 +17,7 @@ bool Parser::is_mul_operator(TokenType t) const {
 }
 
 bool Parser::is_add_operator(TokenType t) const {
-    switch(t) {
+    switch (t) {
     case TokenType::Op_Plus:
     case TokenType::Op_Minus:
     case TokenType::Op_Or:
@@ -29,7 +29,7 @@ bool Parser::is_add_operator(TokenType t) const {
 }
 
 bool Parser::is_rel_operator(TokenType t) const {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::Op_Equal:
     case TokenType::Op_NotEqual:
     case TokenType::Op_Lt:
@@ -42,8 +42,62 @@ bool Parser::is_rel_operator(TokenType t) const {
     }
 }
 
-ASTNode * Parser::Expression() {
+void Parser::Const_recursive() {
     switch(_lexer.peek().type()) {
+    case TokenType::Identifier: {
+        /* rule 45: Const_h -> Id = Expression ; Const_h */
+        auto identifier = _lexer.get();
+        if (identifier.type() != TokenType::Identifier ||
+            _st->constants.count(identifier.get_str())) {
+            // TODO error
+        }
+        _lexer.match(TokenType::Op_Equal);
+        ASTNode * lhs = Expression();
+        if (!_lexer.match(TokenType::Semicolon)) {
+            // TODO error
+        }
+        _st->constants[identifier.get_str()] = std::shared_ptr<ASTNode>(lhs);
+        Const_recursive();
+        break;
+    }
+    case TokenType::Var:
+    case TokenType::Function:
+    case TokenType::Procedure:
+    case TokenType::Begin:
+        /* rule 46: Const_h ->  */
+        break;
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+void Parser::Const() {
+    switch (_lexer.peek().type()) {
+    case TokenType::Const: {
+        /* rule 47: Const -> const Id = Expression ; Const_h */
+        if (!_lexer.match(TokenType::Const)) {
+            // TODO error
+        }
+        auto identifier = _lexer.get();
+        if (identifier.type() != TokenType::Identifier || _st->constants.count(identifier.get_str())) {
+            //TODO error
+        }
+        _lexer.match(TokenType::Op_Equal);
+        ASTNode * lhs = Expression();
+        if (!_lexer.match(TokenType::Semicolon)) {
+            //TODO error
+        }
+        _st->constants[identifier.get_str()] = std::shared_ptr<ASTNode>(lhs);
+        Const_recursive();
+        break;
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+ASTNode * Parser::Expression() {
+    switch (_lexer.peek().type()) {
     case TokenType::Op_Minus:
     case TokenType::Op_Plus:
     case TokenType::Op_Not:
@@ -86,7 +140,7 @@ ASTNode * Parser::Expression() {
 }
 
 ASTNode * Parser::Add() {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::Op_Minus:
     case TokenType::Op_Plus:
     case TokenType::Op_Not:
@@ -127,7 +181,7 @@ ASTNode * Parser::Add() {
 }
 
 ASTNode * Parser::Mul() {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::Op_Minus:
     case TokenType::Op_Plus:
     case TokenType::Op_Not:
@@ -168,7 +222,7 @@ ASTNode * Parser::Mul() {
 }
 
 ASTNode * Parser::Unary() {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::Op_Minus: {
         /* rule 8: Unary -> - Factor */
         _lexer.match(TokenType::Op_Minus);
@@ -197,7 +251,7 @@ ASTNode * Parser::Unary() {
 }
 
 ASTNode * Parser::Factor() {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::Par_Open: { /* rule 4: Factor -> ( Expression ) */
         _lexer.match(TokenType::Par_Open);
         Expression();
@@ -218,7 +272,7 @@ ASTNode * Parser::Factor() {
 }
 
 bool Parser::Parse() {
-    //getNextToken();
+    // getNextToken();
     return true;
 }
 
@@ -269,4 +323,4 @@ const llvm::Module & Parser::Generate() {
  * result Every function in the parser will assume that CurTok is the cureent
  * token that needs to be parsed
  */
-//Token Parser::getNextToken() { return CurTok = _lexer.get(); }
+// Token Parser::getNextToken() { return CurTok = _lexer.get(); }

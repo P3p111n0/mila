@@ -16,6 +16,7 @@
 
 #include "Lexer.hpp"
 #include "ASTNode.hpp"
+#include "SymbolTable.hpp"
 
 class Parser {
   public:
@@ -29,6 +30,7 @@ class Parser {
     Token getNextToken();
 
     Lexer _lexer; // lexer is used to read tokens
+    std::shared_ptr<SymbolTable> _st;
 
     llvm::LLVMContext MilaContext; // llvm context
     llvm::IRBuilder<> MilaBuilder; // llvm builder
@@ -39,6 +41,8 @@ class Parser {
     ASTNode * Unary();
     ASTNode * Mul();
     ASTNode * Add();
+    void Const();
+    void Const_recursive();
 
     bool is_mul_operator(TokenType) const;
     bool is_add_operator(TokenType) const;
