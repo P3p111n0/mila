@@ -43,6 +43,10 @@ class Parser {
     ASTNode * Add();
     void Const();
     void Const_recursive();
+    void Var();
+    void Var_declaration();
+
+    void Var_recursive();
 
     bool is_mul_operator(TokenType) const;
     bool is_add_operator(TokenType) const;

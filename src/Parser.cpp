@@ -75,11 +75,9 @@ void Parser::Const() {
     switch (_lexer.peek().type()) {
     case TokenType::Const: {
         /* rule 47: Const -> const Id = Expression ; Const_h */
-        if (!_lexer.match(TokenType::Const)) {
-            // TODO error
-        }
+        _lexer.match(TokenType::Const);
         auto identifier = _lexer.get();
-        if (identifier.type() != TokenType::Identifier || _st->constants.count(identifier.get_str())) {
+        if (identifier.type() != TokenType::Identifier || !_st->unique_in_current_scope(identifier.get_str())) {
             //TODO error
         }
         _lexer.match(TokenType::Op_Equal);
@@ -91,6 +89,69 @@ void Parser::Const() {
         Const_recursive();
         break;
     }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+void Parser::Var_declaration() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Identifier: {
+        /* rule 48: Var_decl -> Id : Type */
+        Token id = _lexer.get();
+        if (!_st->unique_in_current_scope(id.get_str())) {
+            //TODO error
+        }
+        if (!_lexer.match(TokenType::Colon)) {
+            //TODO error
+        }
+        Token type = _lexer.get();
+        Type var_type;
+        switch(type.type()) {
+        case TokenType::Integer: {
+            var_type = Type::Int;
+            break;
+        }
+        default:
+            throw std::runtime_error("var type error");
+        }
+        _st->variables[id.get_str()] = {id.get_str(), var_type};
+        break;
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+void Parser::Var_recursive() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Identifier:
+        /* rule 49: Var_h -> Var_decl ; Var_h */
+        Var_declaration();
+        if (!_lexer.match(TokenType::Semicolon)) {
+            //TODO error
+        }
+        Var_recursive();
+        break;
+    case TokenType::Function:
+    case TokenType::Procedure:
+    case TokenType::Begin:
+        /* rule 50: Var_h ->  */
+        break;
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+void Parser::Var() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Var:
+        /* rule 51: Var -> var Var_decl ; Var_h */
+        _lexer.match(TokenType::Var);
+        Var_declaration();
+        _lexer.match(TokenType::Semicolon);
+        Var_recursive();
+        break;
     default:
         throw std::runtime_error("ahoj");
     }
