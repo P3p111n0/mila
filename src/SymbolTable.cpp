@@ -35,3 +35,7 @@ std::optional<VariableRecord> SymbolTable::lookup_variable(const std::string & n
     }
     return std::nullopt;
 }
+
+bool SymbolTable::unique_in_current_scope(const std::string & name) const {
+    return !(constants.count(name) || variables.count(name) || functions.count(name));
+}

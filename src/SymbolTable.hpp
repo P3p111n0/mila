@@ -34,6 +34,8 @@ struct SymbolTable {
     std::optional<VariableRecord> lookup_variable(const std::string &) const;
     std::optional<std::shared_ptr<ASTNode>> lookup_constant(const std::string &) const;
 
+    bool unique_in_current_scope(const std::string &) const;
+
     std::unordered_map<std::string, FunctionRecord> functions;
     std::unordered_map<std::string, std::shared_ptr<ASTNode>> constants;
     std::unordered_map<std::string, VariableRecord> variables;
