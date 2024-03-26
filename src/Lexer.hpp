@@ -56,10 +56,23 @@ enum class TokenType {
     Identifier
 };
 
+struct Position {
+    Position() : row(0), column(0) {}
+    void advance() {
+        column++;
+    }
+    void new_line() {
+        row++;
+        column = 0;
+    }
+    std::size_t row;
+    std::size_t column;
+};
+
 class Token {
   public:
-    Token(TokenType type, int val) : _type(type), _val(val) {}
-    Token(TokenType type, std::string val) : _val(std::move(val)) {}
+    Token(TokenType type, int val, Position pos = {}) : pos(pos), _type(type), _val(val) {}
+    Token(TokenType type, std::string val, Position pos = {}) : pos(pos), _val(std::move(val)) {}
     TokenType type() const { return _type; }
     int get_int() const {
         switch (_val.index()) {
@@ -78,6 +91,7 @@ class Token {
         }
     }
 
+    Position pos;
   private:
     TokenType _type;
     std::variant<int, std::string> _val;
@@ -108,4 +122,5 @@ class Lexer {
 
     Token _current;
     std::istream & _in;
+    Position _pos;
 };

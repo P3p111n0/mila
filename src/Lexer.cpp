@@ -69,6 +69,11 @@ q0:
         return Token(TokenType::EOI, 0);
     }
     if (isspace(c)) {
+        if (c == '\n') {
+            _pos.new_line();
+        } else {
+            _pos.advance();
+        }
         goto q0;
     }
     if (isdigit(c)) {
@@ -77,15 +82,16 @@ q0:
 
     switch (c) {
     case '(':
-        return Token(TokenType::Par_Open, "(");
+        return Token(TokenType::Par_Open, "(", _pos);
     case ')':
-        return Token(TokenType::Par_Close, ")");
+        return Token(TokenType::Par_Close, ")", _pos);
     case ';':
-        return Token(TokenType::Semicolon, ";");
+        return Token(TokenType::Semicolon, ";", _pos);
     case ',':
-        return Token(TokenType::Comma, ",");
+        return Token(TokenType::Comma, ",", _pos);
     case '0': {
         str_val += c;
+        _pos.advance();
         goto zero;
     }
     case '$':
@@ -95,12 +101,15 @@ q0:
     }
     case '+':
         str_val += c;
+        _pos.advance();
         goto plus;
     case '-':
         str_val += c;
+        _pos.advance();
         goto minus;
     case ':':
         str_val += c;
+        _pos.advance();
         goto colon;
     case '*':
     case '/':
@@ -108,34 +117,43 @@ q0:
     case '>':
     case '=': {
         str_val += c;
+        _pos.advance();
         goto op;
     }
     default: {
         str_val += c;
+        _pos.advance();
         goto identifier;
     }
     }
 
-plus:
+plus: {
     c = _in.peek();
     if (isdigit(c)) {
         goto dec;
     }
-    return _op_map.at("+");
+    auto tok = _op_map.at("+");
+    tok.pos = _pos;
+    return tok;
+}
 
-minus:
+minus: {
     c = _in.peek();
     if (isdigit(c)) {
         goto dec;
     }
-    return _op_map.at("-");
+    auto tok = _op_map.at("-");
+    tok.pos = _pos;
+    return tok;
+}
 
-zero:
+zero: {
     c = _in.get();
     switch (c) {
     case 'x':
     case 'X': {
         str_val += c;
+        _pos.advance();
         goto hex;
     }
     case '1':
@@ -146,72 +164,89 @@ zero:
     case '6':
     case '7': {
         str_val += c;
+        _pos.advance();
         goto octal;
     }
     default: {
         int_val = 0;
-        return Token(TokenType::IntVal, 0);
+        return Token(TokenType::IntVal, 0, _pos);
     }
     }
+}
 
-hex:
+hex: {
     c = _in.peek();
     if (is_hex_digit(c)) {
         (void)_in.get();
         str_val += c;
+        _pos.advance();
         goto hex;
     }
     int_val = std::stoi(str_val, nullptr, 16);
-    return Token(TokenType::IntVal, int_val);
+    return Token(TokenType::IntVal, int_val, _pos);
+}
 
-octal:
+octal: {
     c = _in.peek();
     if (is_octal_digit(c)) {
         (void)_in.get();
         str_val += c;
+        _pos.advance();
         goto octal;
     }
     int_val = std::stoi(str_val, nullptr, 8);
-    return Token(TokenType::IntVal, int_val);
+    return Token(TokenType::IntVal, int_val, _pos);
+}
 
-dec:
+dec: {
     c = _in.peek();
     if (isdigit(c)) {
         (void)_in.get();
         str_val += c;
+        _pos.advance();
         goto dec;
     }
     int_val = std::stoi(str_val, nullptr, 10);
-    return Token(TokenType::IntVal, int_val);
+    return Token(TokenType::IntVal, int_val, _pos);
+}
 
-colon:
+colon: {
     c = _in.peek();
     if (c == '=') {
         goto op;
     }
-    return Token(TokenType::Colon, ":");
+    return Token(TokenType::Colon, ":", _pos);
+}
 
-op:
+op: {
     c = _in.peek();
     switch (c) {
     case '=':
     case '>': {
         (void)_in.get();
         str_val += c;
+        _pos.advance();
     }
     }
-    return _op_map.at(str_val);
+    auto tok = _op_map.at(str_val);
+    tok.pos = _pos;
+    return tok;
+}
 
-identifier:
+identifier: {
     c = _in.peek();
     if (!isspace(c) && is_id_symbol(c)) {
         (void)_in.get();
         str_val += c;
+        _pos.advance();
         goto identifier;
     }
 
     if (_keyword_map.contains(str_val)) {
-        return _keyword_map.at(str_val);
+        auto tok = _keyword_map.at(str_val);
+        tok.pos = _pos;
+        return tok;
     }
-    return Token(TokenType::Identifier, str_val);
+    return Token(TokenType::Identifier, str_val, _pos);
+}
 }
