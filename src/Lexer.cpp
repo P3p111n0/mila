@@ -81,6 +81,8 @@ q0:
         return Token(TokenType::Par_Close, ")");
     case ';':
         return Token(TokenType::Semicolon, ";");
+    case ',':
+        return Token(TokenType::Comma, ",");
     case '0': {
         str_val += c;
         goto zero;
