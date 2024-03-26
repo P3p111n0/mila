@@ -104,12 +104,10 @@ Type         -> integer
 Body_h	     -> Statement_h
 	     -> begin Statement end
 
-If_else_h1   -> Statement_h
-             -> begin Statement end
-If_else_h    -> else If_else_h1
+If_else_h    -> else Body_h
 	     ->
 If           -> if Expression then
-		   If_body_h
+		   Body_h
 	           If_else_h
 
 While        -> while Expression do Body_h
