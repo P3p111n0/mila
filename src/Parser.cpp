@@ -181,7 +181,7 @@ void Parser::Function() {
             !_st->unique_global(id.get_str())) {
             // TODO error
         }
-        _st->functions[id.get_str()];
+        _st->functions[id.get_str()]; // reserve function name
         auto old_st = _st;
         _st = _st->derive();
         FunctionRecord fn;
@@ -207,12 +207,63 @@ void Parser::Function() {
         if (!_lexer.match(TokenType::Begin)) {
             // TODO error
         }
+        old_st->functions[fn.name] = fn; // add incomplete function info
         fn.body = std::shared_ptr<ASTNode>(new ASTNodeBody(Statement()));
+        old_st->functions[fn.name] = fn; // update after parsing body
         if (!_lexer.match(TokenType::End)) {
             // TODO error
         }
         if (!_lexer.match(TokenType::Semicolon)) {
             // TODO error
+        }
+        _st = old_st;
+        break;
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+void Parser::Procedure() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Procedure: {
+        /* rule 61: Procedure -> procedure Id ( Function_arg ) ; Var_opt begin
+         * Statement end ; */
+        _lexer.match(TokenType::Procedure);
+        Token id = _lexer.get();
+        if (id.type() != TokenType::Identifier || !_st->unique_global(id.get_str())) {
+            //TODO error
+        }
+        auto old_st = _st;
+        old_st->functions[id.get_str()]; // reserve procedure name
+        _st = _st->derive();
+        FunctionRecord fn {.name = id.get_str(), .return_type = Type::Void, .symbol_table = _st};
+        if (!_lexer.match(TokenType::Par_Open)) {
+            //TODO error
+        }
+        fn.args = Function_arg();
+        fn.arity = fn.args.size();
+        if (!_lexer.match(TokenType::Par_Close)) {
+            //TODO error
+        }
+        if (!_lexer.match(TokenType::Semicolon)) {
+            //TODO error
+        }
+        Var_optional();
+        if (!_lexer.match(TokenType::Begin)) {
+            //TODO error
+        }
+        old_st->functions[fn.name] = fn; // add incomplete procedure info
+        fn.body = std::shared_ptr<ASTNode>(new ASTNodeBody(Statement()));
+        old_st->functions[fn.name] = fn; // update after parsing body
+        if (fn.symbol_table->variables.count(fn.name)) {
+            //TODO error - procedure cannot return non void
+        }
+        if (!_lexer.match(TokenType::End)) {
+            //TODO error
+        }
+        if (!_lexer.match(TokenType::Semicolon)) {
+            //TODO error
         }
         _st = old_st;
         break;

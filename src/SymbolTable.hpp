@@ -9,7 +9,8 @@
 struct SymbolTable;
 
 enum class Type {
-    Int
+    Int,
+    Void
 };
 
 struct VariableRecord {

@@ -54,6 +54,7 @@ class Parser {
     std::list<std::shared_ptr<ASTNode>> Statement();
     ASTNode * Stmt_helper();
     ASTNode * Assignment();
+    void Procedure();
 
     static bool is_mul_operator(TokenType);
     static bool is_add_operator(TokenType);
