@@ -7,6 +7,7 @@
 enum class TokenType {
     EOI,
     Semicolon,
+    Colon,
 
     // keywords
     Program,

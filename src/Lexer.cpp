@@ -96,11 +96,13 @@ q0:
     case '-':
         str_val += c;
         goto minus;
+    case ':':
+        str_val += c;
+        goto colon;
     case '*':
     case '/':
     case '<':
     case '>':
-    case ':':
     case '=': {
         str_val += c;
         goto op;
@@ -178,6 +180,13 @@ dec:
     }
     int_val = std::stoi(str_val, nullptr, 10);
     return Token(TokenType::IntVal, int_val);
+
+colon:
+    c = _in.peek();
+    if (c == '=') {
+        goto op;
+    }
+    return Token(TokenType::Colon, ":");
 
 op:
     c = _in.peek();
