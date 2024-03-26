@@ -128,7 +128,8 @@ class ASTNodeBody : public ASTNode {
 
 class ASTNodeAssign : public ASTNode {
   public:
-    ASTNodeAssign(ASTNode * lhs, ASTNode * rhs) : _lhs(lhs) , _rhs(rhs) {}
+    ASTNodeAssign(ASTNode * lhs, ASTNode * rhs) : _lhs(lhs), _rhs(rhs) {}
+
   private:
     std::shared_ptr<ASTNode> _lhs;
     std::shared_ptr<ASTNode> _rhs;
@@ -137,4 +138,17 @@ class ASTNodeAssign : public ASTNode {
 class ASTNodeExit : public ASTNode {
   public:
     ASTNodeExit() = default;
+};
+
+class ASTNodeIf : public ASTNode {
+  public:
+    ASTNodeIf(ASTNode * cond, ASTNode * body)
+        : _cond(cond), _body(body), _else(std::nullopt) {}
+    ASTNodeIf(ASTNode * cond, ASTNode * body, ASTNode * else_b)
+        : _cond(cond), _body(body), _else(std::shared_ptr<ASTNode>(else_b)) {}
+
+  private:
+    std::shared_ptr<ASTNode> _cond;
+    std::shared_ptr<ASTNode> _body;
+    std::optional<std::shared_ptr<ASTNode>> _else;
 };

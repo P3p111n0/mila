@@ -80,6 +80,27 @@ void Parser::Var_optional() {
     }
 }
 
+ASTNode * Parser::Body() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Identifier:
+    case TokenType::Exit:
+    case TokenType::If:
+    case TokenType::While:
+    case TokenType::For:
+        /* rule 34: Body_h -> Statement_h */
+        return Stmt_helper();
+    case TokenType::Begin: {
+        /* rule 35: Body_h -> begin Statement end */
+        _lexer.match(TokenType::Begin);
+        auto stmts = Statement();
+        _lexer.match(TokenType::End);
+        return new ASTNodeBody(stmts);
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
 ASTNode * Parser::Assignment() {
     switch (_lexer.peek().type()) {
     case TokenType::Identifier: {
@@ -96,6 +117,36 @@ ASTNode * Parser::Assignment() {
     }
 }
 
+ASTNode * Parser::If() {
+    switch(_lexer.peek().type()) {
+    case TokenType::If: {
+        /* rule 40: If -> if Expression then If_body_h If_else_h */
+        _lexer.match(TokenType::If);
+        ASTNode * cond = Expression();
+        if (!_lexer.match(TokenType::Then)) {
+            //TODO error
+        }
+        ASTNode * body = Body();
+
+        switch(_lexer.peek().type()) {
+        case TokenType::Else: {
+            /* rule 38: If_else_h -> else If_else_h1 */
+            _lexer.match(TokenType::Else);
+            ASTNode * else_branch = Body();
+            return new ASTNodeIf(cond, body, else_branch);
+        }
+        case TokenType::Semicolon:
+        case TokenType::End:
+            return new ASTNodeIf(cond, body);
+        default:
+            throw std::runtime_error("ahoj");
+        }
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
 ASTNode * Parser::Stmt_helper() {
     switch (_lexer.peek().type()) {
     case TokenType::Identifier:
@@ -103,8 +154,7 @@ ASTNode * Parser::Stmt_helper() {
         return Assignment();
     case TokenType::If:
         /* rule 23: Statement_h -> If */
-        If();
-        break;
+        return If();
     case TokenType::While:
         /* rule 24: Statement_h -> While */
         While();
