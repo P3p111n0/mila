@@ -4,7 +4,7 @@ Parser::Parser()
     : MilaContext(), MilaBuilder(MilaContext), MilaModule("mila", MilaContext),
       _st(std::make_shared<SymbolTable>()) {}
 
-bool Parser::is_mul_operator(TokenType t) const {
+bool Parser::is_mul_operator(TokenType t) {
     switch (t) {
     case TokenType::Op_Mul:
     case TokenType::Op_Div:
@@ -16,7 +16,7 @@ bool Parser::is_mul_operator(TokenType t) const {
     }
 }
 
-bool Parser::is_add_operator(TokenType t) const {
+bool Parser::is_add_operator(TokenType t) {
     switch (t) {
     case TokenType::Op_Plus:
     case TokenType::Op_Minus:
@@ -28,8 +28,8 @@ bool Parser::is_add_operator(TokenType t) const {
     }
 }
 
-bool Parser::is_rel_operator(TokenType t) const {
-    switch (_lexer.peek().type()) {
+bool Parser::is_rel_operator(TokenType t) {
+    switch (t) {
     case TokenType::Op_Equal:
     case TokenType::Op_NotEqual:
     case TokenType::Op_Lt:
@@ -39,6 +39,183 @@ bool Parser::is_rel_operator(TokenType t) const {
         return true;
     default:
         return false;
+    }
+}
+
+bool Parser::is_statement(TokenType t) {
+    switch(t) {
+    case TokenType::Identifier:
+    case TokenType::Exit:
+    case TokenType::If:
+    case TokenType::While:
+    case TokenType::For:
+        return true;
+    default:
+        return false;
+    }
+}
+
+Type Parser::Var_type() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Integer:
+        return Type::Int;
+    default:
+        throw std::runtime_error("type - unknown type"); // TODO error
+    }
+}
+
+void Parser::Var_optional() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Var:
+        /* rule 52: Var_opt -> Var */
+        Var();
+        break;
+    case TokenType::Function:
+    case TokenType::Procedure:
+    case TokenType::Begin:
+        /* rule 53: Var_opt ->  */
+        break;
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+ASTNode * Parser::Assignment() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Identifier: {
+        /* rule 21: Assignment -> Id := Expression */
+        Token id = _lexer.get();
+        if (!_lexer.match(TokenType::Op_Assign)) {
+            //TODO error
+        }
+        ASTNode * rhs = Expression();
+        return new ASTNodeAssign(new ASTNodeIdentifier(id.get_str()), rhs);
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+ASTNode * Parser::Stmt_helper() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Identifier:
+        /* rule 22: Statement_h -> Assignment */
+        return Assignment();
+    case TokenType::If:
+        /* rule 23: Statement_h -> If */
+        If();
+        break;
+    case TokenType::While:
+        /* rule 24: Statement_h -> While */
+        While();
+        break;
+    case TokenType::For:
+        /* rule 25: Statement_h -> For */
+        For();
+        break;
+    case TokenType::Exit:
+        /* rule 27: Statement_h -> exit */
+        _lexer.match(TokenType::Exit);
+        return new ASTNodeExit();
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+std::list<std::shared_ptr<ASTNode>> Parser::Statement() {
+    std::list<std::shared_ptr<ASTNode>> res;
+    res.emplace_back(Stmt_helper());
+
+    switch(_lexer.peek().type()) {
+    case TokenType::Semicolon: {
+        _lexer.match(TokenType::Semicolon);
+        while (is_statement(_lexer.peek().type())) {
+            res.emplace_back(Stmt_helper());
+            if (_lexer.peek().type() == TokenType::Semicolon) {
+                _lexer.match(TokenType::Semicolon);
+            }
+        }
+        if (!_lexer.match(TokenType::End)) {
+            //TODO error
+        }
+        return res;
+    }
+    case TokenType::End:
+        return res;
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+std::list<VariableRecord> Parser::Function_arg() {
+    std::list<VariableRecord> res;
+    switch(_lexer.peek().type()) {
+    case TokenType::Identifier: {
+        /* rule 58: Function_arg -> Var_decl Fn_arg_h */
+        res.emplace_back(Var_declaration());
+        while (_lexer.peek().type() == TokenType::Comma) {
+            (void)_lexer.get();
+            res.emplace_back(Var_declaration());
+        }
+        if (!_lexer.match(TokenType::Par_Close)) {
+            // TODO error
+        }
+        return res;
+    }
+    case TokenType::Par_Close:
+        /* rule 59: Function_arg ->  */
+        return {};
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+void Parser::Function() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Function: {
+        /* rule 60: Function -> function Id ( Function_arg ) : Type ; Var_opt
+         * begin Statement end ; */
+        _lexer.match(TokenType::Function);
+        Token id = _lexer.get();
+        if (id.type() != TokenType::Identifier || !_st->unique_global(id.get_str())) {
+            //TODO error
+        }
+        _st->functions[id.get_str()];
+        auto old_st = _st;
+        _st = _st->derive();
+        FunctionRecord fn;
+        fn.name = id.get_str(), fn.symbol_table = _st;
+        if (!_lexer.match(TokenType::Par_Open)) {
+            //TODO error
+        }
+        fn.args = Function_arg();
+        fn.arity = fn.args.size();
+        if (!_lexer.match(TokenType::Par_Close)) {
+            //TODO error
+        }
+        if (!_lexer.match(TokenType::Colon)) {
+            //TODO error
+        }
+        fn.return_type = Var_type();
+        if (!_lexer.match(TokenType::Semicolon)) {
+            //TODO error
+        }
+        Var_optional();
+        if (!_lexer.match(TokenType::Begin)) {
+            //TODO error
+        }
+        fn.body = std::shared_ptr<ASTNode>(new ASTNodeBody(Statement()));
+        if (!_lexer.match(TokenType::End)) {
+            //TODO error
+        }
+        if (!_lexer.match(TokenType::Semicolon)) {
+            //TODO error
+        }
+        _st = old_st;
+        break;
+    }
+    default:
+        throw std::runtime_error("ahoj");
     }
 }
 
@@ -94,7 +271,7 @@ void Parser::Const() {
     }
 }
 
-void Parser::Var_declaration() {
+VariableRecord Parser::Var_declaration() {
     switch(_lexer.peek().type()) {
     case TokenType::Identifier: {
         /* rule 48: Var_decl -> Id : Type */
@@ -105,16 +282,7 @@ void Parser::Var_declaration() {
         if (!_lexer.match(TokenType::Colon)) {
             //TODO error
         }
-        Token type = _lexer.get();
-        Type var_type;
-        switch(type.type()) {
-        case TokenType::Integer: {
-            var_type = Type::Int;
-            break;
-        }
-        default:
-            throw std::runtime_error("var type error");
-        }
+        Type var_type = Var_type();
         _st->variables[id.get_str()] = {id.get_str(), var_type};
         break;
     }
@@ -127,7 +295,7 @@ void Parser::Var_recursive() {
     switch(_lexer.peek().type()) {
     case TokenType::Identifier:
         /* rule 49: Var_h -> Var_decl ; Var_h */
-        Var_declaration();
+        (void)Var_declaration();
         if (!_lexer.match(TokenType::Semicolon)) {
             //TODO error
         }

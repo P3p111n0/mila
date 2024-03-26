@@ -39,3 +39,10 @@ std::optional<VariableRecord> SymbolTable::lookup_variable(const std::string & n
 bool SymbolTable::unique_in_current_scope(const std::string & name) const {
     return !(constants.count(name) || variables.count(name) || functions.count(name));
 }
+
+bool SymbolTable::unique_global(const std::string & name) const {
+    auto fn = lookup_function(name);
+    auto var = lookup_variable(name);
+    auto cst = lookup_constant(name);
+    return !(fn.has_value() || var.has_value() || cst.has_value());
+}

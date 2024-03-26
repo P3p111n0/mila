@@ -11,6 +11,7 @@ class ASTNode {
 class ASTNodeInt : public ASTNode {
   public:
     ASTNodeInt(int val) : _val(val) {}
+
   private:
     int _val;
 };
@@ -18,6 +19,7 @@ class ASTNodeInt : public ASTNode {
 class ASTNodeIdentifier : public ASTNode {
   public:
     ASTNodeIdentifier(std::string name) : _name(std::move(name)) {}
+
   private:
     std::string _name;
 };
@@ -113,4 +115,26 @@ class ASTNodeLtE : public ASTNodeBinary {
 class ASTNodeGtE : public ASTNodeBinary {
   public:
     ASTNodeGtE(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+};
+
+class ASTNodeBody : public ASTNode {
+  public:
+    ASTNodeBody(std::list<std::shared_ptr<ASTNode>> statements)
+        : _stmts(std::move(statements)) {}
+
+  private:
+    std::list<std::shared_ptr<ASTNode>> _stmts;
+};
+
+class ASTNodeAssign : public ASTNode {
+  public:
+    ASTNodeAssign(ASTNode * lhs, ASTNode * rhs) : _lhs(lhs) , _rhs(rhs) {}
+  private:
+    std::shared_ptr<ASTNode> _lhs;
+    std::shared_ptr<ASTNode> _rhs;
+};
+
+class ASTNodeExit : public ASTNode {
+  public:
+    ASTNodeExit() = default;
 };

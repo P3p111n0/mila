@@ -21,8 +21,9 @@ struct FunctionRecord {
     std::string name;
     Type return_type;
     std::list<VariableRecord> args;
-    int arity;
+    std::size_t arity;
     std::shared_ptr<SymbolTable> symbol_table;
+    std::shared_ptr<ASTNode> body;
 };
 
 struct SymbolTable {
@@ -35,6 +36,7 @@ struct SymbolTable {
     std::optional<std::shared_ptr<ASTNode>> lookup_constant(const std::string &) const;
 
     bool unique_in_current_scope(const std::string &) const;
+    bool unique_global(const std::string &) const;
 
     std::unordered_map<std::string, FunctionRecord> functions;
     std::unordered_map<std::string, std::shared_ptr<ASTNode>> constants;

@@ -30,11 +30,12 @@ class Parser {
     Token getNextToken();
 
     Lexer _lexer; // lexer is used to read tokens
-    std::shared_ptr<SymbolTable> _st;
 
     llvm::LLVMContext MilaContext; // llvm context
     llvm::IRBuilder<> MilaBuilder; // llvm builder
     llvm::Module MilaModule;       // llvm module
+
+    std::shared_ptr<SymbolTable> _st;
 
     ASTNode * Factor();
     ASTNode * Expression();
@@ -44,13 +45,20 @@ class Parser {
     void Const();
     void Const_recursive();
     void Var();
-    void Var_declaration();
-
+    void Var_optional();
     void Var_recursive();
+    VariableRecord Var_declaration();
+    void Function();
+    std::list<VariableRecord> Function_arg();
+    Type Var_type();
+    std::list<std::shared_ptr<ASTNode>> Statement();
+    ASTNode * Stmt_helper();
+    ASTNode * Assignment();
 
-    bool is_mul_operator(TokenType) const;
-    bool is_add_operator(TokenType) const;
-    bool is_rel_operator(TokenType) const;
+    static bool is_mul_operator(TokenType);
+    static bool is_add_operator(TokenType);
+    static bool is_rel_operator(TokenType);
+    static bool is_statement(TokenType);
 };
 
 #endif // PJPPROJECT_PARSER_HPP
