@@ -156,7 +156,20 @@ class ASTNodeIf : public ASTNode {
 class ASTNodeWhile : public ASTNode {
   public:
     ASTNodeWhile(ASTNode * cond, ASTNode * body) : _cond(cond), _body(body) {}
+
   private:
     std::shared_ptr<ASTNode> _cond;
     std::shared_ptr<ASTNode> _body;
+};
+
+class ASTNodeFor : public ASTNode {
+  public:
+    ASTNodeFor(ASTNode * var, ASTNode * stop, ASTNode * body, bool is_downto)
+        : _it_var(var), _it_stop(stop), _body(body), _is_downto(is_downto) {}
+
+  private:
+    std::shared_ptr<ASTNode> _it_var;
+    std::shared_ptr<ASTNode> _it_stop;
+    std::shared_ptr<ASTNode> _body;
+    bool _is_downto;
 };

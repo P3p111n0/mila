@@ -81,7 +81,7 @@ void Parser::Var_optional() {
 }
 
 ASTNode * Parser::Body() {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::Identifier:
     case TokenType::Exit:
     case TokenType::If:
@@ -118,17 +118,17 @@ ASTNode * Parser::Assignment() {
 }
 
 ASTNode * Parser::If() {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::If: {
         /* rule 40: If -> if Expression then If_body_h If_else_h */
         _lexer.match(TokenType::If);
         ASTNode * cond = Expression();
         if (!_lexer.match(TokenType::Then)) {
-            //TODO error
+            // TODO error
         }
         ASTNode * body = Body();
 
-        switch(_lexer.peek().type()) {
+        switch (_lexer.peek().type()) {
         case TokenType::Else: {
             /* rule 38: If_else_h -> else If_else_h1 */
             _lexer.match(TokenType::Else);
@@ -148,7 +148,7 @@ ASTNode * Parser::If() {
 }
 
 ASTNode * Parser::While() {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::While: {
         /* rule 41: While -> while Expression do Body_h */
         _lexer.match(TokenType::While);
@@ -158,6 +158,41 @@ ASTNode * Parser::While() {
         }
         ASTNode * body = Body();
         return new ASTNodeWhile(cond, body);
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
+ASTNode * Parser::For() {
+    switch(_lexer.peek().type()) {
+    case TokenType::For: {
+        /* rule 44: For -> for Assignment For_to Expression do Body_h */
+        _lexer.match(TokenType::For);
+        ASTNode * iter_var = Assignment();
+        bool is_downto = false;
+
+        switch (_lexer.peek().type()) {
+        case TokenType::To:
+            /* rule 42: For_to -> to */
+            _lexer.match(TokenType::To);
+            break;
+        case TokenType::Downto: {
+            /* rule 43: For_to -> downto */
+            _lexer.match(TokenType::Downto);
+            is_downto = true;
+            break;
+        }
+        default:
+            throw std::runtime_error("ahoj");
+        }
+
+        ASTNode * iter_stop = Expression();
+        if (!_lexer.match(TokenType::Do)) {
+            //TODO error
+        }
+        ASTNode * body = Body();
+        return new ASTNodeFor(iter_var, iter_stop, body, is_downto);
     }
     default:
         throw std::runtime_error("ahoj");
@@ -175,11 +210,9 @@ ASTNode * Parser::Stmt_helper() {
     case TokenType::While:
         /* rule 24: Statement_h -> While */
         return While();
-        break;
     case TokenType::For:
         /* rule 25: Statement_h -> For */
-        For();
-        break;
+        return For();
     case TokenType::Exit:
         /* rule 27: Statement_h -> exit */
         _lexer.match(TokenType::Exit);
@@ -292,45 +325,48 @@ void Parser::Function() {
 }
 
 void Parser::Procedure() {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::Procedure: {
         /* rule 61: Procedure -> procedure Id ( Function_arg ) ; Var_opt begin
          * Statement end ; */
         _lexer.match(TokenType::Procedure);
         Token id = _lexer.get();
-        if (id.type() != TokenType::Identifier || !_st->unique_global(id.get_str())) {
-            //TODO error
+        if (id.type() != TokenType::Identifier ||
+            !_st->unique_global(id.get_str())) {
+            // TODO error
         }
         auto old_st = _st;
         old_st->functions[id.get_str()]; // reserve procedure name
         _st = _st->derive();
-        FunctionRecord fn {.name = id.get_str(), .return_type = Type::Void, .symbol_table = _st};
+        FunctionRecord fn{.name = id.get_str(),
+                          .return_type = Type::Void,
+                          .symbol_table = _st};
         if (!_lexer.match(TokenType::Par_Open)) {
-            //TODO error
+            // TODO error
         }
         fn.args = Function_arg();
         fn.arity = fn.args.size();
         if (!_lexer.match(TokenType::Par_Close)) {
-            //TODO error
+            // TODO error
         }
         if (!_lexer.match(TokenType::Semicolon)) {
-            //TODO error
+            // TODO error
         }
         Var_optional();
         if (!_lexer.match(TokenType::Begin)) {
-            //TODO error
+            // TODO error
         }
         old_st->functions[fn.name] = fn; // add incomplete procedure info
         fn.body = std::shared_ptr<ASTNode>(new ASTNodeBody(Statement()));
         old_st->functions[fn.name] = fn; // update after parsing body
         if (fn.symbol_table->variables.count(fn.name)) {
-            //TODO error - procedure cannot return non void
+            // TODO error - procedure cannot return non void
         }
         if (!_lexer.match(TokenType::End)) {
-            //TODO error
+            // TODO error
         }
         if (!_lexer.match(TokenType::Semicolon)) {
-            //TODO error
+            // TODO error
         }
         _st = old_st;
         break;
