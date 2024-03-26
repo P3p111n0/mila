@@ -19,6 +19,7 @@ enum class TokenType {
     End,
     If,
     Then,
+    Else,
     While,
     Do,
     For,

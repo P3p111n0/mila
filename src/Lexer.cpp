@@ -32,7 +32,8 @@ const std::unordered_map<std::string, Token> _keyword_map = {
     {"not", Token(TokenType::Op_Not, "not")},
     {"xor", Token(TokenType::Op_Xor, "xor")},
     {"to", Token(TokenType::To, "to")},
-    {"downto", Token(TokenType::Downto, "downto")}};
+    {"downto", Token(TokenType::Downto, "downto")},
+    {"else", Token(TokenType::Else, "else")}};
 
 const std::unordered_map<std::string, Token> _op_map = {
     {"+", Token(TokenType::Op_Plus, "+")},
