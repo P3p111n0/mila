@@ -147,6 +147,23 @@ ASTNode * Parser::If() {
     }
 }
 
+ASTNode * Parser::While() {
+    switch(_lexer.peek().type()) {
+    case TokenType::While: {
+        /* rule 41: While -> while Expression do Body_h */
+        _lexer.match(TokenType::While);
+        ASTNode * cond = Expression();
+        if (!_lexer.match(TokenType::Do)) {
+            // TODO error
+        }
+        ASTNode * body = Body();
+        return new ASTNodeWhile(cond, body);
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
 ASTNode * Parser::Stmt_helper() {
     switch (_lexer.peek().type()) {
     case TokenType::Identifier:
@@ -157,7 +174,7 @@ ASTNode * Parser::Stmt_helper() {
         return If();
     case TokenType::While:
         /* rule 24: Statement_h -> While */
-        While();
+        return While();
         break;
     case TokenType::For:
         /* rule 25: Statement_h -> For */

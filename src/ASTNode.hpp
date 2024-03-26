@@ -152,3 +152,11 @@ class ASTNodeIf : public ASTNode {
     std::shared_ptr<ASTNode> _body;
     std::optional<std::shared_ptr<ASTNode>> _else;
 };
+
+class ASTNodeWhile : public ASTNode {
+  public:
+    ASTNodeWhile(ASTNode * cond, ASTNode * body) : _cond(cond), _body(body) {}
+  private:
+    std::shared_ptr<ASTNode> _cond;
+    std::shared_ptr<ASTNode> _body;
+};
