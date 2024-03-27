@@ -65,6 +65,9 @@ struct Position {
         row++;
         column = 0;
     }
+    friend std::ostream & operator<<(std::ostream & os, const Position & pos) {
+        return os << pos.row << ':' << pos.column;
+    }
     std::size_t row;
     std::size_t column;
 };

@@ -27,6 +27,26 @@ class Parser {
     const llvm::Module & Generate(); // generate
 
   private:
+    class ErrorLog {
+      public:
+        ErrorLog(Position pos, std::string msg) : _pos(pos), _msg(std::move(msg)) {}
+        friend std::ostream & operator<<(std::ostream & os, const ErrorLog & err) {
+            const char * red_fmt = "\033[31m";
+            const char * fmt_clear = "\033[m";
+            bool in_term = isatty(STDOUT_FILENO);
+
+            if (in_term) {
+                os << red_fmt << "[ERROR] " << fmt_clear;
+            } else {
+                os << "[ERROR] ";
+            }
+            os << "Near " << err._pos << ": " << err._msg;
+            return os;
+        }
+      private:
+        Position _pos;
+        std::string _msg;
+    };
     Token getNextToken();
 
     Lexer _lexer; // lexer is used to read tokens
