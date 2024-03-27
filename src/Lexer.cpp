@@ -86,6 +86,8 @@ q0:
         return Token(TokenType::Semicolon, ";", _pos);
     case ',':
         return Token(TokenType::Comma, ",", _pos);
+    case '.':
+        return Token(TokenType::Period, ".", _pos);
     case '{':
         goto comment;
     case '0': {

@@ -10,7 +10,7 @@ int main (int argc, char *argv[])
         return 1;
     }
 
-    parser.Generate().print(llvm::outs(), nullptr);
+    //parser.Generate().print(llvm::outs(), nullptr);
 
     return 0;
 }

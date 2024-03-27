@@ -9,6 +9,7 @@ enum class TokenType {
     Semicolon,
     Colon,
     Comma,
+    Period,
 
     // keywords
     Program,

@@ -62,7 +62,8 @@ Type Parser::Var_type() {
         return Type::Int;
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing var type: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing var type: " +
+                                       tok.get_str());
         return Type(-1);
     }
     }
@@ -81,7 +82,9 @@ void Parser::Var_optional() {
         break;
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing optional var declaration: " + tok.get_str());
+        _err.emplace_back(
+            tok.pos, "Unknown token when parsing optional var declaration: " +
+                         tok.get_str());
     }
     }
 }
@@ -101,13 +104,15 @@ ASTNode * Parser::Body() {
         _lexer.match(TokenType::Begin);
         auto stmts = Statement();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
-            _err.emplace_back(tok.pos, "\'end\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "\'end\' expected, got: " + tok.get_str());
         }
         return new ASTNodeBody(stmts);
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing body: " + tok.get_str());
+        _err.emplace_back(tok.pos,
+                          "Unknown token when parsing body: " + tok.get_str());
         return nullptr;
     }
     }
@@ -119,14 +124,16 @@ ASTNode * Parser::Assignment() {
         /* rule 21: Assignment -> Id := Expression */
         Token id = _lexer.get();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Op_Assign)) {
-            _err.emplace_back(tok.pos, "\':=\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "\':=\' expected, got: " + tok.get_str());
         }
         ASTNode * rhs = Expression();
         return new ASTNodeAssign(new ASTNodeIdentifier(id.get_str()), rhs);
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing assignment: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing assignment: " +
+                                       tok.get_str());
         return nullptr;
     }
     }
@@ -139,7 +146,8 @@ ASTNode * Parser::If() {
         _lexer.match(TokenType::If);
         ASTNode * cond = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Then)) {
-            _err.emplace_back(tok.pos, "\'then\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "\'then\' expected, got: " + tok.get_str());
         }
         ASTNode * body = Body();
 
@@ -155,14 +163,16 @@ ASTNode * Parser::If() {
             return new ASTNodeIf(cond, body);
         default: {
             Token tok = _lexer.get();
-            _err.emplace_back(tok.pos, "else/end/semicolon expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos, "else/end/semicolon expected, got: " +
+                                           tok.get_str());
             return nullptr;
         }
         }
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing if statement: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing if statement: " +
+                                       tok.get_str());
         return nullptr;
     }
     }
@@ -175,14 +185,16 @@ ASTNode * Parser::While() {
         _lexer.match(TokenType::While);
         ASTNode * cond = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Do)) {
-            _err.emplace_back(tok.pos, "\'do\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "\'do\' expected, got: " + tok.get_str());
         }
         ASTNode * body = Body();
         return new ASTNodeWhile(cond, body);
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing while loop: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing while loop: " +
+                                       tok.get_str());
         return nullptr;
     }
     }
@@ -209,20 +221,23 @@ ASTNode * Parser::For() {
         }
         default: {
             Token tok = _lexer.get();
-            _err.emplace_back(tok.pos, "\'to\'/\'downto\' exprected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos, "\'to\'/\'downto\' exprected, got: " +
+                                           tok.get_str());
         }
         }
 
         ASTNode * iter_stop = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Do)) {
-            _err.emplace_back(tok.pos, "\'do\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "\'do\' expected, got: " + tok.get_str());
         }
         ASTNode * body = Body();
         return new ASTNodeFor(iter_var, iter_stop, body, is_downto);
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing for loop: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing for loop: " +
+                                       tok.get_str());
         return nullptr;
     }
     }
@@ -252,7 +267,8 @@ ASTNode * Parser::Stmt_helper() {
         return new ASTNodeBreak();
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing statement: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing statement: " +
+                                       tok.get_str());
         return nullptr;
     }
     }
@@ -272,7 +288,8 @@ std::list<std::shared_ptr<ASTNode>> Parser::Statement() {
             }
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
-            _err.emplace_back(tok.pos, "\'end\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "\'end\' expected, got: " + tok.get_str());
         }
         return res;
     }
@@ -280,7 +297,8 @@ std::list<std::shared_ptr<ASTNode>> Parser::Statement() {
         return res;
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing statement: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing statement: " +
+                                       tok.get_str());
         return {};
     }
     }
@@ -306,7 +324,9 @@ std::list<VariableRecord> Parser::Function_arg() {
         return {};
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing function variables: " + tok.get_str());
+        _err.emplace_back(tok.pos,
+                          "Unknown token when parsing function variables: " +
+                              tok.get_str());
         return {};
     }
     }
@@ -320,10 +340,12 @@ void Parser::Function() {
         _lexer.match(TokenType::Function);
         Token id = _lexer.get();
         if (id.type() != TokenType::Identifier) {
-            _err.emplace_back(id.pos, "identifier expected, got: " + id.get_str());
+            _err.emplace_back(id.pos,
+                              "identifier expected, got: " + id.get_str());
         }
         if (!_st->unique_global(id.get_str())) {
-            _err.emplace_back(id.pos, "function name is not unique: " + id.get_str());
+            _err.emplace_back(id.pos,
+                              "function name is not unique: " + id.get_str());
         }
         _st->functions[id.get_str()]; // reserve function name
         auto old_st = _st;
@@ -331,41 +353,57 @@ void Parser::Function() {
         FunctionRecord fn;
         fn.name = id.get_str(), fn.symbol_table = _st;
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Open)) {
-            _err.emplace_back(tok.pos, "in function signature: \'(\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in function signature: \'(\' expected, got: " +
+                                  tok.get_str());
         }
         fn.args = Function_arg();
         fn.arity = fn.args.size();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Close)) {
-            _err.emplace_back(tok.pos, "in function signature: \'(\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in function signature: \'(\' expected, got: " +
+                                  tok.get_str());
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Colon)) {
-            _err.emplace_back(tok.pos, "in function signature: \':\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in function signature: \':\' expected, got: " +
+                                  tok.get_str());
         }
         fn.return_type = Var_type();
         // implicit return value variable
         fn.symbol_table->variables[fn.name] = {fn.name, fn.return_type};
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
-            _err.emplace_back(tok.pos, "in function signature: \';\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in function signature: \';\' expected, got: " +
+                                  tok.get_str());
         }
         Var_optional();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
-            _err.emplace_back(tok.pos, "in function body: \'begin\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in function body: \'begin\' expected, got: " +
+                                  tok.get_str());
         }
         old_st->functions[fn.name] = fn; // add incomplete function info
         fn.body = std::shared_ptr<ASTNode>(new ASTNodeBody(Statement()));
         old_st->functions[fn.name] = fn; // update after parsing body
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
-            _err.emplace_back(tok.pos, "in function body: \'end\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in function body: \'end\' expected, got: " +
+                                  tok.get_str());
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
-            _err.emplace_back(tok.pos, "in function body: \';\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in function body: \';\' expected, got: " +
+                                  tok.get_str());
         }
         _st = old_st;
         break;
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing function declaration: " + tok.get_str());
+        _err.emplace_back(tok.pos,
+                          "Unknown token when parsing function declaration: " +
+                              tok.get_str());
     }
     }
 }
@@ -379,10 +417,15 @@ void Parser::Procedure() {
         _lexer.match(TokenType::Procedure);
         Token id = _lexer.get();
         if (id.type() != TokenType::Identifier) {
-            _err.emplace_back(id.pos, "in procedure signature: identifier expected, got: " + id.get_str());
+            _err.emplace_back(
+                id.pos, "in procedure signature: identifier expected, got: " +
+                            id.get_str());
         }
         if (!_st->unique_global(id.get_str())) {
-            _err.emplace_back(id.pos, "in procedure signature: procedure name is not unique: " + id.get_str());
+            _err.emplace_back(
+                id.pos,
+                "in procedure signature: procedure name is not unique: " +
+                    id.get_str());
         }
         auto old_st = _st;
         old_st->functions[id.get_str()]; // reserve procedure name
@@ -391,38 +434,77 @@ void Parser::Procedure() {
                           .return_type = Type::Void,
                           .symbol_table = _st};
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Open)) {
-            _err.emplace_back(tok.pos, "in procedure signature: \'(\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in procedure signature: \'(\' expected, got: " +
+                                  tok.get_str());
         }
         fn.args = Function_arg();
         fn.arity = fn.args.size();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Close)) {
-            _err.emplace_back(tok.pos, "in procedure signature: \')\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in procedure signature: \')\' expected, got: " +
+                                  tok.get_str());
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
-            _err.emplace_back(tok.pos, "in procedure signature: \';\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in procedure signature: \';\' expected, got: " +
+                                  tok.get_str());
         }
         Var_optional();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
-            _err.emplace_back(tok.pos, "in procedure body: \'begin\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in procedure body: \'begin\' expected, got: " +
+                                  tok.get_str());
         }
         old_st->functions[fn.name] = fn; // add incomplete procedure info
         fn.body = std::shared_ptr<ASTNode>(new ASTNodeBody(Statement()));
         old_st->functions[fn.name] = fn; // update after parsing body
         if (fn.symbol_table->variables.count(fn.name)) {
-            _err.emplace_back(fn_sign_pos, "Procedure return type cannot be non-void: ");
+            _err.emplace_back(fn_sign_pos,
+                              "Procedure return type cannot be non-void: ");
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
-            _err.emplace_back(tok.pos, "in procedure body: \'end\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in procedure body: \'end\' expected, got: " +
+                                  tok.get_str());
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
-            _err.emplace_back(tok.pos, "in procedure body: \';\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in procedure body: \';\' expected, got: " +
+                                  tok.get_str());
         }
         _st = old_st;
         break;
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing procedure declaration: " + tok.get_str());
+        _err.emplace_back(tok.pos,
+                          "Unknown token when parsing procedure declaration: " +
+                              tok.get_str());
+    }
+    }
+}
+
+void Parser::Fun_prod_def_rec() {
+    switch (_lexer.peek().type()) {
+    case TokenType::Function:
+        /* rule 62: Fn_prod -> Function Fn_prod */
+        Function();
+        Fun_prod_def_rec();
+        break;
+    case TokenType::Procedure:
+        /* rule 63: Fn_prod -> Procedure Fn_prod */
+        Procedure();
+        Fun_prod_def_rec();
+        break;
+    case TokenType::Begin:
+        /* rule 64: Fn_prod ->  */
+        break;
+    default: {
+        auto tok = _lexer.get();
+        _err.emplace_back(tok.pos,
+                          "function/procedure definition expected, got: " +
+                              tok.get_str());
     }
     }
 }
@@ -433,17 +515,27 @@ void Parser::Const_recursive() {
         /* rule 45: Const_h -> Id = Expression ; Const_h */
         auto identifier = _lexer.get();
         if (identifier.type() != TokenType::Identifier) {
-            _err.emplace_back(identifier.pos, "in constant declaration: identifier expected, got: " + identifier.get_str());
+            _err.emplace_back(
+                identifier.pos,
+                "in constant declaration: identifier expected, got: " +
+                    identifier.get_str());
         }
         if (_st->lookup_constant(identifier.get_str()).has_value()) {
-            _err.emplace_back(identifier.pos, "in constant declaration: redefinition of constant: " + identifier.get_str());
+            _err.emplace_back(
+                identifier.pos,
+                "in constant declaration: redefinition of constant: " +
+                    identifier.get_str());
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Op_Equal)) {
-            _err.emplace_back(tok.pos, "in constant declaration: \'=\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in constant declaration: \'=\' expected, got: " +
+                                  tok.get_str());
         }
         ASTNode * lhs = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
-            _err.emplace_back(tok.pos, "in constant declaration: \';\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in constant declaration: \';\' expected, got: " +
+                                  tok.get_str());
         }
         _st->constants[identifier.get_str()] = std::shared_ptr<ASTNode>(lhs);
         Const_recursive();
@@ -457,7 +549,8 @@ void Parser::Const_recursive() {
         break;
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing constants: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing constants: " +
+                                       tok.get_str());
     }
     }
 }
@@ -469,17 +562,27 @@ void Parser::Const() {
         _lexer.match(TokenType::Const);
         auto identifier = _lexer.get();
         if (identifier.type() != TokenType::Identifier) {
-            _err.emplace_back(identifier.pos, "in constant declaration: identifier expected, got: " + identifier.get_str());
+            _err.emplace_back(
+                identifier.pos,
+                "in constant declaration: identifier expected, got: " +
+                    identifier.get_str());
         }
         if (_st->lookup_constant(identifier.get_str()).has_value()) {
-            _err.emplace_back(identifier.pos, "in constant declaration: redefinition of constant: " + identifier.get_str());
+            _err.emplace_back(
+                identifier.pos,
+                "in constant declaration: redefinition of constant: " +
+                    identifier.get_str());
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Op_Equal)) {
-            _err.emplace_back(tok.pos, "in constant declaration: \'=\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in constant declaration: \'=\' expected, got: " +
+                                  tok.get_str());
         }
         ASTNode * lhs = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
-            _err.emplace_back(tok.pos, "in constant declaration: \';\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in constant declaration: \';\' expected, got: " +
+                                  tok.get_str());
         }
         _st->constants[identifier.get_str()] = std::shared_ptr<ASTNode>(lhs);
         Const_recursive();
@@ -487,7 +590,27 @@ void Parser::Const() {
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing constants: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing constants: " +
+                                       tok.get_str());
+    }
+    }
+}
+
+void Parser::Const_optional() {
+    switch (_lexer.peek().type()) {
+    case TokenType::Const:
+        /* rule 54: Const_opt -> Const */
+        Const();
+        break;
+    case TokenType::Var:
+    case TokenType::Function:
+    case TokenType::Procedure:
+    case TokenType::Begin:
+        /* rule 55: Const_opt ->  */
+        break;
+    default: {
+        auto tok = _lexer.get();
+        _err.emplace_back(tok.pos, "\'const\' expected, got: " + tok.get_str());
     }
     }
 }
@@ -498,10 +621,14 @@ VariableRecord Parser::Var_declaration() {
         /* rule 48: Var_decl -> Id : Type */
         Token id = _lexer.get();
         if (!_st->unique_in_current_scope(id.get_str())) {
-            _err.emplace_back(id.pos, "in variable declaration: redefinition of variable: " + id.get_str());
+            _err.emplace_back(
+                id.pos, "in variable declaration: redefinition of variable: " +
+                            id.get_str());
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Colon)) {
-            _err.emplace_back(tok.pos, "in variable declaration: \':\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in variable declaration: \':\' expected, got: " +
+                                  tok.get_str());
         }
         Type var_type = Var_type();
         VariableRecord var_record = {id.get_str(), var_type};
@@ -510,7 +637,9 @@ VariableRecord Parser::Var_declaration() {
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token parsing variable declaration: " + tok.get_str());
+        _err.emplace_back(tok.pos,
+                          "Unknown token parsing variable declaration: " +
+                              tok.get_str());
         return {};
     }
     }
@@ -522,7 +651,9 @@ void Parser::Var_recursive() {
         /* rule 49: Var_h -> Var_decl ; Var_h */
         (void)Var_declaration();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
-            _err.emplace_back(tok.pos, "in variable declaration: \';\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in variable declaration: \';\' expected, got: " +
+                                  tok.get_str());
         }
         Var_recursive();
         break;
@@ -533,7 +664,9 @@ void Parser::Var_recursive() {
         break;
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing variable declarations: " + tok.get_str());
+        _err.emplace_back(tok.pos,
+                          "Unknown token when parsing variable declarations: " +
+                              tok.get_str());
     }
     }
 }
@@ -545,13 +678,16 @@ void Parser::Var() {
         _lexer.match(TokenType::Var);
         Var_declaration();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
-            _err.emplace_back(tok.pos, "in variable declaration: \';\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in variable declaration: \';\' expected, got: " +
+                                  tok.get_str());
         }
         Var_recursive();
         break;
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing variables: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing variables: " +
+                                       tok.get_str());
     }
     }
 }
@@ -596,7 +732,8 @@ ASTNode * Parser::Expression() {
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing expressions: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing expressions: " +
+                                       tok.get_str());
     }
     }
 }
@@ -639,7 +776,8 @@ ASTNode * Parser::Add() {
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token add level operators: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token add level operators: " +
+                                       tok.get_str());
         return nullptr;
     }
     }
@@ -683,7 +821,8 @@ ASTNode * Parser::Mul() {
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token mult level operators: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token mult level operators: " +
+                                       tok.get_str());
         return nullptr;
     }
     }
@@ -715,7 +854,8 @@ ASTNode * Parser::Unary() {
         return Factor();
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token unary operators: " + tok.get_str());
+        _err.emplace_back(tok.pos,
+                          "Unknown token unary operators: " + tok.get_str());
         return nullptr;
     }
     }
@@ -747,23 +887,27 @@ ASTNode * Parser::Call(const std::string & name) {
             break;
         default: {
             Token tok = _lexer.get();
-            _err.emplace_back(tok.pos, "Unknown token parsing call args: " + tok.get_str());
+            _err.emplace_back(tok.pos, "Unknown token parsing call args: " +
+                                           tok.get_str());
             return nullptr;
         }
         }
 
         auto fn = _st->lookup_function(name);
         if (!fn.has_value()) {
-            _err.emplace_back(almost_id_pos, "in call: no matching function to call: " + name);
+            _err.emplace_back(almost_id_pos,
+                              "in call: no matching function to call: " + name);
             return nullptr;
         }
         if (fn.value().arity != args.size()) {
-            _err.emplace_back(almost_id_pos, "in call: arity mismatch: " + name);
+            _err.emplace_back(almost_id_pos,
+                              "in call: arity mismatch: " + name);
             return nullptr;
         }
 
         if (auto tok = _lexer.peek(); _lexer.match(TokenType::Par_Close)) {
-            _err.emplace_back(tok.pos, "in call: \')\' expected, got: " + tok.get_str());
+            _err.emplace_back(tok.pos,
+                              "in call: \')\' expected, got: " + tok.get_str());
         }
         return new ASTNodeCall(name, args);
     }
@@ -798,7 +942,8 @@ ASTNode * Parser::Call(const std::string & name) {
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing call: " + tok.get_str());
+        _err.emplace_back(tok.pos,
+                          "Unknown token when parsing call: " + tok.get_str());
         return nullptr;
     }
     }
@@ -824,17 +969,72 @@ ASTNode * Parser::Factor() {
     }
     default: {
         Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing factor: " + tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing factor: " +
+                                       tok.get_str());
+        return nullptr;
+    }
+    }
+}
+
+ASTNode * Parser::Mila() {
+    switch (_lexer.peek().type()) {
+    case TokenType::Program: {
+        /* rule 1: Mila -> program Id ; Const_opt Var_opt Fn_prod begin
+         * Statement end . */
+        _lexer.match(TokenType::Program);
+        Token pg_name = _lexer.get();
+        if (pg_name.type() != TokenType::Identifier) {
+            _err.emplace_back(pg_name.pos,
+                              "in main: program name expected, got: " +
+                                  pg_name.get_str());
+            return nullptr;
+        }
+        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
+            _err.emplace_back(tok.pos,
+                              "in main: \';\' expected, got: " + tok.get_str());
+        }
+        Const_optional();
+        Var_optional();
+        Fun_prod_def_rec();
+        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
+            _err.emplace_back(tok.pos, "in main: \'begin\' expected, got: " +
+                                           tok.get_str());
+            return nullptr;
+        }
+        auto main_body = Statement();
+        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
+            _err.emplace_back(tok.pos, "in main: \'end\' expected, got: " +
+                                           tok.get_str());
+            return nullptr;
+        }
+        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Period)) {
+            _err.emplace_back(tok.pos,
+                              "in main: \'.\' at main end expected, got: " +
+                                  tok.get_str());
+            return nullptr;
+        }
+        return new ASTNodeMain(pg_name.get_str(), main_body);
+    }
+    default: {
+        auto tok = _lexer.get();
+        _err.emplace_back(tok.pos, "in main: \'program\' expected, got: " +
+                                       tok.get_str());
         return nullptr;
     }
     }
 }
 
 bool Parser::Parse() {
-    // getNextToken();
+    std::shared_ptr<ASTNode> main = std::shared_ptr<ASTNode>(Mila());
+    if (!_err.empty()) {
+        for (const auto & error : _err) {
+            std::cerr << error << std::endl;
+        }
+        return false;
+    }
     return true;
 }
-
+/*
 const llvm::Module & Parser::Generate() {
 
     // create writeln function
@@ -873,7 +1073,7 @@ const llvm::Module & Parser::Generate() {
 
     return this->MilaModule;
 }
-
+*/
 /**
  * @brief Simple token buffer.
  *

@@ -190,3 +190,13 @@ class ASTNodeCall : public ASTNode {
     std::string _fn;
     std::list<std::shared_ptr<ASTNode>> _args;
 };
+
+class ASTNodeMain : public ASTNode {
+  public:
+    ASTNodeMain(std::string name, std::list<std::shared_ptr<ASTNode>> main_body)
+        : _pg_name(std::move(name)), _main_body(std::move(main_body)) {}
+
+  private:
+    std::string _pg_name;
+    std::list<std::shared_ptr<ASTNode>> _main_body;
+};
