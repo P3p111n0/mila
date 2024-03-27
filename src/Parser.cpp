@@ -503,30 +503,6 @@ void Parser::Procedure() {
     }
 }
 
-void Parser::Fun_prod_def_rec() {
-    switch (_lexer.peek().type()) {
-    case TokenType::Function:
-        /* rule 62: Fn_prod -> Function Fn_prod */
-        Function();
-        Fun_prod_def_rec();
-        break;
-    case TokenType::Procedure:
-        /* rule 63: Fn_prod -> Procedure Fn_prod */
-        Procedure();
-        Fun_prod_def_rec();
-        break;
-    case TokenType::Begin:
-        /* rule 64: Fn_prod ->  */
-        break;
-    default: {
-        auto tok = _lexer.get();
-        _err.emplace_back(tok.pos,
-                          "function/procedure definition expected, got: " +
-                              tok.get_str());
-    }
-    }
-}
-
 void Parser::Const_recursive() {
     switch (_lexer.peek().type()) {
     case TokenType::Identifier: {
@@ -610,25 +586,6 @@ void Parser::Const() {
         Token tok = _lexer.get();
         _err.emplace_back(tok.pos, "Unknown token when parsing constants: " +
                                        tok.get_str());
-    }
-    }
-}
-
-void Parser::Const_optional() {
-    switch (_lexer.peek().type()) {
-    case TokenType::Const:
-        /* rule 54: Const_opt -> Const */
-        Const();
-        break;
-    case TokenType::Var:
-    case TokenType::Function:
-    case TokenType::Procedure:
-    case TokenType::Begin:
-        /* rule 55: Const_opt ->  */
-        break;
-    default: {
-        auto tok = _lexer.get();
-        _err.emplace_back(tok.pos, "\'const\' expected, got: " + tok.get_str());
     }
     }
 }
@@ -992,6 +949,34 @@ ASTNode * Parser::Factor() {
     }
 }
 
+void Parser::Block() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Const:
+        Const();
+        Block();
+        break;
+    case TokenType::Var:
+        Var();
+        Block();
+        break;
+    case TokenType::Function:
+        Function();
+        Block();
+        break;
+    case TokenType::Procedure:
+        Procedure();
+        Block();
+        break;
+    case TokenType::Begin:
+        break;
+    default: {
+        auto tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing block: " + tok.get_str());
+        return;
+    }
+    }
+}
+
 ASTNode * Parser::Mila() {
     switch (_lexer.peek().type()) {
     case TokenType::Program: {
@@ -1009,9 +994,7 @@ ASTNode * Parser::Mila() {
             _err.emplace_back(tok.pos,
                               "in main: \';\' expected, got: " + tok.get_str());
         }
-        Const_optional();
-        Var_optional();
-        Fun_prod_def_rec();
+        Block();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
             _err.emplace_back(tok.pos, "in main: \'begin\' expected, got: " +
                                            tok.get_str());

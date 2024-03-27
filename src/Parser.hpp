@@ -67,9 +67,9 @@ class Parser {
     ASTNode * Add();
     void Const();
     void Const_recursive();
-    void Const_optional();
     void Var();
     void Var_optional();
+    void Block();
     void Var_recursive();
     VariableRecord Var_declaration();
     void Function();
@@ -85,7 +85,6 @@ class Parser {
     ASTNode * For();
     ASTNode * Call(const Token &);
     ASTNode * Mila();
-    void Fun_prod_def_rec();
 
     static bool is_mul_operator(TokenType);
     static bool is_add_operator(TokenType);
