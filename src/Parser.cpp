@@ -432,7 +432,10 @@ void Parser::Procedure() {
         _st = _st->derive();
         FunctionRecord fn{.name = id.get_str(),
                           .return_type = Type::Void,
-                          .symbol_table = _st};
+                          .args = {},
+                          .arity = 0,
+                          .symbol_table = _st,
+                          .body = {}};
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Open)) {
             _err.emplace_back(tok.pos,
                               "in procedure signature: \'(\' expected, got: " +
@@ -734,6 +737,7 @@ ASTNode * Parser::Expression() {
         Token tok = _lexer.get();
         _err.emplace_back(tok.pos, "Unknown token when parsing expressions: " +
                                        tok.get_str());
+        return nullptr;
     }
     }
 }
@@ -953,11 +957,11 @@ ASTNode * Parser::Factor() {
     switch (_lexer.peek().type()) {
     case TokenType::Par_Open: { /* rule 4: Factor -> ( Expression ) */
         _lexer.match(TokenType::Par_Open);
-        Expression();
+        ASTNode * expr = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Close)) {
             _err.emplace_back(tok.pos, "\')\' expected, got: " + tok.get_str());
         }
-        break;
+        return expr;
     }
     case TokenType::IntVal: {
         auto token = _lexer.get();

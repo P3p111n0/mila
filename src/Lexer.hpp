@@ -86,6 +86,7 @@ class Token {
         case 1:
             return 0;
         }
+        return 0;
     }
     std::string get_str() const {
         switch (_val.index()) {
@@ -94,6 +95,7 @@ class Token {
         case 1:
             return std::get<std::string>(_val);
         }
+        return {};
     }
 
     Position pos;
