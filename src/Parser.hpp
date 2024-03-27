@@ -17,6 +17,7 @@
 #include "Lexer.hpp"
 #include "ASTNode.hpp"
 #include "SymbolTable.hpp"
+#include <vector>
 
 class Parser {
   public:
@@ -56,6 +57,7 @@ class Parser {
     llvm::Module MilaModule;       // llvm module
 
     std::shared_ptr<SymbolTable> _st;
+    std::vector<ErrorLog> _err;
 
     ASTNode * Factor();
     ASTNode * Expression();
