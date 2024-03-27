@@ -250,9 +250,26 @@ ASTNode * Parser::For() {
 
 ASTNode * Parser::Stmt_helper() {
     switch (_lexer.peek().type()) {
-    case TokenType::Identifier:
+    case TokenType::Identifier: {
         /* rule 22: Statement_h -> Assignment */
-        return Assignment();
+        Token id = _lexer.get();
+
+        switch(_lexer.peek().type()) {
+        case TokenType::Op_Assign: { // assignment
+            _lexer.match(TokenType::Op_Assign);
+            ASTNode * rhs = Expression();
+            return new ASTNodeAssign(new ASTNodeIdentifier(id.get_str()), rhs);
+        }
+        case TokenType::Par_Open: { // call
+            return Call(id);
+        }
+        default: {
+            auto tok = _lexer.get();
+            _err.emplace_back(tok.pos, "Unknown token when parsing assignment/call: " + tok.get_str());
+            return nullptr;
+        }
+        }
+    }
     case TokenType::If:
         /* rule 23: Statement_h -> If */
         return If();
@@ -866,9 +883,8 @@ ASTNode * Parser::Unary() {
     }
 }
 
-ASTNode * Parser::Call(const std::string & name) {
+ASTNode * Parser::Call(const Token & id) {
     std::list<std::shared_ptr<ASTNode>> args;
-    Position almost_id_pos = _lexer.peek().pos;
     switch (_lexer.peek().type()) {
     case TokenType::Par_Open: {
         /* rule 69: Call_id -> ( Call_inner ) */
@@ -898,23 +914,21 @@ ASTNode * Parser::Call(const std::string & name) {
         }
         }
 
-        auto fn = _st->lookup_function(name);
+        auto fn = _st->lookup_function(id.get_str());
         if (!fn.has_value()) {
-            _err.emplace_back(almost_id_pos,
-                              "in call: no matching function to call: " + name);
-            return nullptr;
+            _err.emplace_back(id.pos,
+                              "in call: no matching function to call: " + id.get_str());
         }
-        if (fn.value().arity != args.size()) {
-            _err.emplace_back(almost_id_pos,
-                              "in call: arity mismatch: " + name);
-            return nullptr;
+        if (fn.has_value() && fn.value().arity != args.size()) {
+            _err.emplace_back(id.pos,
+                              "in call: arity mismatch: " + id.get_str());
         }
 
-        if (auto tok = _lexer.peek(); _lexer.match(TokenType::Par_Close)) {
+        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Close)) {
             _err.emplace_back(tok.pos,
                               "in call: \')\' expected, got: " + tok.get_str());
         }
-        return new ASTNodeCall(name, args);
+        return new ASTNodeCall(id.get_str(), args);
     }
     case TokenType::Op_Mul:
     case TokenType::Op_Div:
@@ -938,12 +952,12 @@ ASTNode * Parser::Call(const std::string & name) {
     case TokenType::To:
     case TokenType::Downto:
     case TokenType::End: {
-        auto var_r = _st->lookup_variable(name);
-        auto cst_r = _st->lookup_constant(name);
+        auto var_r = _st->lookup_variable(id.get_str());
+        auto cst_r = _st->lookup_constant(id.get_str());
         if (!var_r.has_value() && !cst_r.has_value()) {
-            _err.emplace_back(almost_id_pos, "unbound identifier: " + name);
+            _err.emplace_back(id.pos, "unbound identifier: " + id.get_str());
         }
-        return new ASTNodeIdentifier(name);
+        return new ASTNodeIdentifier(id.get_str());
     }
     default: {
         Token tok = _lexer.get();
@@ -970,7 +984,7 @@ ASTNode * Parser::Factor() {
     }
     case TokenType::Identifier: {
         Token id = _lexer.get();
-        return Call(id.get_str());
+        return Call(id);
     }
     default: {
         Token tok = _lexer.get();

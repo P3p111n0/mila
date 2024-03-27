@@ -83,7 +83,7 @@ class Parser {
     ASTNode * Body();
     ASTNode * While();
     ASTNode * For();
-    ASTNode * Call(const std::string &);
+    ASTNode * Call(const Token &);
     ASTNode * Mila();
     void Fun_prod_def_rec();
 
