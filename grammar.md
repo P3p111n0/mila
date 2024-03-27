@@ -59,9 +59,7 @@ Rel_op -> =
 The Mila language grammar:
 ```
 Mila         -> program Identifier ; 
-			Const_opt 
-			Var_opt
-			Fn_prod
+			Block
 			begin Statement end .
 
 Factor       -> Identifier Call_id 
@@ -87,11 +85,15 @@ Expression   -> Add Expression_h
 
 Assignment   -> Identifier := Expression 
 
-Statement_h  -> Assignment 
+Asgn_h       -> ( Call_inner )
+             -> := Expression
+
+Assign_call  -> Identifier Asgn_h
+
+Statement_h  -> Assign_call 
  	     -> If 
 	     -> While 
-	     -> For 
-	     -> Call 
+	     -> For  
 	     -> exit
 	     -> break
 Stmt_1       -> ; Stmt_dup
@@ -126,26 +128,22 @@ Var_h	     -> Var_decl ; Var_h
 	     -> 
 Var          -> var Var_decl ; Var_h
 
-Var_opt	     -> Var
-	     ->
-
-Const_opt    -> Const
-	     ->
-
 Fn_arg_h     -> , Var_decl Fn_arg_h
              ->
 Function_arg -> Var_decl Fn_arg_h
 	     ->
 Function     -> function Identifier ( Function_arg ) : Type ;
-	                 Var_opt
+	                 Block
 	                 begin Statement end ;
 
 Procedure    -> procedure Identifier ( Function_arg ) ;
 			  Var_opt
 			  begin Statement end ;
 
-Fn_prod	     -> Function Fn_prod
-	     -> Procedure Fn_prod
+Block	     -> Function Block
+	     -> Procedure Block
+	     -> Const Block
+	     -> Var Block
              ->
 
 Call_h	     -> , Expression
