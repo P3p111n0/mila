@@ -74,6 +74,7 @@ q0:
         goto q0;
     }
     if (isdigit(c)) {
+        str_val += c;
         goto dec;
     }
 

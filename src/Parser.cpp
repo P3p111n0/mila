@@ -63,6 +63,7 @@ bool Parser::is_statement(TokenType t) {
 Type Parser::Var_type() {
     switch (_lexer.peek().type()) {
     case TokenType::Integer:
+        _lexer.match(TokenType::Integer);
         return Type::Int;
     default: {
         Token tok = _lexer.get();
@@ -290,10 +291,6 @@ std::list<std::shared_ptr<ASTNode>> Parser::Statement() {
             if (_lexer.peek().type() == TokenType::Semicolon) {
                 _lexer.match(TokenType::Semicolon);
             }
-        }
-        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
-            _err.emplace_back(tok.pos,
-                              "\'end\' expected, got: " + tok.get_str());
         }
         return res;
     }

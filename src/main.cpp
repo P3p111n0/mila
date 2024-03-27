@@ -19,11 +19,11 @@ int main(int argc, char * argv[]) {
         ret_val = parser.Parse();
     }
 
-    if (ret_val) {
-        return 1;
+    if (!ret_val) {
+        return EXIT_FAILURE;
     }
 
     // parser.Generate().print(llvm::outs(), nullptr);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
