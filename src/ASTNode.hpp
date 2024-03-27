@@ -4,6 +4,23 @@
 #include <memory>
 #include <optional>
 
+enum class Operator {
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Or,
+    Xor,
+    And,
+    Mod,
+    Eq,
+    NEq,
+    Lt,
+    Gt,
+    LtE,
+    GtE
+};
+
 class ASTNode {
   public:
     ASTNode() = default;
@@ -43,80 +60,12 @@ class ASTNodeNot : public ASTNodeUnary {
 };
 
 class ASTNodeBinary : public ASTNode {
-  protected:
-    ASTNodeBinary(ASTNode * lhs, ASTNode * rhs) : _lhs(lhs), _rhs(rhs) {}
+  public:
+    ASTNodeBinary(ASTNode * lhs, ASTNode * rhs, Operator op) : _lhs(lhs), _rhs(rhs), _op(op) {}
+  private:
     std::shared_ptr<ASTNode> _lhs;
     std::shared_ptr<ASTNode> _rhs;
-};
-
-class ASTNodeMul : public ASTNodeBinary {
-  public:
-    ASTNodeMul(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeDiv : public ASTNodeBinary {
-  public:
-    ASTNodeDiv(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeMod : public ASTNodeBinary {
-  public:
-    ASTNodeMod(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeAnd : public ASTNodeBinary {
-  public:
-    ASTNodeAnd(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeAdd : public ASTNodeBinary {
-  public:
-    ASTNodeAdd(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeSub : public ASTNodeBinary {
-  public:
-    ASTNodeSub(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeOr : public ASTNodeBinary {
-  public:
-    ASTNodeOr(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeXor : public ASTNodeBinary {
-  public:
-    ASTNodeXor(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeEq : public ASTNodeBinary {
-  public:
-    ASTNodeEq(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeNotEq : public ASTNodeBinary {
-  public:
-    ASTNodeNotEq(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeLt : public ASTNodeBinary {
-  public:
-    ASTNodeLt(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeGt : public ASTNodeBinary {
-  public:
-    ASTNodeGt(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeLtE : public ASTNodeBinary {
-  public:
-    ASTNodeLtE(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
-};
-
-class ASTNodeGtE : public ASTNodeBinary {
-  public:
-    ASTNodeGtE(ASTNode * lhs, ASTNode * rhs) : ASTNodeBinary(lhs, rhs) {}
+    Operator _op;
 };
 
 class ASTNodeBody : public ASTNode {
