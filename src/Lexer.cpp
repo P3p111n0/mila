@@ -89,6 +89,8 @@ q0:
         return Token(TokenType::Semicolon, ";", _pos);
     case ',':
         return Token(TokenType::Comma, ",", _pos);
+    case '{':
+        goto comment;
     case '0': {
         str_val += c;
         _pos.advance();
@@ -249,4 +251,13 @@ identifier: {
     }
     return Token(TokenType::Identifier, str_val, _pos);
 }
+
+comment: {
+    c = _in.get();
+    if (c != '}') {
+        goto comment;
+    }
+    goto q0;
+};
+
 }
