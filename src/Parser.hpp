@@ -22,6 +22,7 @@
 class Parser {
   public:
     Parser();
+    explicit Parser(std::istream &);
     ~Parser() = default;
 
     bool Parse();                    // parse

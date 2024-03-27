@@ -4,6 +4,10 @@ Parser::Parser()
     : MilaContext(), MilaBuilder(MilaContext), MilaModule("mila", MilaContext),
       _st(std::make_shared<SymbolTable>()) {}
 
+Parser::Parser(std::istream & is)
+    : _lexer(is), MilaContext(), MilaBuilder(MilaContext), MilaModule("mila", MilaContext),
+      _st(std::make_shared<SymbolTable>()) {}
+
 bool Parser::is_mul_operator(TokenType t) {
     switch (t) {
     case TokenType::Op_Mul:
