@@ -176,6 +176,11 @@ class ASTNodeFor : public ASTNode {
     bool _is_downto;
 };
 
+class ASTNodeBreak : public ASTNode {
+  public:
+    ASTNodeBreak() = default;
+};
+
 class ASTNodeCall : public ASTNode {
   public:
     ASTNodeCall(std::string fun, std::list<std::shared_ptr<ASTNode>> args)

@@ -49,6 +49,7 @@ bool Parser::is_statement(TokenType t) {
     case TokenType::If:
     case TokenType::While:
     case TokenType::For:
+    case TokenType::Break:
         return true;
     default:
         return false;
@@ -87,13 +88,16 @@ ASTNode * Parser::Body() {
     case TokenType::If:
     case TokenType::While:
     case TokenType::For:
+    case TokenType::Break:
         /* rule 34: Body_h -> Statement_h */
         return Stmt_helper();
     case TokenType::Begin: {
         /* rule 35: Body_h -> begin Statement end */
         _lexer.match(TokenType::Begin);
         auto stmts = Statement();
-        _lexer.match(TokenType::End);
+        if (!_lexer.match(TokenType::End)) {
+            //TODO error
+        }
         return new ASTNodeBody(stmts);
     }
     default:
@@ -217,6 +221,10 @@ ASTNode * Parser::Stmt_helper() {
         /* rule 27: Statement_h -> exit */
         _lexer.match(TokenType::Exit);
         return new ASTNodeExit();
+    case TokenType::Break:
+        /* rule 27: Statement_h -> break */
+        _lexer.match(TokenType::Break);
+        return new ASTNodeBreak();
     default:
         throw std::runtime_error("ahoj");
     }
