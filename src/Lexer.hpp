@@ -23,6 +23,7 @@ enum class TokenType {
     While,
     Do,
     For,
+    Break,
     Function,
     Procedure,
     Exit,

@@ -1,6 +1,6 @@
 # Mila Grammar 
 
-Keywords: `program`, `const`, `var`, `integer`, `begin`, `end`, `if`, `while`, `do`, `for`,      `function`, `procedure`, `then`, `exit`, `div`, `mod`, `and`, `or`. 
+Keywords: `program`, `const`, `var`, `integer`, `begin`, `end`, `if`, `while`, `do`, `for`,      `function`, `procedure`, `then`, `exit`, `div`, `mod`, `and`, `or`, `break`. 
 
 Helper symbols:
 ```
@@ -93,6 +93,7 @@ Statement_h  -> Assignment
 	     -> For 
 	     -> Call 
 	     -> exit
+	     -> break
 Stmt_1       -> ; Stmt_dup
              ->
 Stmt_dup     -> Statement_h Stmt_1
