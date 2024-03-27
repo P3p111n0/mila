@@ -60,8 +60,11 @@ Type Parser::Var_type() {
     switch (_lexer.peek().type()) {
     case TokenType::Integer:
         return Type::Int;
-    default:
-        throw std::runtime_error("type - unknown type"); // TODO error
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing var type: " + tok.get_str());
+        return Type(-1);
+    }
     }
 }
 
@@ -76,8 +79,10 @@ void Parser::Var_optional() {
     case TokenType::Begin:
         /* rule 53: Var_opt ->  */
         break;
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing optional var declaration: " + tok.get_str());
+    }
     }
 }
 
@@ -96,12 +101,15 @@ ASTNode * Parser::Body() {
         _lexer.match(TokenType::Begin);
         auto stmts = Statement();
         if (!_lexer.match(TokenType::End)) {
-            //TODO error
+            // TODO error
         }
         return new ASTNodeBody(stmts);
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing body: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
@@ -116,8 +124,11 @@ ASTNode * Parser::Assignment() {
         ASTNode * rhs = Expression();
         return new ASTNodeAssign(new ASTNodeIdentifier(id.get_str()), rhs);
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing assignment: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
@@ -142,12 +153,18 @@ ASTNode * Parser::If() {
         case TokenType::Semicolon:
         case TokenType::End:
             return new ASTNodeIf(cond, body);
-        default:
-            throw std::runtime_error("ahoj");
+        default: {
+            Token tok = _lexer.get();
+            _err.emplace_back(tok.pos, "else/end/semicolon expected, got: " + tok.get_str());
+            return nullptr;
+        }
         }
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing if statement: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
@@ -163,13 +180,16 @@ ASTNode * Parser::While() {
         ASTNode * body = Body();
         return new ASTNodeWhile(cond, body);
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing while loop: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
 ASTNode * Parser::For() {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::For: {
         /* rule 44: For -> for Assignment For_to Expression do Body_h */
         _lexer.match(TokenType::For);
@@ -187,19 +207,24 @@ ASTNode * Parser::For() {
             is_downto = true;
             break;
         }
-        default:
-            throw std::runtime_error("ahoj");
+        default: {
+            Token tok = _lexer.get();
+            _err.emplace_back(tok.pos, "to/downto exprected, got: " + tok.get_str());
+        }
         }
 
         ASTNode * iter_stop = Expression();
         if (!_lexer.match(TokenType::Do)) {
-            //TODO error
+            // TODO error
         }
         ASTNode * body = Body();
         return new ASTNodeFor(iter_var, iter_stop, body, is_downto);
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing for loop: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
@@ -225,8 +250,11 @@ ASTNode * Parser::Stmt_helper() {
         /* rule 27: Statement_h -> break */
         _lexer.match(TokenType::Break);
         return new ASTNodeBreak();
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing statement: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
@@ -250,8 +278,11 @@ std::list<std::shared_ptr<ASTNode>> Parser::Statement() {
     }
     case TokenType::End:
         return res;
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing statement: " + tok.get_str());
+        return {};
+    }
     }
 }
 
@@ -273,8 +304,11 @@ std::list<VariableRecord> Parser::Function_arg() {
     case TokenType::Par_Close:
         /* rule 59: Function_arg ->  */
         return {};
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing function variables: " + tok.get_str());
+        return {};
+    }
     }
 }
 
@@ -327,8 +361,10 @@ void Parser::Function() {
         _st = old_st;
         break;
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing function declaration: " + tok.get_str());
+    }
     }
 }
 
@@ -379,8 +415,10 @@ void Parser::Procedure() {
         _st = old_st;
         break;
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing procedure declaration: " + tok.get_str());
+    }
     }
 }
 
@@ -408,8 +446,10 @@ void Parser::Const_recursive() {
     case TokenType::Begin:
         /* rule 46: Const_h ->  */
         break;
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing constants: " + tok.get_str());
+    }
     }
 }
 
@@ -432,8 +472,10 @@ void Parser::Const() {
         Const_recursive();
         break;
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing constants: " + tok.get_str());
+    }
     }
 }
 
@@ -452,8 +494,11 @@ VariableRecord Parser::Var_declaration() {
         _st->variables[id.get_str()] = {id.get_str(), var_type};
         break;
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token parsing variable declaration: " + tok.get_str());
+        return {};
+    }
     }
 }
 
@@ -472,8 +517,10 @@ void Parser::Var_recursive() {
     case TokenType::Begin:
         /* rule 50: Var_h ->  */
         break;
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing variable declarations: " + tok.get_str());
+    }
     }
 }
 
@@ -486,8 +533,10 @@ void Parser::Var() {
         _lexer.match(TokenType::Semicolon);
         Var_recursive();
         break;
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing variables: " + tok.get_str());
+    }
     }
 }
 
@@ -529,8 +578,10 @@ ASTNode * Parser::Expression() {
         }
         return lhs;
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing expressions: " + tok.get_str());
+    }
     }
 }
 
@@ -570,8 +621,11 @@ ASTNode * Parser::Add() {
         }
         return lhs;
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token add level operators: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
@@ -611,8 +665,11 @@ ASTNode * Parser::Mul() {
         }
         return lhs;
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token mult level operators: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
@@ -640,19 +697,22 @@ ASTNode * Parser::Unary() {
     case TokenType::Par_Open:
         /* rule 11: Unary -> Factor */
         return Factor();
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token unary operators: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
 ASTNode * Parser::Call(const std::string & name) {
     std::list<std::shared_ptr<ASTNode>> args;
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::Par_Open: {
         /* rule 69: Call_id -> ( Call_inner ) */
         _lexer.match(TokenType::Par_Open);
 
-        switch(_lexer.peek().type()) {
+        switch (_lexer.peek().type()) {
         case TokenType::Op_Minus:
         case TokenType::Op_Plus:
         case TokenType::Op_Not:
@@ -668,8 +728,11 @@ ASTNode * Parser::Call(const std::string & name) {
         }
         case TokenType::Par_Close:
             break;
-        default:
-            throw std::runtime_error("ahoj");
+        default: {
+            Token tok = _lexer.get();
+            _err.emplace_back(tok.pos, "Unknown token parsing call args: " + tok.get_str());
+            return nullptr;
+        }
         }
 
         _lexer.match(TokenType::Par_Close);
@@ -700,12 +763,15 @@ ASTNode * Parser::Call(const std::string & name) {
         auto var_r = _st->lookup_variable(name);
         auto cst_r = _st->lookup_constant(name);
         if (!var_r.has_value() && !cst_r.has_value()) {
-            //TODO error - unbound identifier
+            // TODO error - unbound identifier
         }
         return new ASTNodeIdentifier(name);
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing call: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
@@ -725,8 +791,11 @@ ASTNode * Parser::Factor() {
         Token id = _lexer.get();
         return Call(id.get_str());
     }
-    default:
-        throw std::runtime_error("ahoj");
+    default: {
+        Token tok = _lexer.get();
+        _err.emplace_back(tok.pos, "Unknown token when parsing factor: " + tok.get_str());
+        return nullptr;
+    }
     }
 }
 
