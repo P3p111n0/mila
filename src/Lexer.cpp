@@ -70,11 +70,7 @@ q0:
         return Token(TokenType::EOI, 0);
     }
     if (isspace(c)) {
-        if (c == '\n') {
-            _pos.new_line();
-        } else {
-            _pos.advance();
-        }
+        _pos.advance(c);
         goto q0;
     }
     if (isdigit(c)) {
@@ -94,7 +90,7 @@ q0:
         goto comment;
     case '0': {
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto zero;
     }
     case '$':
@@ -104,15 +100,15 @@ q0:
     }
     case '+':
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto plus;
     case '-':
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto minus;
     case ':':
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto colon;
     case '*':
     case '/':
@@ -120,12 +116,12 @@ q0:
     case '>':
     case '=': {
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto op;
     }
     default: {
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto identifier;
     }
     }
@@ -156,7 +152,7 @@ zero: {
     case 'x':
     case 'X': {
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto hex;
     }
     case '1':
@@ -167,7 +163,7 @@ zero: {
     case '6':
     case '7': {
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto octal;
     }
     default: {
@@ -182,7 +178,7 @@ hex: {
     if (is_hex_digit(c)) {
         (void)_in.get();
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto hex;
     }
     int_val = std::stoi(str_val, nullptr, 16);
@@ -194,7 +190,7 @@ octal: {
     if (is_octal_digit(c)) {
         (void)_in.get();
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto octal;
     }
     int_val = std::stoi(str_val, nullptr, 8);
@@ -206,7 +202,7 @@ dec: {
     if (isdigit(c)) {
         (void)_in.get();
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto dec;
     }
     int_val = std::stoi(str_val, nullptr, 10);
@@ -228,7 +224,7 @@ op: {
     case '>': {
         (void)_in.get();
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
     }
     }
     auto tok = _op_map.at(str_val);
@@ -241,7 +237,7 @@ identifier: {
     if (!isspace(c) && is_id_symbol(c)) {
         (void)_in.get();
         str_val += c;
-        _pos.advance();
+        _pos.advance(c);
         goto identifier;
     }
 
@@ -256,6 +252,7 @@ identifier: {
 comment: {
     c = _in.get();
     if (c != '}') {
+        _pos.advance(c);
         goto comment;
     }
     goto q0;

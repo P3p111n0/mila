@@ -59,12 +59,12 @@ enum class TokenType {
 
 struct Position {
     Position() : row(0), column(0) {}
-    void advance() {
+    void advance(char c) {
         column++;
-    }
-    void new_line() {
-        row++;
-        column = 0;
+        if (c == '\n') {
+            column = 0;
+            row++;
+        }
     }
     friend std::ostream & operator<<(std::ostream & os, const Position & pos) {
         return os << pos.row << ':' << pos.column;
