@@ -332,9 +332,6 @@ std::list<VariableRecord> Parser::Function_arg() {
             (void)_lexer.get();
             res.emplace_back(Var_declaration());
         }
-        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Close)) {
-            _err.emplace_back(tok.pos, "\'(\' expected, got: " + tok.get_str());
-        }
         return res;
     }
     case TokenType::Par_Close:
