@@ -752,7 +752,19 @@ ASTNode * Parser::Call(const std::string & name) {
         }
         }
 
-        _lexer.match(TokenType::Par_Close);
+        auto fn = _st->lookup_function(name);
+        if (!fn.has_value()) {
+            _err.emplace_back(almost_id_pos, "in call: no matching function to call: " + name);
+            return nullptr;
+        }
+        if (fn.value().arity != args.size()) {
+            _err.emplace_back(almost_id_pos, "in call: arity mismatch: " + name);
+            return nullptr;
+        }
+
+        if (auto tok = _lexer.peek(); _lexer.match(TokenType::Par_Close)) {
+            _err.emplace_back(tok.pos, "in call: \')\' expected, got: " + tok.get_str());
+        }
         return new ASTNodeCall(name, args);
     }
     case TokenType::Op_Mul:
