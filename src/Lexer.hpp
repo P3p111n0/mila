@@ -77,7 +77,7 @@ struct Position {
 class Token {
   public:
     Token(TokenType type, int val, Position pos = {}) : pos(pos), _type(type), _val(val) {}
-    Token(TokenType type, std::string val, Position pos = {}) : pos(pos), _val(std::move(val)) {}
+    Token(TokenType type, std::string val, Position pos = {}) : pos(pos), _type(type), _val(std::move(val)) {}
     TokenType type() const { return _type; }
     int get_int() const {
         switch (_val.index()) {
