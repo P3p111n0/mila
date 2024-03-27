@@ -101,18 +101,12 @@ q0:
     case '&': {
         goto octal;
     }
-    case '+':
-        str_val += c;
-        _pos.advance(c);
-        goto plus;
-    case '-':
-        str_val += c;
-        _pos.advance(c);
-        goto minus;
     case ':':
         str_val += c;
         _pos.advance(c);
         goto colon;
+    case '+':
+    case '-':
     case '*':
     case '/':
     case '<':
@@ -128,26 +122,6 @@ q0:
         goto identifier;
     }
     }
-
-plus: {
-    c = _in.peek();
-    if (isdigit(c)) {
-        goto dec;
-    }
-    auto tok = _op_map.at("+");
-    tok.pos = _pos;
-    return tok;
-}
-
-minus: {
-    c = _in.peek();
-    if (isdigit(c)) {
-        goto dec;
-    }
-    auto tok = _op_map.at("-");
-    tok.pos = _pos;
-    return tok;
-}
 
 zero: {
     c = _in.get();
