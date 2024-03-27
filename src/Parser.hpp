@@ -68,7 +68,6 @@ class Parser {
     void Const();
     void Const_recursive();
     void Var();
-    void Var_optional();
     void Block();
     void Var_recursive();
     VariableRecord Var_declaration();

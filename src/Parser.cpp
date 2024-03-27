@@ -74,26 +74,6 @@ Type Parser::Var_type() {
     }
 }
 
-void Parser::Var_optional() {
-    switch (_lexer.peek().type()) {
-    case TokenType::Var:
-        /* rule 52: Var_opt -> Var */
-        Var();
-        break;
-    case TokenType::Function:
-    case TokenType::Procedure:
-    case TokenType::Begin:
-        /* rule 53: Var_opt ->  */
-        break;
-    default: {
-        Token tok = _lexer.get();
-        _err.emplace_back(
-            tok.pos, "Unknown token when parsing optional var declaration: " +
-                         tok.get_str());
-    }
-    }
-}
-
 ASTNode * Parser::Body() {
     switch (_lexer.peek().type()) {
     case TokenType::Identifier:
@@ -392,7 +372,7 @@ void Parser::Function() {
                               "in function signature: \';\' expected, got: " +
                                   tok.get_str());
         }
-        Var_optional();
+        Block();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
             _err.emplace_back(tok.pos,
                               "in function body: \'begin\' expected, got: " +
@@ -468,7 +448,7 @@ void Parser::Procedure() {
                               "in procedure signature: \';\' expected, got: " +
                                   tok.get_str());
         }
-        Var_optional();
+        Block();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
             _err.emplace_back(tok.pos,
                               "in procedure body: \'begin\' expected, got: " +
