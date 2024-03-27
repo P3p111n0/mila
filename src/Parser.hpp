@@ -59,6 +59,7 @@ class Parser {
     ASTNode * Body();
     ASTNode * While();
     ASTNode * For();
+    ASTNode * Call(const std::string &);
 
     static bool is_mul_operator(TokenType);
     static bool is_add_operator(TokenType);

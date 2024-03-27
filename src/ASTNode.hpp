@@ -1,6 +1,8 @@
 #pragma once
 
+#include <list>
 #include <memory>
+#include <optional>
 
 class ASTNode {
   public:
@@ -172,4 +174,14 @@ class ASTNodeFor : public ASTNode {
     std::shared_ptr<ASTNode> _it_stop;
     std::shared_ptr<ASTNode> _body;
     bool _is_downto;
+};
+
+class ASTNodeCall : public ASTNode {
+  public:
+    ASTNodeCall(std::string fun, std::list<std::shared_ptr<ASTNode>> args)
+        : _fn(std::move(fun)), _args(std::move(args)) {}
+
+  private:
+    std::string _fn;
+    std::list<std::shared_ptr<ASTNode>> _args;
 };

@@ -637,6 +637,70 @@ ASTNode * Parser::Unary() {
     }
 }
 
+ASTNode * Parser::Call(const std::string & name) {
+    std::list<std::shared_ptr<ASTNode>> args;
+    switch(_lexer.peek().type()) {
+    case TokenType::Par_Open: {
+        /* rule 69: Call_id -> ( Call_inner ) */
+        _lexer.match(TokenType::Par_Open);
+
+        switch(_lexer.peek().type()) {
+        case TokenType::Op_Minus:
+        case TokenType::Op_Plus:
+        case TokenType::Op_Not:
+        case TokenType::Identifier:
+        case TokenType::IntVal:
+        case TokenType::Par_Open: {
+            args.emplace_back(Expression());
+            while (_lexer.peek().type() == TokenType::Comma) {
+                _lexer.match(TokenType::Comma);
+                args.emplace_back(Expression());
+            }
+            break;
+        }
+        case TokenType::Par_Close:
+            break;
+        default:
+            throw std::runtime_error("ahoj");
+        }
+
+        _lexer.match(TokenType::Par_Close);
+        return new ASTNodeCall(name, args);
+    }
+    case TokenType::Op_Mul:
+    case TokenType::Op_Div:
+    case TokenType::Op_Mod:
+    case TokenType::Op_And:
+    case TokenType::Op_Plus:
+    case TokenType::Op_Minus:
+    case TokenType::Op_Or:
+    case TokenType::Op_Xor:
+    case TokenType::Op_Equal:
+    case TokenType::Op_NotEqual:
+    case TokenType::Op_Lt:
+    case TokenType::Op_Gt:
+    case TokenType::Op_LtE:
+    case TokenType::Op_GtE:
+    case TokenType::Par_Close:
+    case TokenType::Then:
+    case TokenType::Do:
+    case TokenType::Semicolon:
+    case TokenType::Colon:
+    case TokenType::To:
+    case TokenType::Downto:
+    case TokenType::End: {
+        auto var_r = _st->lookup_variable(name);
+        auto cst_r = _st->lookup_constant(name);
+        if (!var_r.has_value() && !cst_r.has_value()) {
+            //TODO error - unbound identifier
+        }
+        return new ASTNodeIdentifier(name);
+    }
+    default:
+        throw std::runtime_error("ahoj");
+    }
+}
+
 ASTNode * Parser::Factor() {
     switch (_lexer.peek().type()) {
     case TokenType::Par_Open: { /* rule 4: Factor -> ( Expression ) */
@@ -649,10 +713,10 @@ ASTNode * Parser::Factor() {
         auto token = _lexer.get();
         return new ASTNodeInt(token.get_int());
     }
-    case TokenType::Identifier:
-        // identifier
-        break;
-
+    case TokenType::Identifier: {
+        Token id = _lexer.get();
+        return Call(id.get_str());
+    }
     default:
         throw std::runtime_error("ahoj");
     }
