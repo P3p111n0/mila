@@ -76,10 +76,10 @@ class ASTNodeBody : public ASTNode {
 
 class ASTNodeAssign : public ASTNode {
   public:
-    ASTNodeAssign(ASTNode * lhs, ASTNode * rhs) : _lhs(lhs), _rhs(rhs) {}
+    ASTNodeAssign(std::string target, ASTNode * rhs) : _target(std::move(target)), _rhs(rhs) {}
 
   private:
-    std::shared_ptr<ASTNode> _lhs;
+    std::string _target;
     std::shared_ptr<ASTNode> _rhs;
 };
 

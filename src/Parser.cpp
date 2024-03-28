@@ -103,27 +103,6 @@ ASTNode * Parser::Body() {
     }
 }
 
-ASTNode * Parser::Assignment() {
-    switch (_lexer.peek().type()) {
-    case TokenType::Identifier: {
-        /* rule 21: Assignment -> Id := Expression */
-        Token id = _lexer.get();
-        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Op_Assign)) {
-            _err.emplace_back(tok.pos,
-                              "\':=\' expected, got: " + tok.get_str());
-        }
-        ASTNode * rhs = Expression();
-        return new ASTNodeAssign(new ASTNodeIdentifier(id.get_str()), rhs);
-    }
-    default: {
-        Token tok = _lexer.peek();
-        _err.emplace_back(tok.pos, "Unknown token when parsing assignment: " +
-                                       tok.get_str());
-        return nullptr;
-    }
-    }
-}
-
 ASTNode * Parser::If() {
     switch (_lexer.peek().type()) {
     case TokenType::If: {
@@ -249,8 +228,11 @@ ASTNode * Parser::Stmt_helper() {
         switch(_lexer.peek().type()) {
         case TokenType::Op_Assign: { // assignment
             _lexer.match(TokenType::Op_Assign);
+            if (!_st->lookup_variable(id.get_str())) {
+                _err.emplace_back(id.pos, "unbound identifier: " + id.get_str());
+            }
             ASTNode * rhs = Expression();
-            return new ASTNodeAssign(new ASTNodeIdentifier(id.get_str()), rhs);
+            return new ASTNodeAssign(id.get_str(), rhs);
         }
         case TokenType::Par_Open: { // call
             return Call(id);

@@ -76,7 +76,6 @@ class Parser {
     Type Var_type();
     std::list<std::shared_ptr<ASTNode>> Statement();
     ASTNode * Stmt_helper();
-    ASTNode * Assignment();
     void Procedure();
     ASTNode * If();
     ASTNode * Body();
