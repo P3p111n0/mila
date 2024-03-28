@@ -28,11 +28,10 @@ class ASTNodeIdentifier : public ASTNode {
 
 class ASTNodeUnary : public ASTNode {
   public:
-    enum class Operator {
-        Not
-    };
+    enum class Operator { Not };
 
     ASTNodeUnary(ASTNode * arg, Operator op) : _arg(arg), _op(op) {}
+
   private:
     std::shared_ptr<ASTNode> _arg;
     Operator _op;
@@ -57,8 +56,9 @@ class ASTNodeBinary : public ASTNode {
         GtE
     };
 
+    ASTNodeBinary(ASTNode * lhs, ASTNode * rhs, Operator op)
+        : _lhs(lhs), _rhs(rhs), _op(op) {}
 
-    ASTNodeBinary(ASTNode * lhs, ASTNode * rhs, Operator op) : _lhs(lhs), _rhs(rhs), _op(op) {}
   private:
     std::shared_ptr<ASTNode> _lhs;
     std::shared_ptr<ASTNode> _rhs;
@@ -76,7 +76,8 @@ class ASTNodeBody : public ASTNode {
 
 class ASTNodeAssign : public ASTNode {
   public:
-    ASTNodeAssign(std::string target, ASTNode * rhs) : _target(std::move(target)), _rhs(rhs) {}
+    ASTNodeAssign(std::string target, ASTNode * rhs)
+        : _target(std::move(target)), _rhs(rhs) {}
 
   private:
     std::string _target;
@@ -112,8 +113,10 @@ class ASTNodeWhile : public ASTNode {
 
 class ASTNodeFor : public ASTNode {
   public:
-    ASTNodeFor(std::string var, ASTNode * start, ASTNode * stop, ASTNode * body, bool is_downto)
-        : _var(std::move(var)), _it_start(start), _it_stop(stop), _body(body), _is_downto(is_downto) {}
+    ASTNodeFor(std::string var, ASTNode * start, ASTNode * stop, ASTNode * body,
+               bool is_downto)
+        : _var(std::move(var)), _it_start(start), _it_stop(stop), _body(body),
+          _is_downto(is_downto) {}
 
   private:
     std::string _var;
@@ -136,6 +139,15 @@ class ASTNodeCall : public ASTNode {
   private:
     std::string _fn;
     std::list<std::shared_ptr<ASTNode>> _args;
+};
+
+class ASTNodeBlock : public ASTNode {
+  public:
+    ASTNodeBlock(std::list<std::shared_ptr<ASTNode>> declarations)
+        : _decls(std::move(declarations)) {}
+
+  private:
+    std::list<std::shared_ptr<ASTNode>> _decls;
 };
 
 class ASTNodeMain : public ASTNode {
