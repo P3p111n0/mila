@@ -149,6 +149,18 @@ class ASTNodeVar : public ASTNode {
     std::list<VariableRecord> _vars;
 };
 
+class ASTNodeConst : public ASTNode {
+  public:
+    struct ConstExpr {
+        ConstExpr(std::string const_name, ASTNode * expr) : name(std::move(const_name)), value(expr) {}
+        std::string name;
+        std::shared_ptr<ASTNode> value;
+    };
+    ASTNodeConst(std::list<ConstExpr> c) : _constants(std::move(c)) {}
+  private:
+    std::list<ConstExpr> _constants;
+};
+
 class ASTNodeBlock : public ASTNode {
   public:
     ASTNodeBlock(std::list<std::shared_ptr<ASTNode>> declarations)

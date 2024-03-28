@@ -608,6 +608,7 @@ void Parser::Var_recursive() {
         break;
     case TokenType::Function:
     case TokenType::Procedure:
+    case TokenType::Const:
     case TokenType::Begin:
         /* rule 50: Var_h ->  */
         break;
