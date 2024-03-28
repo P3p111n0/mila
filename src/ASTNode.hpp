@@ -49,11 +49,6 @@ class ASTNodeUnary : public ASTNode {
     std::shared_ptr<ASTNode> _arg;
 };
 
-class ASTNodeUnaryMinus : public ASTNodeUnary {
-  public:
-    ASTNodeUnaryMinus(ASTNode * arg) : ASTNodeUnary(arg) {}
-};
-
 class ASTNodeNot : public ASTNodeUnary {
   public:
     ASTNodeNot(ASTNode * arg) : ASTNodeUnary(arg) {}

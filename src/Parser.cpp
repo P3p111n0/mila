@@ -790,7 +790,7 @@ ASTNode * Parser::Unary() {
         /* rule 8: Unary -> - Factor */
         _lexer.match(TokenType::Op_Minus);
         ASTNode * arg = Factor();
-        return new ASTNodeUnaryMinus(arg);
+        return new ASTNodeBinary(new ASTNodeInt(-1), arg, Operator::Mul);
     }
     case TokenType::Op_Plus: {
         /* rule 9: Unary -> + Factor */
