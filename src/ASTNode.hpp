@@ -4,23 +4,6 @@
 #include <memory>
 #include <optional>
 
-enum class Operator {
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Or,
-    Xor,
-    And,
-    Mod,
-    Eq,
-    NEq,
-    Lt,
-    Gt,
-    LtE,
-    GtE
-};
-
 class ASTNode {
   public:
     ASTNode() = default;
@@ -44,18 +27,37 @@ class ASTNodeIdentifier : public ASTNode {
 };
 
 class ASTNodeUnary : public ASTNode {
-  protected:
-    ASTNodeUnary(ASTNode * arg) : _arg(arg) {}
-    std::shared_ptr<ASTNode> _arg;
-};
-
-class ASTNodeNot : public ASTNodeUnary {
   public:
-    ASTNodeNot(ASTNode * arg) : ASTNodeUnary(arg) {}
+    enum class Operator {
+        Not
+    };
+
+    ASTNodeUnary(ASTNode * arg, Operator op) : _arg(arg), _op(op) {}
+  private:
+    std::shared_ptr<ASTNode> _arg;
+    Operator _op;
 };
 
 class ASTNodeBinary : public ASTNode {
   public:
+    enum class Operator {
+        Add,
+        Sub,
+        Mul,
+        Div,
+        Or,
+        Xor,
+        And,
+        Mod,
+        Eq,
+        NEq,
+        Lt,
+        Gt,
+        LtE,
+        GtE
+    };
+
+
     ASTNodeBinary(ASTNode * lhs, ASTNode * rhs, Operator op) : _lhs(lhs), _rhs(rhs), _op(op) {}
   private:
     std::shared_ptr<ASTNode> _lhs;

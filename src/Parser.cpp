@@ -662,22 +662,22 @@ ASTNode * Parser::Expression() {
             ASTNode * rhs = Add();
             switch (op) {
             case TokenType::Op_Equal:
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::Eq);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Eq);
                 break;
             case TokenType::Op_NotEqual:
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::NEq);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::NEq);
                 break;
             case TokenType::Op_Lt:
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::Lt);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Lt);
                 break;
             case TokenType::Op_Gt:
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::Gt);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Gt);
                 break;
             case TokenType::Op_LtE:
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::LtE);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::LtE);
                 break;
             case TokenType::Op_GtE:
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::GtE);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::GtE);
                 break;
             default:
                 throw std::runtime_error("expr - this shouldnt happen");
@@ -709,19 +709,19 @@ ASTNode * Parser::Add() {
             ASTNode * rhs = Mul();
             switch (op) {
             case TokenType::Op_Plus: {
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::Add);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Add);
                 break;
             }
             case TokenType::Op_Minus: {
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::Sub);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Sub);
                 break;
             }
             case TokenType::Op_Or: {
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::Or);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Or);
                 break;
             }
             case TokenType::Op_Xor: {
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::Xor);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Xor);
                 break;
             }
             default:
@@ -754,19 +754,19 @@ ASTNode * Parser::Mul() {
             ASTNode * rhs = Unary();
             switch (op) {
             case TokenType::Op_Mul: {
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::Mul);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Mul);
                 break;
             }
             case TokenType::Op_Div: {
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::Div);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Div);
                 break;
             }
             case TokenType::Op_Mod: {
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::Mod);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Mod);
                 break;
             }
             case TokenType::Op_And: {
-                lhs = new ASTNodeBinary(lhs, rhs, Operator::And);
+                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::And);
                 break;
             }
             default:
@@ -790,7 +790,7 @@ ASTNode * Parser::Unary() {
         /* rule 8: Unary -> - Factor */
         _lexer.match(TokenType::Op_Minus);
         ASTNode * arg = Factor();
-        return new ASTNodeBinary(new ASTNodeInt(-1), arg, Operator::Mul);
+        return new ASTNodeBinary(new ASTNodeInt(-1), arg, ASTNodeBinary::Operator::Mul);
     }
     case TokenType::Op_Plus: {
         /* rule 9: Unary -> + Factor */
@@ -801,7 +801,7 @@ ASTNode * Parser::Unary() {
         /* rule 10: Unary -> not Factor */
         _lexer.match(TokenType::Op_Not);
         ASTNode * arg = Factor();
-        return new ASTNodeNot(arg);
+        return new ASTNodeUnary(arg, ASTNodeUnary::Operator::Not);
     }
     case TokenType::Identifier:
     case TokenType::IntVal:
