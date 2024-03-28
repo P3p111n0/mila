@@ -190,7 +190,19 @@ ASTNode * Parser::For() {
     case TokenType::For: {
         /* rule 44: For -> for Assignment For_to Expression do Body_h */
         _lexer.match(TokenType::For);
-        ASTNode * iter_var = Assignment();
+
+        Token id = _lexer.get();
+        if (id.type() != TokenType::Identifier) {
+            _err.emplace_back(id.pos, "identifier expected, got: " + id.get_str());
+        }
+
+        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Op_Assign)) {
+            _err.emplace_back(tok.pos,
+                              "\':=\' expected, got: " + tok.get_str());
+        }
+
+        ASTNode * it_start = Expression();
+
         bool is_downto = false;
 
         switch (_lexer.peek().type()) {
@@ -211,13 +223,13 @@ ASTNode * Parser::For() {
         }
         }
 
-        ASTNode * iter_stop = Expression();
+        ASTNode * it_stop = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Do)) {
             _err.emplace_back(tok.pos,
                               "\'do\' expected, got: " + tok.get_str());
         }
         ASTNode * body = Body();
-        return new ASTNodeFor(iter_var, iter_stop, body, is_downto);
+        return new ASTNodeFor(id.get_str(), it_start, it_stop, body, is_downto);
     }
     default: {
         Token tok = _lexer.peek();

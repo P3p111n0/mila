@@ -112,11 +112,12 @@ class ASTNodeWhile : public ASTNode {
 
 class ASTNodeFor : public ASTNode {
   public:
-    ASTNodeFor(ASTNode * var, ASTNode * stop, ASTNode * body, bool is_downto)
-        : _it_var(var), _it_stop(stop), _body(body), _is_downto(is_downto) {}
+    ASTNodeFor(std::string var, ASTNode * start, ASTNode * stop, ASTNode * body, bool is_downto)
+        : _var(std::move(var)), _it_start(start), _it_stop(stop), _body(body), _is_downto(is_downto) {}
 
   private:
-    std::shared_ptr<ASTNode> _it_var;
+    std::string _var;
+    std::shared_ptr<ASTNode> _it_start;
     std::shared_ptr<ASTNode> _it_stop;
     std::shared_ptr<ASTNode> _body;
     bool _is_downto;
