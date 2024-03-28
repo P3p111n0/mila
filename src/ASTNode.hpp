@@ -144,7 +144,9 @@ class ASTNodeCall : public ASTNode {
 
 class ASTNodeVar : public ASTNode {
   public:
-    ASTNodeVar(std::list<VariableRecord> variables) : _vars(std::move(variables)) {}
+    ASTNodeVar(std::list<VariableRecord> variables)
+        : _vars(std::move(variables)) {}
+
   private:
     std::list<VariableRecord> _vars;
 };
@@ -152,13 +154,43 @@ class ASTNodeVar : public ASTNode {
 class ASTNodeConst : public ASTNode {
   public:
     struct ConstExpr {
-        ConstExpr(std::string const_name, ASTNode * expr) : name(std::move(const_name)), value(expr) {}
+        ConstExpr(std::string const_name, ASTNode * expr)
+            : name(std::move(const_name)), value(expr) {}
         std::string name;
         std::shared_ptr<ASTNode> value;
     };
     ASTNodeConst(std::list<ConstExpr> c) : _constants(std::move(c)) {}
+
   private:
     std::list<ConstExpr> _constants;
+};
+
+class ASTNodePrototype : public ASTNode {
+  public:
+    ASTNodePrototype(std::string name, std::list<VariableRecord> arguments,
+                     Type return_type)
+        : _fn_name(std::move(name)), _args(std::move(arguments)),
+          _arity(_args.size()), _return_type(return_type) {}
+
+    const std::string & name() const { return _fn_name; }
+
+  private:
+    std::string _fn_name;
+    std::list<VariableRecord> _args;
+    std::size_t _arity;
+    Type _return_type;
+};
+
+class ASTNodeFunction : public ASTNode {
+  public:
+    ASTNodeFunction(ASTNodePrototype * prototype, ASTNode * block,
+                    ASTNode * body)
+        : _proto(prototype), _block(block), _body(body) {}
+
+  private:
+    std::shared_ptr<ASTNodePrototype> _proto;
+    std::shared_ptr<ASTNode> _block;
+    std::shared_ptr<ASTNode> _body;
 };
 
 class ASTNodeBlock : public ASTNode {
