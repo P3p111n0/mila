@@ -1,5 +1,6 @@
 #pragma once
 
+#include "VariableRecord.hpp"
 #include "ASTNode.hpp"
 #include <memory>
 #include <unordered_map>
@@ -7,16 +8,6 @@
 #include <optional>
 
 struct SymbolTable;
-
-enum class Type {
-    Int,
-    Void
-};
-
-struct VariableRecord {
-    std::string name;
-    Type type;
-};
 
 struct FunctionRecord {
     std::string name;

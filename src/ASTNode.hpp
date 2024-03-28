@@ -1,5 +1,6 @@
 #pragma once
 
+#include "VariableRecord.hpp"
 #include <list>
 #include <memory>
 #include <optional>
@@ -139,6 +140,13 @@ class ASTNodeCall : public ASTNode {
   private:
     std::string _fn;
     std::list<std::shared_ptr<ASTNode>> _args;
+};
+
+class ASTNodeVar : public ASTNode {
+  public:
+    ASTNodeVar(std::list<VariableRecord> variables) : _vars(std::move(variables)) {}
+  private:
+    std::list<VariableRecord> _vars;
 };
 
 class ASTNodeBlock : public ASTNode {
