@@ -14,8 +14,8 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
 
-#include "Lexer.hpp"
 #include "ASTNode.hpp"
+#include "Lexer.hpp"
 #include "SymbolTable.hpp"
 #include <vector>
 
@@ -31,8 +31,10 @@ class Parser {
   private:
     class ErrorLog {
       public:
-        ErrorLog(Position pos, std::string msg) : _pos(pos), _msg(std::move(msg)) {}
-        friend std::ostream & operator<<(std::ostream & os, const ErrorLog & err) {
+        ErrorLog(Position pos, std::string msg)
+            : _pos(pos), _msg(std::move(msg)) {}
+        friend std::ostream & operator<<(std::ostream & os,
+                                         const ErrorLog & err) {
             const char * red_fmt = "\033[31m";
             const char * fmt_clear = "\033[m";
             bool in_term = isatty(STDOUT_FILENO);
@@ -45,6 +47,7 @@ class Parser {
             os << "Near " << err._pos << ": " << err._msg;
             return os;
         }
+
       private:
         Position _pos;
         std::string _msg;
@@ -65,18 +68,17 @@ class Parser {
     ASTNode * Unary();
     ASTNode * Mul();
     ASTNode * Add();
-    void Const();
-    void Const_recursive();
-    void Var();
-    void Block();
-    void Var_recursive();
+    ASTNode * Const();
+    ASTNodeConst::ConstExpr Const_declaration();
+    ASTNode * Var();
+    ASTNode * Block();
     VariableRecord Var_declaration();
-    void Function();
+    ASTNode * Function();
     std::list<VariableRecord> Function_arg();
     Type Var_type();
     std::list<std::shared_ptr<ASTNode>> Statement();
     ASTNode * Stmt_helper();
-    void Procedure();
+    ASTNode * Procedure();
     ASTNode * If();
     ASTNode * Body();
     ASTNode * While();

@@ -15,7 +15,6 @@ struct FunctionRecord {
     std::list<VariableRecord> args;
     std::size_t arity;
     std::shared_ptr<SymbolTable> symbol_table;
-    std::shared_ptr<ASTNode> body;
 };
 
 struct SymbolTable {
