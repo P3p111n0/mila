@@ -52,7 +52,7 @@ const std::unordered_map<std::string, Token> _op_map = {
 
 bool Lexer::match(TokenType t) {
     if (t != _current.type()) {
-        _current = next_token();
+        //_current = next_token();
         return false;
     }
     _current = next_token();

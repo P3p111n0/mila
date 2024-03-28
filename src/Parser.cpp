@@ -66,8 +66,8 @@ Type Parser::Var_type() {
         _lexer.match(TokenType::Integer);
         return Type::Int;
     default: {
-        Token tok = _lexer.get();
-        _err.emplace_back(tok.pos, "Unknown token when parsing var type: " +
+        Token tok = _lexer.peek();
+        _err.emplace_back(tok.pos, "Type identifier expected, got: " +
                                        tok.get_str());
         return Type(-1);
     }
@@ -95,7 +95,7 @@ ASTNode * Parser::Body() {
         return new ASTNodeBody(stmts);
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
                           "Unknown token when parsing body: " + tok.get_str());
         return nullptr;
@@ -116,7 +116,7 @@ ASTNode * Parser::Assignment() {
         return new ASTNodeAssign(new ASTNodeIdentifier(id.get_str()), rhs);
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing assignment: " +
                                        tok.get_str());
         return nullptr;
@@ -147,7 +147,7 @@ ASTNode * Parser::If() {
         case TokenType::End:
             return new ASTNodeIf(cond, body);
         default: {
-            Token tok = _lexer.get();
+            Token tok = _lexer.peek();
             _err.emplace_back(tok.pos, "else/end/semicolon expected, got: " +
                                            tok.get_str());
             return nullptr;
@@ -155,7 +155,7 @@ ASTNode * Parser::If() {
         }
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing if statement: " +
                                        tok.get_str());
         return nullptr;
@@ -177,7 +177,7 @@ ASTNode * Parser::While() {
         return new ASTNodeWhile(cond, body);
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing while loop: " +
                                        tok.get_str());
         return nullptr;
@@ -205,7 +205,7 @@ ASTNode * Parser::For() {
             break;
         }
         default: {
-            Token tok = _lexer.get();
+            Token tok = _lexer.peek();
             _err.emplace_back(tok.pos, "\'to\'/\'downto\' exprected, got: " +
                                            tok.get_str());
         }
@@ -220,7 +220,7 @@ ASTNode * Parser::For() {
         return new ASTNodeFor(iter_var, iter_stop, body, is_downto);
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing for loop: " +
                                        tok.get_str());
         return nullptr;
@@ -244,7 +244,7 @@ ASTNode * Parser::Stmt_helper() {
             return Call(id);
         }
         default: {
-            auto tok = _lexer.get();
+            auto tok = _lexer.peek();
             _err.emplace_back(tok.pos, "Unknown token when parsing assignment/call: " + tok.get_str());
             return nullptr;
         }
@@ -268,7 +268,7 @@ ASTNode * Parser::Stmt_helper() {
         _lexer.match(TokenType::Break);
         return new ASTNodeBreak();
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing statement: " +
                                        tok.get_str());
         return nullptr;
@@ -294,7 +294,7 @@ std::list<std::shared_ptr<ASTNode>> Parser::Statement() {
     case TokenType::End:
         return res;
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing statement: " +
                                        tok.get_str());
         return {};
@@ -318,7 +318,7 @@ std::list<VariableRecord> Parser::Function_arg() {
         /* rule 59: Function_arg ->  */
         return {};
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
                           "Unknown token when parsing function variables: " +
                               tok.get_str());
@@ -395,7 +395,7 @@ void Parser::Function() {
         break;
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
                           "Unknown token when parsing function declaration: " +
                               tok.get_str());
@@ -475,7 +475,7 @@ void Parser::Procedure() {
         break;
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
                           "Unknown token when parsing procedure declaration: " +
                               tok.get_str());
@@ -522,7 +522,7 @@ void Parser::Const_recursive() {
         /* rule 46: Const_h ->  */
         break;
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing constants: " +
                                        tok.get_str());
     }
@@ -563,7 +563,7 @@ void Parser::Const() {
         break;
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing constants: " +
                                        tok.get_str());
     }
@@ -591,7 +591,7 @@ VariableRecord Parser::Var_declaration() {
         return var_record;
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
                           "Unknown token parsing variable declaration: " +
                               tok.get_str());
@@ -618,7 +618,7 @@ void Parser::Var_recursive() {
         /* rule 50: Var_h ->  */
         break;
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
                           "Unknown token when parsing variable declarations: " +
                               tok.get_str());
@@ -640,7 +640,7 @@ void Parser::Var() {
         Var_recursive();
         break;
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing variables: " +
                                        tok.get_str());
     }
@@ -686,7 +686,7 @@ ASTNode * Parser::Expression() {
         return lhs;
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing expressions: " +
                                        tok.get_str());
         return nullptr;
@@ -731,7 +731,7 @@ ASTNode * Parser::Add() {
         return lhs;
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token add level operators: " +
                                        tok.get_str());
         return nullptr;
@@ -776,7 +776,7 @@ ASTNode * Parser::Mul() {
         return lhs;
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token mult level operators: " +
                                        tok.get_str());
         return nullptr;
@@ -809,7 +809,7 @@ ASTNode * Parser::Unary() {
         /* rule 11: Unary -> Factor */
         return Factor();
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
                           "Unknown token unary operators: " + tok.get_str());
         return nullptr;
@@ -841,7 +841,7 @@ ASTNode * Parser::Call(const Token & id) {
         case TokenType::Par_Close:
             break;
         default: {
-            Token tok = _lexer.get();
+            Token tok = _lexer.peek();
             _err.emplace_back(tok.pos, "Unknown token parsing call args: " +
                                            tok.get_str());
             return nullptr;
@@ -894,7 +894,7 @@ ASTNode * Parser::Call(const Token & id) {
         return new ASTNodeIdentifier(id.get_str());
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
                           "Unknown token when parsing call: " + tok.get_str());
         return nullptr;
@@ -921,7 +921,7 @@ ASTNode * Parser::Factor() {
         return Call(id);
     }
     default: {
-        Token tok = _lexer.get();
+        Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing factor: " +
                                        tok.get_str());
         return nullptr;
@@ -950,7 +950,7 @@ void Parser::Block() {
     case TokenType::Begin:
         break;
     default: {
-        auto tok = _lexer.get();
+        auto tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing block: " + tok.get_str());
         return;
     }
@@ -995,7 +995,7 @@ ASTNode * Parser::Mila() {
         return new ASTNodeMain(pg_name.get_str(), main_body);
     }
     default: {
-        auto tok = _lexer.get();
+        auto tok = _lexer.peek();
         _err.emplace_back(tok.pos, "in main: \'program\' expected, got: " +
                                        tok.get_str());
         return nullptr;
