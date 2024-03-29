@@ -201,16 +201,3 @@ class ASTNodeBlock : public ASTNode {
   private:
     std::list<std::shared_ptr<ASTNode>> _decls;
 };
-
-class ASTNodeMain : public ASTNode {
-  public:
-    ASTNodeMain(std::string name, ASTNode * block,
-                std::list<std::shared_ptr<ASTNode>> main_body)
-        : _pg_name(std::move(name)), _block(block),
-          _main_body(std::move(main_body)) {}
-
-  private:
-    std::string _pg_name;
-    std::shared_ptr<ASTNode> _block;
-    std::list<std::shared_ptr<ASTNode>> _main_body;
-};

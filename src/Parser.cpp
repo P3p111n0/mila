@@ -983,7 +983,7 @@ ASTNode * Parser::Mila() {
                                            tok.get_str());
             return nullptr;
         }
-        auto main_body = Statement();
+        auto * main_body = new ASTNodeBody(Statement());
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
             _err.emplace_back(tok.pos, "in main: \'end\' expected, got: " +
                                            tok.get_str());
@@ -995,7 +995,8 @@ ASTNode * Parser::Mila() {
                                   tok.get_str());
             return nullptr;
         }
-        return new ASTNodeMain(pg_name.get_str(), block, main_body);
+        auto * proto = new ASTNodePrototype("__main__", {}, Type::Int);
+        return new ASTNodeFunction(proto, block, main_body);
     }
     default: {
         auto tok = _lexer.peek();
