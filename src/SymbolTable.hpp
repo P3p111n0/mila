@@ -11,7 +11,7 @@ struct SymbolTable;
 
 struct FunctionRecord {
     std::string name;
-    Type return_type;
+    VarType return_type;
     std::list<VariableRecord> args;
     std::size_t arity;
     std::shared_ptr<SymbolTable> symbol_table;

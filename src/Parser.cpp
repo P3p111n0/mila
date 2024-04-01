@@ -60,16 +60,16 @@ bool Parser::is_statement(TokenType t) {
     }
 }
 
-Type Parser::Var_type() {
+VarType Parser::Var_type() {
     switch (_lexer.peek().type()) {
     case TokenType::Integer:
         _lexer.match(TokenType::Integer);
-        return Type::Int;
+        return VarType::Int;
     default: {
         Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
                           "Type identifier expected, got: " + tok.get_str());
-        return Type(-1);
+        return VarType(-1);
     }
     }
 }

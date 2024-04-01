@@ -2,12 +2,12 @@
 
 #include <string>
 
-enum class Type {
+enum class VarType {
     Int,
     Void
 };
 
 struct VariableRecord {
     std::string name;
-    Type type;
+    VarType type;
 };
