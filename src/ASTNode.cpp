@@ -148,6 +148,8 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
         st[std::string(arg.getName())] = alloca;
     }
 
+    _block->codegen(module, builder, ctx, st);
+
     // TODO body
     _body->codegen(module, builder, ctx, st);
 
@@ -320,6 +322,15 @@ Value * ASTNodeConst::codegen(Module & module, IRBuilder<> & builder,
         Value * val = c.value->codegen(module, builder, ctx, st);
         builder.CreateStore(val, alloca);
         st[c.name] = alloca;
+    }
+    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+}
+
+Value * ASTNodeBlock::codegen(Module & module, IRBuilder<> & builder,
+                              LLVMContext & ctx,
+                              std::map<std::string, llvm::AllocaInst *> & st) {
+    for (auto & block : _decls) {
+        block->codegen(module, builder, ctx, st);
     }
     return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
 }
