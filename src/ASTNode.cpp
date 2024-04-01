@@ -297,3 +297,16 @@ Value * ASTNodeBreak::codegen(Module & module, IRBuilder<> & builder,
     builder.CreateBr(loop_end);
     return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
 }
+
+Value * ASTNodeVar::codegen(Module & module, IRBuilder<> & builder,
+                              LLVMContext & ctx,
+                              std::map<std::string, llvm::AllocaInst *> & st) {
+    Function * function = builder.GetInsertBlock()->getParent();
+    for (const auto & var : _vars) {
+        Type * type = resolve_type(ctx, var.type);
+        AllocaInst * alloca = CreateEntryBlockAlloca(function, type, var.name);
+        st[var.name] = alloca;
+    }
+    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+}
+
