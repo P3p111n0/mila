@@ -259,6 +259,7 @@ Value * ASTNodeFor::codegen(Module & module, IRBuilder<> & builder,
 
     // main loop body
     BasicBlock * loop_bb = BasicBlock::Create(ctx, "loop", function);
+    BasicBlock * loop_end = BasicBlock::Create(ctx, "loop_end", function);
     builder.CreateBr(loop_bb);
     builder.SetInsertPoint(loop_bb);
     _body->codegen(module, builder, ctx, st);
@@ -275,7 +276,6 @@ Value * ASTNodeFor::codegen(Module & module, IRBuilder<> & builder,
     }
     builder.CreateStore(next_val, loop_var);
     end_cond = builder.CreateICmpEQ(next_val, end_cond);
-    BasicBlock * loop_end = BasicBlock::Create(ctx, "loop_end");
     builder.CreateCondBr(end_cond, loop_end, loop_bb);
     builder.SetInsertPoint(loop_end);
     return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
@@ -287,4 +287,13 @@ Value * ASTNodeAssign::codegen(Module & module, IRBuilder<> & builder,
     AllocaInst * var = st[_target];
     Value * value = _rhs->codegen(module, builder, ctx, st);
     return builder.CreateStore(value, var);
+}
+
+Value * ASTNodeBreak::codegen(Module & module, IRBuilder<> & builder,
+                               LLVMContext & ctx,
+                               std::map<std::string, llvm::AllocaInst *> & st) {
+    Function * function = builder.GetInsertBlock()->getParent();
+    BasicBlock * loop_end = &function->back(); // hopefully loop end lmao
+    builder.CreateBr(loop_end);
+    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
 }
