@@ -280,3 +280,11 @@ Value * ASTNodeFor::codegen(Module & module, IRBuilder<> & builder,
     builder.SetInsertPoint(loop_end);
     return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
 }
+
+Value * ASTNodeAssign::codegen(Module & module, IRBuilder<> & builder,
+                             LLVMContext & ctx,
+                             std::map<std::string, llvm::AllocaInst *> & st) {
+    AllocaInst * var = st[_target];
+    Value * value = _rhs->codegen(module, builder, ctx, st);
+    return builder.CreateStore(value, var);
+}
