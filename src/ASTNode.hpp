@@ -196,7 +196,7 @@ class ASTNodeVar : public ASTNode {
 class ASTNodeConst : public ASTNode {
   public:
     struct ConstExpr {
-        ConstExpr(std::string const_name, ASTNode * expr)
+        ConstExpr(std::string const_name, std::shared_ptr<ASTNode> expr)
             : name(std::move(const_name)), value(expr) {}
         std::string name;
         std::shared_ptr<ASTNode> value;

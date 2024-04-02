@@ -62,6 +62,7 @@ class Parser {
 
     std::shared_ptr<SymbolTable> _st;
     std::vector<ErrorLog> _err;
+    std::shared_ptr<ASTNode> _current_code;
 
     ASTNode * Factor();
     ASTNode * Expression();

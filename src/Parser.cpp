@@ -505,8 +505,8 @@ ASTNodeConst::ConstExpr Parser::Const_declaration() {
                               "in constant declaration: \'=\' expected, got: " +
                                   tok.get_str());
         }
-        ASTNode * rhs = Expression();
-        _st->constants[identifier.get_str()] = std::shared_ptr<ASTNode>(rhs);
+        std::shared_ptr<ASTNode> rhs = std::shared_ptr<ASTNode>(Expression());
+        _st->constants[identifier.get_str()] = rhs;
         return {identifier.get_str(), rhs};
     }
     default: {
@@ -1008,7 +1008,7 @@ ASTNode * Parser::Mila() {
 }
 
 bool Parser::Parse() {
-    std::shared_ptr<ASTNode> main = std::shared_ptr<ASTNode>(Mila());
+    _current_code = std::shared_ptr<ASTNode>(Mila());
     if (!_err.empty()) {
         for (const auto & error : _err) {
             std::cerr << error << std::endl;
@@ -1017,7 +1017,7 @@ bool Parser::Parse() {
     }
     return true;
 }
-/*
+
 const llvm::Module & Parser::Generate() {
 
     // create writeln function
@@ -1030,7 +1030,7 @@ const llvm::Module & Parser::Generate() {
         for (auto & Arg : F->args())
             Arg.setName("x");
     }
-
+/*
     // create main function
     {
         llvm::FunctionType * FT =
@@ -1053,10 +1053,12 @@ const llvm::Module & Parser::Generate() {
         MilaBuilder.CreateRet(
             llvm::ConstantInt::get(llvm::Type::getInt32Ty(MilaContext), 0));
     }
-
+*/
+    std::map<std::string, llvm::AllocaInst*> st;
+    _current_code->codegen(MilaModule, MilaBuilder, MilaContext, st);
     return this->MilaModule;
 }
-*/
+
 /**
  * @brief Simple token buffer.
  *
