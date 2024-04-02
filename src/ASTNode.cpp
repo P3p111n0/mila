@@ -1,6 +1,9 @@
 #include "ASTNode.hpp"
+#include <stack>
 
 using namespace llvm;
+
+static std::stack<BasicBlock*> _break_addr;
 
 Type * resolve_type(LLVMContext & ctx, VarType t) {
     switch (t) {
@@ -19,15 +22,15 @@ static AllocaInst * CreateEntryBlockAlloca(Function * f, Type * type,
     return TmpB.CreateAlloca(type, nullptr, name);
 }
 
-Value * ASTNodeInt::codegen(llvm::Module & module, llvm::IRBuilder<> & builder,
+Value * ASTNodeInt::codegen(llvm::Module &, llvm::IRBuilder<> &,
                             llvm::LLVMContext & ctx,
-                            std::map<std::string, llvm::AllocaInst *> & st) {
+                            std::map<std::string, llvm::AllocaInst *> &) {
     return ConstantInt::get(ctx, APInt(32, _val, true));
 }
 
 Value *
-ASTNodeIdentifier::codegen(llvm::Module & module, llvm::IRBuilder<> & builder,
-                           llvm::LLVMContext & ctx,
+ASTNodeIdentifier::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
+                           llvm::LLVMContext &,
                            std::map<std::string, llvm::AllocaInst *> & st) {
     AllocaInst * val = st[_name];
     if (!val) {
@@ -92,9 +95,9 @@ Value * ASTNodeBinary::codegen(llvm::Module & module,
 }
 
 Function *
-ASTNodePrototype::codegen(Module & module, IRBuilder<> & builder,
+ASTNodePrototype::codegen(Module & module, IRBuilder<> &,
                           LLVMContext & ctx,
-                          std::map<std::string, llvm::AllocaInst *> & st) {
+                          std::map<std::string, llvm::AllocaInst *> &) {
     std::vector<llvm::Type *> arg_types(_args.size(),
                                         llvm::Type::getInt32Ty(ctx));
 
@@ -231,8 +234,8 @@ Value * ASTNodeBody::codegen(Module & module, IRBuilder<> & builder,
     return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
 }
 
-Value * ASTNodeExit::codegen(Module & module, IRBuilder<> & builder,
-                             LLVMContext & ctx,
+Value * ASTNodeExit::codegen(Module &, IRBuilder<> & builder,
+                             LLVMContext &,
                              std::map<std::string, llvm::AllocaInst *> & st) {
     Function * function = builder.GetInsertBlock()->getParent();
     Value * ret = nullptr;
@@ -261,7 +264,8 @@ Value * ASTNodeFor::codegen(Module & module, IRBuilder<> & builder,
 
     // main loop body
     BasicBlock * loop_bb = BasicBlock::Create(ctx, "loop", function);
-    BasicBlock * loop_end = BasicBlock::Create(ctx, "loop_end", function);
+    BasicBlock * loop_end = BasicBlock::Create(ctx, "loop_end");
+    _break_addr.push(loop_end);
     builder.CreateBr(loop_bb);
     builder.SetInsertPoint(loop_bb);
     _body->codegen(module, builder, ctx, st);
@@ -278,8 +282,10 @@ Value * ASTNodeFor::codegen(Module & module, IRBuilder<> & builder,
     }
     builder.CreateStore(next_val, loop_var);
     end_cond = builder.CreateICmpEQ(next_val, end_cond);
+    function->insert(function->end(), loop_end);
     builder.CreateCondBr(end_cond, loop_end, loop_bb);
     builder.SetInsertPoint(loop_end);
+    _break_addr.pop();
     return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
 }
 
@@ -291,16 +297,18 @@ Value * ASTNodeAssign::codegen(Module & module, IRBuilder<> & builder,
     return builder.CreateStore(value, var);
 }
 
-Value * ASTNodeBreak::codegen(Module & module, IRBuilder<> & builder,
+Value * ASTNodeBreak::codegen(Module &, IRBuilder<> & builder,
                                LLVMContext & ctx,
-                               std::map<std::string, llvm::AllocaInst *> & st) {
-    Function * function = builder.GetInsertBlock()->getParent();
-    BasicBlock * loop_end = &function->back(); // hopefully loop end lmao
+                               std::map<std::string, llvm::AllocaInst *> &) {
+    if (_break_addr.empty()) {
+        //TODO error
+    }
+    BasicBlock * loop_end = _break_addr.top();
     builder.CreateBr(loop_end);
     return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
 }
 
-Value * ASTNodeVar::codegen(Module & module, IRBuilder<> & builder,
+Value * ASTNodeVar::codegen(Module &, IRBuilder<> & builder,
                               LLVMContext & ctx,
                               std::map<std::string, llvm::AllocaInst *> & st) {
     Function * function = builder.GetInsertBlock()->getParent();
@@ -335,3 +343,25 @@ Value * ASTNodeBlock::codegen(Module & module, IRBuilder<> & builder,
     return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
 }
 
+Value * ASTNodeWhile::codegen(Module & module, IRBuilder<> & builder,
+                              LLVMContext & ctx,
+                              std::map<std::string, llvm::AllocaInst *> & st) {
+    Function * function = builder.GetInsertBlock()->getParent();
+    BasicBlock * loop_cond = BasicBlock::Create(ctx, "while_cond", function);
+    BasicBlock * loop_body = BasicBlock::Create(ctx, "while_body", function);
+    BasicBlock * loop_end = BasicBlock::Create(ctx, "while_end");
+    _break_addr.push(loop_end);
+
+    builder.SetInsertPoint(loop_end);
+    Value * cond = _cond->codegen(module, builder, ctx, st);
+    Value * end_cond = builder.CreateICmpNE(cond, ConstantInt::get(ctx, APInt(32, 0, true)), "end_cond");
+    builder.CreateCondBr(end_cond, loop_body, loop_end);
+
+    builder.SetInsertPoint(loop_body);
+    _body->codegen(module, builder, ctx, st); // TODO error handling
+    builder.CreateBr(loop_cond);
+
+    function->insert(function->end(), loop_end);
+    builder.SetInsertPoint(loop_end);
+    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+}

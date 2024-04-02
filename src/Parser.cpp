@@ -426,7 +426,7 @@ ASTNode * Parser::Procedure() {
         old_st->functions[id.get_str()]; // reserve procedure name
         _st = _st->derive();
         FunctionRecord fn{.name = id.get_str(),
-                          .return_type = Type::Void,
+                          .return_type = VarType::Void,
                           .args = {},
                           .arity = 0,
                           .symbol_table = _st};
@@ -582,7 +582,7 @@ VariableRecord Parser::Var_declaration() {
                               "in variable declaration: \':\' expected, got: " +
                                   tok.get_str());
         }
-        Type var_type = Var_type();
+        VarType var_type = Var_type();
         VariableRecord var_record = {id.get_str(), var_type};
         _st->variables[id.get_str()] = {id.get_str(), var_type};
         return var_record;
@@ -995,7 +995,7 @@ ASTNode * Parser::Mila() {
                                   tok.get_str());
             return nullptr;
         }
-        auto * proto = new ASTNodePrototype("__main__", {}, Type::Int);
+        auto * proto = new ASTNodePrototype("__main__", {}, VarType::Int);
         return new ASTNodeFunction(proto, block, main_body);
     }
     default: {
