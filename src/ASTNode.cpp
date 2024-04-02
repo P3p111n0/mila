@@ -190,7 +190,8 @@ Value * ASTNodeIf::codegen(Module & module, IRBuilder<> & builder,
                              LLVMContext & ctx,
                              std::map<std::string, llvm::AllocaInst *> & st) {
     Value * cond = _cond->codegen(module, builder, ctx, st);
-    cond = builder.CreateICmpNE(cond, ConstantInt::get(ctx, APInt(32, 0)), "if_cond");
+    Value * null = Constant::getNullValue(cond->getType());
+    cond = builder.CreateICmpNE(cond, null, "if_cond");
 
     Function * function = builder.GetInsertBlock()->getParent();
     BasicBlock * then_bb = BasicBlock::Create(ctx, "then_block", function);
@@ -354,9 +355,11 @@ Value * ASTNodeWhile::codegen(Module & module, IRBuilder<> & builder,
     BasicBlock * loop_end = BasicBlock::Create(ctx, "while_end");
     _break_addr.push(loop_end);
 
-    builder.SetInsertPoint(loop_end);
+    builder.SetInsertPoint(loop_cond);
     Value * cond = _cond->codegen(module, builder, ctx, st);
-    Value * end_cond = builder.CreateICmpNE(cond, ConstantInt::get(ctx, APInt(32, 0, true)), "end_cond");
+    auto x = cond->getType();
+    Value * null = Constant::getNullValue(cond->getType());
+    Value * end_cond = builder.CreateICmpNE(cond, null, "end_cond");
     builder.CreateCondBr(end_cond, loop_body, loop_end);
 
     builder.SetInsertPoint(loop_body);
