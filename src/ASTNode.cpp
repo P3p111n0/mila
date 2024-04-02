@@ -141,13 +141,14 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
         AllocaInst * ret_var =
             CreateEntryBlockAlloca(function, function->getReturnType(),
                                    std::string(function->getName()));
+        builder.CreateStore(Constant::getNullValue(ret_var->getAllocatedType()), ret_var);
         st[std::string(function->getName())] = ret_var;
     }
 
     for (auto & arg : function->args()) {
         AllocaInst * alloca = CreateEntryBlockAlloca(
             function, arg.getType(), std::string(arg.getName()));
-        builder.CreateStore(&arg, alloca);
+        builder.CreateStore(Constant::getNullValue(alloca->getAllocatedType()), alloca);
         st[std::string(arg.getName())] = alloca;
     }
 
@@ -315,6 +316,7 @@ Value * ASTNodeVar::codegen(Module &, IRBuilder<> & builder,
     for (const auto & var : _vars) {
         Type * type = resolve_type(ctx, var.type);
         AllocaInst * alloca = CreateEntryBlockAlloca(function, type, var.name);
+        builder.CreateStore(Constant::getNullValue(alloca->getAllocatedType()), alloca);
         st[var.name] = alloca;
     }
     return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
