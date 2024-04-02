@@ -121,7 +121,7 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
     Function * function = module.getFunction(_proto->name());
 
     if (!function) {
-        _proto->codegen(module, builder, ctx, st);
+        function = _proto->codegen(module, builder, ctx, st);
     }
 
     if (!function) {

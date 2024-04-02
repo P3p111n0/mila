@@ -14,6 +14,7 @@ int main(int argc, char * argv[]) {
         }
         Parser parser(ifs);
         ret_val = parser.Parse();
+        parser.Generate().print(llvm::outs(), nullptr);
     } else {
         Parser parser;
         ret_val = parser.Parse();
@@ -22,8 +23,6 @@ int main(int argc, char * argv[]) {
     if (!ret_val) {
         return EXIT_FAILURE;
     }
-
-    // parser.Generate().print(llvm::outs(), nullptr);
 
     return EXIT_SUCCESS;
 }
