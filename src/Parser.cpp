@@ -1,12 +1,47 @@
 #include "Parser.hpp"
 
-Parser::Parser()
-    : MilaContext(), MilaBuilder(MilaContext), MilaModule("mila", MilaContext),
-      _st(std::make_shared<SymbolTable>()) {}
-
 Parser::Parser(std::istream & is)
     : _lexer(is), MilaContext(), MilaBuilder(MilaContext),
-      MilaModule("mila", MilaContext), _st(std::make_shared<SymbolTable>()) {}
+      MilaModule("mila", MilaContext), _st(std::make_shared<SymbolTable>()) {
+    //init symbol table with lib
+    FunctionRecord writeln {"writeln", VarType::Int, {{"x", VarType::Int}}, 1, _st->derive()};
+    FunctionRecord readln {"readln", VarType::Int, {{"x", VarType::Int}}, 1, _st->derive()};
+    FunctionRecord dec {"dec", VarType::Int, {{"x", VarType::Int}}, 1, _st->derive()};
+
+    _st->functions[writeln.name] = std::move(writeln);
+    _st->functions[readln.name] = std::move(readln);
+    _st->functions[dec.name] = std::move(dec);
+}
+
+void Parser::llvm_init_lib() {
+    {
+        std::vector<llvm::Type *> Ints(1, llvm::Type::getInt32Ty(MilaContext));
+        llvm::FunctionType * FT = llvm::FunctionType::get(
+            llvm::Type::getInt32Ty(MilaContext), Ints, false);
+        llvm::Function * F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage, "writeln", MilaModule);
+        for (auto & Arg : F->args())
+            Arg.setName("x");
+    }
+    {
+        std::vector<llvm::Type *> IntPtr(1, llvm::Type::getInt32PtrTy(MilaContext));
+        llvm::FunctionType * FT = llvm::FunctionType::get(
+            llvm::Type::getInt32Ty(MilaContext), IntPtr, false);
+        llvm::Function * F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage, "readln", MilaModule);
+        for (auto & Arg : F->args())
+            Arg.setName("x");
+    }
+    {
+        std::vector<llvm::Type *> IntPtr(1, llvm::Type::getInt32PtrTy(MilaContext));
+        llvm::FunctionType * FT = llvm::FunctionType::get(
+            llvm::Type::getInt32Ty(MilaContext), IntPtr, false);
+        llvm::Function * F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage, "dec", MilaModule);
+        for (auto & Arg : F->args())
+            Arg.setName("x");
+    }
+}
 
 bool Parser::is_mul_operator(TokenType t) {
     switch (t) {
@@ -1020,41 +1055,7 @@ bool Parser::Parse() {
 }
 
 const llvm::Module & Parser::Generate() {
-
-    // create writeln function
-    {
-        std::vector<llvm::Type *> Ints(1, llvm::Type::getInt32Ty(MilaContext));
-        llvm::FunctionType * FT = llvm::FunctionType::get(
-            llvm::Type::getInt32Ty(MilaContext), Ints, false);
-        llvm::Function * F = llvm::Function::Create(
-            FT, llvm::Function::ExternalLinkage, "writeln", MilaModule);
-        for (auto & Arg : F->args())
-            Arg.setName("x");
-    }
-/*
-    // create main function
-    {
-        llvm::FunctionType * FT =
-            llvm::FunctionType::get(llvm::Type::getInt32Ty(MilaContext), false);
-        llvm::Function * MainFunction = llvm::Function::Create(
-            FT, llvm::Function::ExternalLinkage, "main", MilaModule);
-
-        // block
-        llvm::BasicBlock * BB =
-            llvm::BasicBlock::Create(MilaContext, "entry", MainFunction);
-        MilaBuilder.SetInsertPoint(BB);
-
-        // call writeln with value from lexel
-        MilaBuilder.CreateCall(
-            MilaModule.getFunction("writeln"),
-            {llvm::ConstantInt::get(MilaContext,
-                                    llvm::APInt(32, _lexer.numVal()))});
-
-        // return 0
-        MilaBuilder.CreateRet(
-            llvm::ConstantInt::get(llvm::Type::getInt32Ty(MilaContext), 0));
-    }
-*/
+    llvm_init_lib();
     std::map<std::string, llvm::AllocaInst*> st;
     _current_code->codegen(MilaModule, MilaBuilder, MilaContext, st);
     return this->MilaModule;

@@ -21,8 +21,7 @@
 
 class Parser {
   public:
-    Parser();
-    explicit Parser(std::istream &);
+    explicit Parser(std::istream & = std::cin);
     ~Parser() = default;
 
     bool Parse();                    // parse
@@ -63,6 +62,8 @@ class Parser {
     std::shared_ptr<SymbolTable> _st;
     std::vector<ErrorLog> _err;
     std::shared_ptr<ASTNode> _current_code;
+
+    void llvm_init_lib();
 
     ASTNode * Factor();
     ASTNode * Expression();
