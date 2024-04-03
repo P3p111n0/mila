@@ -149,7 +149,7 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
     for (auto & arg : function->args()) {
         AllocaInst * alloca = CreateEntryBlockAlloca(
             function, arg.getType(), std::string(arg.getName()));
-        builder.CreateStore(Constant::getNullValue(alloca->getAllocatedType()), alloca);
+        builder.CreateStore(&arg, alloca);
         st[std::string(arg.getName())] = alloca;
     }
 
