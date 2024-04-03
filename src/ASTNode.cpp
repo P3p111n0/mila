@@ -141,16 +141,16 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
     if (function->getReturnType()->getTypeID() != Type::VoidTyID) {
         AllocaInst * ret_var =
             CreateEntryBlockAlloca(function, function->getReturnType(),
-                                   std::string(function->getName()));
+                                   function->getName().str());
         builder.CreateStore(Constant::getNullValue(ret_var->getAllocatedType()), ret_var);
-        st[std::string(function->getName())] = ret_var;
+        st[function->getName().str()] = ret_var;
     }
 
     for (auto & arg : function->args()) {
         AllocaInst * alloca = CreateEntryBlockAlloca(
-            function, arg.getType(), std::string(arg.getName()));
+            function, arg.getType(), arg.getName().str());
         builder.CreateStore(&arg, alloca);
-        st[std::string(arg.getName())] = alloca;
+        st[arg.getName().str()] = alloca;
     }
 
     _block->codegen(module, builder, ctx, st);
@@ -166,7 +166,7 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
     if (function->getReturnType()->getTypeID() != Type::VoidTyID) {
         // load return value if expected
         ret_val = builder.CreateLoad(function->getReturnType(),
-                                     st[std::string(function->getName())],
+                                     st[function->getName().str()],
                                      "return_value");
     }
 
