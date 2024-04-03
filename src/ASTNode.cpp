@@ -132,10 +132,11 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
         // TODO error
     }
 
-    BasicBlock * bb = BasicBlock::Create(ctx, "entry", function);
-    builder.SetInsertPoint(bb);
+    BasicBlock * entry = BasicBlock::Create(ctx, "entry", function);
+    builder.SetInsertPoint(entry);
 
-    st.clear();
+    std::map<std::string, AllocaInst*> old_st = std::move(st);
+    st = {};
     // insert return value var
     if (function->getReturnType()->getTypeID() != Type::VoidTyID) {
         AllocaInst * ret_var =
@@ -155,6 +156,10 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
     _block->codegen(module, builder, ctx, st);
 
     // TODO body
+    builder.SetInsertPoint(entry);
+    BasicBlock * function_body = BasicBlock::Create(ctx, "function_body", function);
+    builder.CreateBr(function_body);
+    builder.SetInsertPoint(function_body);
     _body->codegen(module, builder, ctx, st);
 
     Value * ret_val = nullptr;
@@ -167,6 +172,8 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
 
     builder.CreateRet(ret_val);
     verifyFunction(*function);
+    //restore symbol table
+    st = std::move(old_st);
     return function;
 }
 
