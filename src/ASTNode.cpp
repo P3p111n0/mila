@@ -209,28 +209,22 @@ Value * ASTNodeIf::codegen(Module & module, IRBuilder<> & builder,
     //then branch
     builder.SetInsertPoint(then_bb);
     // TODO body
-    Value * then_value = _body->codegen(module, builder, ctx, st);
+    _body->codegen(module, builder, ctx, st);
     builder.CreateBr(cont);
-    then_bb = builder.GetInsertBlock();
 
     //else branch
     function->insert(function->end(), else_bb);
     builder.SetInsertPoint(else_bb);
     //TODO body
-    Value * else_value = ConstantInt::getNullValue(Type::getInt32Ty(ctx));
     if (_else.has_value()) {
-        else_value = _else.value()->codegen(module, builder, ctx, st);
+        _else.value()->codegen(module, builder, ctx, st);
     }
     builder.CreateBr(cont);
-    else_bb = builder.GetInsertBlock();
 
     //after if block
     function->insert(function->end(), cont);
     builder.SetInsertPoint(cont);
-    PHINode * phi = builder.CreatePHI(Type::getInt32Ty(ctx), 2, "iftmp");
-    phi->addIncoming(then_value, then_bb);
-    phi->addIncoming(else_value, else_bb);
-    return phi;
+    return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 
 Value * ASTNodeBody::codegen(Module & module, IRBuilder<> & builder,
@@ -240,7 +234,7 @@ Value * ASTNodeBody::codegen(Module & module, IRBuilder<> & builder,
         stmt->codegen(module, builder, ctx, st);
         // TODO error handling
     }
-    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+    return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 
 Value * ASTNodeExit::codegen(Module &, IRBuilder<> & builder,
@@ -295,7 +289,7 @@ Value * ASTNodeFor::codegen(Module & module, IRBuilder<> & builder,
     builder.CreateCondBr(end_cond, loop_end, loop_bb);
     builder.SetInsertPoint(loop_end);
     _break_addr.pop();
-    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+    return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 
 Value * ASTNodeAssign::codegen(Module & module, IRBuilder<> & builder,
@@ -304,7 +298,7 @@ Value * ASTNodeAssign::codegen(Module & module, IRBuilder<> & builder,
     AllocaInst * var = st[_target];
     Value * value = _rhs->codegen(module, builder, ctx, st);
     builder.CreateStore(value, var);
-    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+    return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 
 Value * ASTNodeBreak::codegen(Module &, IRBuilder<> & builder,
@@ -315,7 +309,7 @@ Value * ASTNodeBreak::codegen(Module &, IRBuilder<> & builder,
     }
     BasicBlock * loop_end = _break_addr.top();
     builder.CreateBr(loop_end);
-    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+    return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 
 Value * ASTNodeVar::codegen(Module &, IRBuilder<> & builder,
@@ -328,7 +322,7 @@ Value * ASTNodeVar::codegen(Module &, IRBuilder<> & builder,
         builder.CreateStore(Constant::getNullValue(alloca->getAllocatedType()), alloca);
         st[var.name] = alloca;
     }
-    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+    return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 
 Value * ASTNodeConst::codegen(Module & module, IRBuilder<> & builder,
@@ -342,7 +336,7 @@ Value * ASTNodeConst::codegen(Module & module, IRBuilder<> & builder,
         builder.CreateStore(val, alloca);
         st[c.name] = alloca;
     }
-    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+    return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 
 Value * ASTNodeBlock::codegen(Module & module, IRBuilder<> & builder,
@@ -351,7 +345,7 @@ Value * ASTNodeBlock::codegen(Module & module, IRBuilder<> & builder,
     for (auto & block : _decls) {
         block->codegen(module, builder, ctx, st);
     }
-    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+    return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 
 Value * ASTNodeWhile::codegen(Module & module, IRBuilder<> & builder,
@@ -376,5 +370,5 @@ Value * ASTNodeWhile::codegen(Module & module, IRBuilder<> & builder,
 
     function->insert(function->end(), loop_end);
     builder.SetInsertPoint(loop_end);
-    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
+    return Constant::getNullValue(Type::getVoidTy(ctx));
 }
