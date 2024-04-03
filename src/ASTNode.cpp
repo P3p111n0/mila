@@ -20,7 +20,9 @@ Type * resolve_type(LLVMContext & ctx, VarType t) {
 static AllocaInst * CreateEntryBlockAlloca(Function * f, Type * type,
                                            const std::string & name) {
     IRBuilder<> TmpB(&f->getEntryBlock(), f->getEntryBlock().begin());
-    return TmpB.CreateAlloca(type, nullptr, name);
+    AllocaInst * alloca = TmpB.CreateAlloca(type, nullptr, name);
+    TmpB.CreateStore(Constant::getNullValue(alloca->getAllocatedType()), alloca);
+    return alloca;
 }
 
 Value * ASTNodeInt::codegen(llvm::Module &, llvm::IRBuilder<> &,
@@ -142,7 +144,6 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
         AllocaInst * ret_var =
             CreateEntryBlockAlloca(function, function->getReturnType(),
                                    function->getName().str());
-        builder.CreateStore(Constant::getNullValue(ret_var->getAllocatedType()), ret_var);
         st[function->getName().str()] = ret_var;
     }
 
@@ -202,8 +203,8 @@ Value * ASTNodeIf::codegen(Module & module, IRBuilder<> & builder,
 
     Function * function = builder.GetInsertBlock()->getParent();
     BasicBlock * then_bb = BasicBlock::Create(ctx, "then_block", function);
-    BasicBlock * else_bb = BasicBlock::Create(ctx, "else_block", function);
-    BasicBlock * cont = BasicBlock::Create(ctx, "after_block", function);
+    BasicBlock * else_bb = BasicBlock::Create(ctx, "else_block");
+    BasicBlock * cont = BasicBlock::Create(ctx, "after_block");
     builder.CreateCondBr(cond, then_bb, else_bb);
 
     //then branch
@@ -319,7 +320,6 @@ Value * ASTNodeVar::codegen(Module &, IRBuilder<> & builder,
     for (const auto & var : _vars) {
         Type * type = resolve_type(ctx, var.type);
         AllocaInst * alloca = CreateEntryBlockAlloca(function, type, var.name);
-        builder.CreateStore(Constant::getNullValue(alloca->getAllocatedType()), alloca);
         st[var.name] = alloca;
     }
     return Constant::getNullValue(Type::getVoidTy(ctx));
