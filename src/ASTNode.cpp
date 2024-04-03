@@ -355,9 +355,9 @@ Value * ASTNodeWhile::codegen(Module & module, IRBuilder<> & builder,
     BasicBlock * loop_end = BasicBlock::Create(ctx, "while_end");
     _break_addr.push(loop_end);
 
+    builder.CreateBr(loop_cond);
     builder.SetInsertPoint(loop_cond);
     Value * cond = _cond->codegen(module, builder, ctx, st);
-    auto x = cond->getType();
     Value * null = Constant::getNullValue(cond->getType());
     Value * end_cond = builder.CreateICmpNE(cond, null, "end_cond");
     builder.CreateCondBr(end_cond, loop_body, loop_end);
