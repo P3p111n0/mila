@@ -1056,8 +1056,8 @@ bool Parser::Parse() {
 
 const llvm::Module & Parser::Generate() {
     llvm_init_lib();
-    std::map<std::string, llvm::AllocaInst*> st;
-    _current_code->codegen(MilaModule, MilaBuilder, MilaContext, st);
+    CodegenData data;
+    _current_code->codegen(MilaModule, MilaBuilder, MilaContext, data);
     return this->MilaModule;
 }
 

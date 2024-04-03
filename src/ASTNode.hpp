@@ -2,9 +2,6 @@
 
 #include "VariableRecord.hpp"
 #include <list>
-#include <memory>
-#include <optional>
-#include <map>
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/IR/BasicBlock.h>
@@ -16,22 +13,33 @@
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
-#include <llvm/IR/Verifier.h>
 #include <llvm/IR/ValueSymbolTable.h>
+#include <llvm/IR/Verifier.h>
+#include <map>
+#include <memory>
+#include <optional>
+#include <stack>
+
+struct CodegenData {
+    std::map<std::string, llvm::AllocaInst *> vars;
+    std::map<std::string, llvm::Value *> consts;
+    std::stack<llvm::BasicBlock *> break_addrs;
+    std::stack<llvm::BasicBlock *> cont_addrs;
+};
 
 class ASTNode {
   public:
     ASTNode() = default;
     virtual ~ASTNode() = default;
-    virtual llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-            std::map<std::string, llvm::AllocaInst *> &) = 0;
+    virtual llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                                  llvm::LLVMContext &, CodegenData &) = 0;
 };
 
 class ASTNodeInt : public ASTNode {
   public:
     ASTNodeInt(int val) : _val(val) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     int _val;
@@ -40,8 +48,8 @@ class ASTNodeInt : public ASTNode {
 class ASTNodeIdentifier : public ASTNode {
   public:
     ASTNodeIdentifier(std::string name) : _name(std::move(name)) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::string _name;
@@ -52,8 +60,8 @@ class ASTNodeUnary : public ASTNode {
     enum class Operator { Not };
 
     ASTNodeUnary(ASTNode * arg, Operator op) : _arg(arg), _op(op) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::shared_ptr<ASTNode> _arg;
@@ -81,8 +89,8 @@ class ASTNodeBinary : public ASTNode {
 
     ASTNodeBinary(ASTNode * lhs, ASTNode * rhs, Operator op)
         : _lhs(lhs), _rhs(rhs), _op(op) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::shared_ptr<ASTNode> _lhs;
@@ -94,8 +102,8 @@ class ASTNodeBody : public ASTNode {
   public:
     ASTNodeBody(std::list<std::shared_ptr<ASTNode>> statements)
         : _stmts(std::move(statements)) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::list<std::shared_ptr<ASTNode>> _stmts;
@@ -105,8 +113,8 @@ class ASTNodeAssign : public ASTNode {
   public:
     ASTNodeAssign(std::string target, ASTNode * rhs)
         : _target(std::move(target)), _rhs(rhs) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::string _target;
@@ -116,8 +124,8 @@ class ASTNodeAssign : public ASTNode {
 class ASTNodeExit : public ASTNode {
   public:
     ASTNodeExit() = default;
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 };
 
 class ASTNodeIf : public ASTNode {
@@ -126,8 +134,8 @@ class ASTNodeIf : public ASTNode {
         : _cond(cond), _body(body), _else(std::nullopt) {}
     ASTNodeIf(ASTNode * cond, ASTNode * body, ASTNode * else_b)
         : _cond(cond), _body(body), _else(std::shared_ptr<ASTNode>(else_b)) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::shared_ptr<ASTNode> _cond;
@@ -138,8 +146,8 @@ class ASTNodeIf : public ASTNode {
 class ASTNodeWhile : public ASTNode {
   public:
     ASTNodeWhile(ASTNode * cond, ASTNode * body) : _cond(cond), _body(body) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::shared_ptr<ASTNode> _cond;
@@ -152,8 +160,8 @@ class ASTNodeFor : public ASTNode {
                bool is_downto)
         : _var(std::move(var)), _it_start(start), _it_stop(stop), _body(body),
           _is_downto(is_downto) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::string _var;
@@ -166,16 +174,16 @@ class ASTNodeFor : public ASTNode {
 class ASTNodeBreak : public ASTNode {
   public:
     ASTNodeBreak() = default;
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 };
 
 class ASTNodeCall : public ASTNode {
   public:
     ASTNodeCall(std::string fun, std::list<std::shared_ptr<ASTNode>> args)
         : _fn(std::move(fun)), _args(std::move(args)) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::string _fn;
@@ -186,8 +194,8 @@ class ASTNodeVar : public ASTNode {
   public:
     ASTNodeVar(std::list<VariableRecord> variables)
         : _vars(std::move(variables)) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::list<VariableRecord> _vars;
@@ -202,8 +210,8 @@ class ASTNodeConst : public ASTNode {
         std::shared_ptr<ASTNode> value;
     };
     ASTNodeConst(std::list<ConstExpr> c) : _constants(std::move(c)) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::list<ConstExpr> _constants;
@@ -217,7 +225,8 @@ class ASTNodePrototype : public ASTNode {
           _arity(_args.size()), _return_type(return_type) {}
 
     const std::string & name() const { return _fn_name; }
-    llvm::Function * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &, std::map<std::string, llvm::AllocaInst*> &) override;
+    llvm::Function * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                             llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::string _fn_name;
@@ -231,7 +240,8 @@ class ASTNodeFunction : public ASTNode {
     ASTNodeFunction(ASTNodePrototype * prototype, ASTNode * block,
                     ASTNode * body)
         : _proto(prototype), _block(block), _body(body) {}
-    llvm::Function * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &, std::map<std::string, llvm::AllocaInst*> &) override;
+    llvm::Function * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                             llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::shared_ptr<ASTNodePrototype> _proto;
@@ -243,8 +253,8 @@ class ASTNodeBlock : public ASTNode {
   public:
     ASTNodeBlock(std::list<std::shared_ptr<ASTNode>> declarations)
         : _decls(std::move(declarations)) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &,
-                          std::map<std::string, llvm::AllocaInst *> &) override;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::list<std::shared_ptr<ASTNode>> _decls;
