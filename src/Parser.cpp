@@ -888,6 +888,7 @@ ASTNode * Parser::Call(const Token & id) {
     case TokenType::Colon:
     case TokenType::To:
     case TokenType::Downto:
+    case TokenType::Else:
     case TokenType::End: {
         auto var_r = _st->lookup_variable(id.get_str());
         auto cst_r = _st->lookup_constant(id.get_str());
