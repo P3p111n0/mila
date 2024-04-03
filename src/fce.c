@@ -13,6 +13,5 @@ int readln(int *x) {
     return 0;
 }
 int dec(int * x) {
-    *x--;
-    return *x;
+    return --*x;
 }
