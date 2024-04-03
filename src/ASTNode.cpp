@@ -1,6 +1,7 @@
 #include "ASTNode.hpp"
 #include <stack>
 
+
 using namespace llvm;
 
 static std::stack<BasicBlock*> _break_addr;
@@ -36,7 +37,6 @@ ASTNodeIdentifier::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
     if (!val) {
         //TODO error
     }
-
     return builder.CreateLoad(val->getAllocatedType(), val, _name);
 }
 
@@ -58,7 +58,7 @@ Value * ASTNodeBinary::codegen(llvm::Module & module,
                                llvm::LLVMContext & ctx,
                                std::map<std::string, llvm::AllocaInst *> & st) {
     Value * lhs = _lhs->codegen(module, builder, ctx, st);
-    Value * rhs = _lhs->codegen(module, builder, ctx, st);
+    Value * rhs = _rhs->codegen(module, builder, ctx, st);
 
     switch (_op) {
     case Operator::Add:
@@ -296,7 +296,8 @@ Value * ASTNodeAssign::codegen(Module & module, IRBuilder<> & builder,
                              std::map<std::string, llvm::AllocaInst *> & st) {
     AllocaInst * var = st[_target];
     Value * value = _rhs->codegen(module, builder, ctx, st);
-    return builder.CreateStore(value, var);
+    builder.CreateStore(value, var);
+    return ConstantInt::getNullValue(Type::getInt32Ty(ctx));
 }
 
 Value * ASTNodeBreak::codegen(Module &, IRBuilder<> & builder,
