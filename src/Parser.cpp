@@ -1031,7 +1031,7 @@ ASTNode * Parser::Mila() {
                                   tok.get_str());
             return nullptr;
         }
-        auto * proto = new ASTNodePrototype("__main__", {}, VarType::Int);
+        auto * proto = new ASTNodePrototype("main", {}, VarType::Int);
         return new ASTNodeFunction(proto, block, main_body);
     }
     default: {
