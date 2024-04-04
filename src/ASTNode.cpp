@@ -373,6 +373,10 @@ llvm::Value * ASTNodeWhile::codegen(llvm::Module & module,
     return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 
-llvm::AllocaInst * ASTNodeVarByRef::codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &, CodegenData &) {
-    return nullptr; // TODO
+llvm::AllocaInst * ASTNodeVarByRef::codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &, CodegenData & cdg) {
+    AllocaInst * var = cdg.vars[_var];
+    if (!var) {
+        //TODO error
+    }
+    return var;
 }
