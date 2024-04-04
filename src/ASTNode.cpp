@@ -289,6 +289,7 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     builder.CreateCondBr(end_cond, loop_end, loop_bb);
     builder.SetInsertPoint(loop_end);
     cdg.break_addrs.pop();
+    cdg.cont_addrs.pop();
     return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 
