@@ -192,7 +192,11 @@ ASTNode * Parser::While() {
             _err.emplace_back(tok.pos,
                               "\'do\' expected, got: " + tok.get_str());
         }
+        auto old_st = _st;
+        _st = _st->derive();
+        _st->current_scope = SymbolTable::Scope::Loop;
         ASTNode * body = Body();
+        _st = old_st;
         return new ASTNodeWhile(cond, body);
     }
     default: {
@@ -223,7 +227,7 @@ ASTNode * Parser::For() {
 
         auto old_st = _st; // create new scope
         _st = _st->derive();
-
+        _st->current_scope = SymbolTable::Scope::Loop;
         _st->variables[id.get_str()] = {id.get_str(), VarType::Int, false};
 
         ASTNode * it_start = Expression();
@@ -303,14 +307,22 @@ ASTNode * Parser::Stmt_helper() {
     case TokenType::For:
         /* rule 25: Statement_h -> For */
         return For();
-    case TokenType::Exit:
+    case TokenType::Exit: {
         /* rule 27: Statement_h -> exit */
-        _lexer.match(TokenType::Exit);
+        auto tok = _lexer.get();
+        if (_st->current_scope == SymbolTable::Scope::Global) {
+            _err.emplace_back(tok.pos, "\'exit\' not permitted in global scope.");
+        }
         return new ASTNodeExit();
-    case TokenType::Break:
+    }
+    case TokenType::Break: {
         /* rule 27: Statement_h -> break */
-        _lexer.match(TokenType::Break);
+        auto tok = _lexer.get();
+        if (_st->current_scope != SymbolTable::Scope::Loop) {
+            _err.emplace_back(tok.pos, "\'break\' used outside of loop.");
+        }
         return new ASTNodeBreak();
+    }
     default: {
         Token tok = _lexer.peek();
         _err.emplace_back(tok.pos, "Unknown token when parsing statement: " +
@@ -389,6 +401,7 @@ ASTNode * Parser::Function() {
         _st->functions[id.get_str()]; // reserve function name
         auto old_st = _st;
         _st = _st->derive();
+        _st->current_scope = SymbolTable::Scope::Function;
         FunctionRecord fn;
         fn.name = id.get_str(), fn.symbol_table = _st;
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Open)) {
@@ -487,6 +500,7 @@ ASTNode * Parser::Procedure() {
         auto old_st = _st;
         old_st->functions[id.get_str()]; // reserve procedure name
         _st = _st->derive();
+        _st->current_scope = SymbolTable::Scope::Function;
         FunctionRecord fn{.name = id.get_str(),
                           .return_type = VarType::Void,
                           .args = {},
@@ -1095,6 +1109,7 @@ ASTNode * Parser::Mila() {
          * Statement end . */
         _lexer.match(TokenType::Program);
         Token pg_name = _lexer.get();
+        _st->current_scope = SymbolTable::Scope::Global;
         if (pg_name.type() != TokenType::Identifier) {
             _err.emplace_back(pg_name.pos,
                               "in main: program name expected, got: " +

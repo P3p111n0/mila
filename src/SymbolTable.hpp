@@ -19,6 +19,12 @@ struct FunctionRecord {
 
 struct SymbolTable {
   public:
+    enum class Scope {
+        Global,
+        Function,
+        Loop
+    };
+
     SymbolTable() : _parent(nullptr) {}
     std::shared_ptr<SymbolTable> derive();
 
@@ -32,6 +38,8 @@ struct SymbolTable {
     std::unordered_map<std::string, FunctionRecord> functions;
     std::unordered_map<std::string, std::shared_ptr<ASTNode>> constants;
     std::unordered_map<std::string, VariableRecord> variables;
+
+    Scope current_scope;
   private:
     SymbolTable * _parent;
 };
