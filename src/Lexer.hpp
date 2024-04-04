@@ -30,6 +30,7 @@ enum class TokenType {
     Exit,
     To,
     Downto,
+    Forward,
 
     // symbols
     Par_Open,
