@@ -265,7 +265,7 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     } else {
         loop_var = cdg.vars[_var];
     }
-    builder.CreateStore(init_val, loop_var);
+    builder.CreateStore(init_val, loop_var, "iter_var_init");
 
     // main loop body
     BasicBlock * loop_cond = BasicBlock::Create(ctx, "loop_cond", function);
@@ -275,7 +275,7 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     cdg.cont_addrs.push(loop_cond);
     builder.CreateBr(loop_cond);
     builder.SetInsertPoint(loop_cond);
-    Value * current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var);
+    Value * current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var, "loop_current_val");
     Value * end_cond = _it_stop->codegen(module, builder, ctx, cdg);
     Value * loop_cont_cond = builder.CreateICmpNE(current_val, end_cond, "loop_cont_cond");
     builder.CreateCondBr(loop_cont_cond, loop_bb, loop_end);
@@ -285,7 +285,7 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     Value * step = ConstantInt::get(ctx, APInt(32, 1, true));
 
     // mutate iter var
-    current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var);
+    current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var, "loop_var_fetch");
     Value * next_val = nullptr;
     if (_is_downto) {
         next_val = builder.CreateSub(current_val, step, "step");
