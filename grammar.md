@@ -128,15 +128,18 @@ Var_h	     -> Var_decl ; Var_h
 	     -> 
 Var          -> var Var_decl ; Var_h
 
+Forward      -> forward ;
+             ->
+
 Fn_arg_h     -> , Var_decl Fn_arg_h
              ->
 Function_arg -> Var_decl Fn_arg_h
 	     ->
-Function     -> function Identifier ( Function_arg ) : Type ;
+Function     -> function Identifier ( Function_arg ) : Type ; Forward
 	                 Block
 	                 begin Statement end ;
 
-Procedure    -> procedure Identifier ( Function_arg ) ;
+Procedure    -> procedure Identifier ( Function_arg ) ; Forward
 			  Var_opt
 			  begin Statement end ;
 

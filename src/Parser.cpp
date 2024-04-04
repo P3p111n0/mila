@@ -382,7 +382,7 @@ ASTNode * Parser::Function() {
             _err.emplace_back(id.pos,
                               "identifier expected, got: " + id.get_str());
         }
-        if (!_st->unique_global(id.get_str())) {
+        if (!_st->unique_global(id.get_str()) && !_forward_declared.count(id.get_str())) {
             _err.emplace_back(id.pos,
                               "function name is not unique: " + id.get_str());
         }
@@ -416,13 +416,26 @@ ASTNode * Parser::Function() {
                               "in function signature: \';\' expected, got: " +
                                   tok.get_str());
         }
+
+        old_st->functions[fn.name] = fn; // add incomplete function info
+        if (_lexer.peek().type() == TokenType::Forward) {
+            (void)_lexer.get();
+            if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
+                _err.emplace_back(tok.pos,
+                                  "in function forward declaration: \';\' expected, got: " +
+                                      tok.get_str());
+            }
+            _st = old_st;
+            _forward_declared.emplace(fn.name);
+            return new ASTNodePrototype(fn.name, fn.args, fn.return_type);
+        }
+
         ASTNode * block = Block();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
             _err.emplace_back(tok.pos,
                               "in function body: \'begin\' expected, got: " +
                                   tok.get_str());
         }
-        old_st->functions[fn.name] = fn; // add incomplete function info
         ASTNode * body = new ASTNodeBody(Statement());
         old_st->functions[fn.name] = fn; // update after parsing body
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
@@ -436,6 +449,9 @@ ASTNode * Parser::Function() {
                                   tok.get_str());
         }
         _st = old_st;
+        if (_forward_declared.count(fn.name)) {
+            _forward_declared.erase(fn.name);
+        }
         auto * proto = new ASTNodePrototype(fn.name, fn.args, fn.return_type);
         return new ASTNodeFunction(proto, block, body);
     }
@@ -493,13 +509,26 @@ ASTNode * Parser::Procedure() {
                               "in procedure signature: \';\' expected, got: " +
                                   tok.get_str());
         }
+
+        old_st->functions[fn.name] = fn; // add incomplete function info
+        if (_lexer.peek().type() == TokenType::Forward) {
+            (void)_lexer.get();
+            if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
+                _err.emplace_back(tok.pos,
+                                  "in procedure forward declaration: \';\' expected, got: " +
+                                      tok.get_str());
+            }
+            _st = old_st;
+            _forward_declared.emplace(fn.name);
+            return new ASTNodePrototype(fn.name, fn.args, fn.return_type);
+        }
+
         ASTNode * block = Block();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
             _err.emplace_back(tok.pos,
                               "in procedure body: \'begin\' expected, got: " +
                                   tok.get_str());
         }
-        old_st->functions[fn.name] = fn; // add incomplete procedure info
         ASTNode * body = new ASTNodeBody(Statement());
         old_st->functions[fn.name] = fn; // update after parsing body
         if (fn.symbol_table->variables.count(fn.name)) {
@@ -517,6 +546,10 @@ ASTNode * Parser::Procedure() {
                                   tok.get_str());
         }
         _st = old_st;
+        if (_forward_declared.count(fn.name)) {
+            _forward_declared.erase(fn.name);
+        }
+
         auto * proto = new ASTNodePrototype(fn.name, fn.args, fn.return_type);
         return new ASTNodeFunction(proto, block, body);
     }
@@ -1090,6 +1123,13 @@ ASTNode * Parser::Mila() {
                                   tok.get_str());
             return nullptr;
         }
+
+        if (!_forward_declared.empty()) {
+            for (const auto & fn : _forward_declared) {
+                _err.emplace_back(Position(), "function definition missing: " + fn);
+            }
+        }
+
         auto * proto = new ASTNodePrototype("main", {}, VarType::Int);
         return new ASTNodeFunction(proto, block, main_body);
     }

@@ -18,6 +18,7 @@
 #include "Lexer.hpp"
 #include "SymbolTable.hpp"
 #include <vector>
+#include <set>
 
 class Parser {
   public:
@@ -62,6 +63,7 @@ class Parser {
     std::shared_ptr<SymbolTable> _st;
     std::vector<ErrorLog> _err;
     std::shared_ptr<ASTNode> _current_code;
+    std::set<std::string> _forward_declared;
 
     void llvm_init_lib();
 
