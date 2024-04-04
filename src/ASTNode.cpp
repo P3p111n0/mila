@@ -256,9 +256,12 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
 
     Function * function = builder.GetInsertBlock()->getParent();
     AllocaInst * loop_var = nullptr;
+    bool loop_var_is_temp = false;
     if (!cdg.vars.count(_var)) {
         loop_var =
             CreateEntryBlockAlloca(function, Type::getInt32Ty(ctx), _var);
+        cdg.vars[_var] = loop_var;
+        loop_var_is_temp = true;
     } else {
         loop_var = cdg.vars[_var];
     }
@@ -288,6 +291,11 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     function->insert(function->end(), loop_end);
     builder.CreateCondBr(end_cond, loop_end, loop_bb);
     builder.SetInsertPoint(loop_end);
+
+    if (loop_var_is_temp) {
+        cdg.vars.erase(_var);
+    }
+
     cdg.break_addrs.pop();
     cdg.cont_addrs.pop();
     return Constant::getNullValue(Type::getVoidTy(ctx));

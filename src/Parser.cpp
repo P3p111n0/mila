@@ -221,6 +221,11 @@ ASTNode * Parser::For() {
                               "\':=\' expected, got: " + tok.get_str());
         }
 
+        auto old_st = _st; // create new scope
+        _st = _st->derive();
+
+        _st->variables[id.get_str()] = {id.get_str(), VarType::Int, false};
+
         ASTNode * it_start = Expression();
 
         bool is_downto = false;
@@ -249,6 +254,7 @@ ASTNode * Parser::For() {
                               "\'do\' expected, got: " + tok.get_str());
         }
         ASTNode * body = Body();
+        _st = old_st; // restore symbol table
         return new ASTNodeFor(id.get_str(), it_start, it_stop, body, is_downto);
     }
     default: {
