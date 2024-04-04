@@ -10,4 +10,5 @@ enum class VarType {
 struct VariableRecord {
     std::string name;
     VarType type;
+    bool pass_by_ref = false;
 };

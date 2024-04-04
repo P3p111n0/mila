@@ -5,8 +5,8 @@ Parser::Parser(std::istream & is)
       MilaModule("mila", MilaContext), _st(std::make_shared<SymbolTable>()) {
     //init symbol table with lib
     FunctionRecord writeln {"writeln", VarType::Int, {{"x", VarType::Int}}, 1, _st->derive()};
-    FunctionRecord readln {"readln", VarType::Int, {{"x", VarType::Int}}, 1, _st->derive()};
-    FunctionRecord dec {"dec", VarType::Int, {{"x", VarType::Int}}, 1, _st->derive()};
+    FunctionRecord readln {"readln", VarType::Int, {{"x", VarType::Int, true}}, 1, _st->derive()};
+    FunctionRecord dec {"dec", VarType::Int, {{"x", VarType::Int, true}}, 1, _st->derive()};
 
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[readln.name] = std::move(readln);
