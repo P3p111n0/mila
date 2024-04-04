@@ -32,11 +32,12 @@ ASTNodeIdentifier::codegen(llvm::Module &,
                                          llvm::IRBuilder<> & builder,
                                          llvm::LLVMContext &,
                                          CodegenData & cdg) {
-    AllocaInst * val = cdg.vars[_name];
-    if (!val) {
-        //TODO error
+    if (cdg.consts.count(_name)) {
+        return cdg.consts[_name];
+    } else {
+        AllocaInst * val = cdg.vars[_name];
+        return builder.CreateLoad(val->getAllocatedType(), val, _name);
     }
-    return builder.CreateLoad(val->getAllocatedType(), val, _name);
 }
 
 llvm::Value * ASTNodeUnary::codegen(llvm::Module & module,
