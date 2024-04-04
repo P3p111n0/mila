@@ -87,6 +87,7 @@ class Parser {
     ASTNode * For();
     ASTNode * Call(const Token &);
     ASTNode * Mila();
+    ASTNode * VarByRef();
 
     static bool is_mul_operator(TokenType);
     static bool is_add_operator(TokenType);

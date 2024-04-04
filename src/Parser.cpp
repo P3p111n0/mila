@@ -3,10 +3,13 @@
 Parser::Parser(std::istream & is)
     : _lexer(is), MilaContext(), MilaBuilder(MilaContext),
       MilaModule("mila", MilaContext), _st(std::make_shared<SymbolTable>()) {
-    //init symbol table with lib
-    FunctionRecord writeln {"writeln", VarType::Int, {{"x", VarType::Int}}, 1, _st->derive()};
-    FunctionRecord readln {"readln", VarType::Int, {{"x", VarType::Int, true}}, 1, _st->derive()};
-    FunctionRecord dec {"dec", VarType::Int, {{"x", VarType::Int, true}}, 1, _st->derive()};
+    // init symbol table with lib
+    FunctionRecord writeln{
+        "writeln", VarType::Int, {{"x", VarType::Int}}, 1, _st->derive()};
+    FunctionRecord readln{
+        "readln", VarType::Int, {{"x", VarType::Int, true}}, 1, _st->derive()};
+    FunctionRecord dec{
+        "dec", VarType::Int, {{"x", VarType::Int, true}}, 1, _st->derive()};
 
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[readln.name] = std::move(readln);
@@ -24,7 +27,8 @@ void Parser::llvm_init_lib() {
             Arg.setName("x");
     }
     {
-        std::vector<llvm::Type *> IntPtr(1, llvm::Type::getInt32PtrTy(MilaContext));
+        std::vector<llvm::Type *> IntPtr(
+            1, llvm::Type::getInt32PtrTy(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), IntPtr, false);
         llvm::Function * F = llvm::Function::Create(
@@ -33,7 +37,8 @@ void Parser::llvm_init_lib() {
             Arg.setName("x");
     }
     {
-        std::vector<llvm::Type *> IntPtr(1, llvm::Type::getInt32PtrTy(MilaContext));
+        std::vector<llvm::Type *> IntPtr(
+            1, llvm::Type::getInt32PtrTy(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), IntPtr, false);
         llvm::Function * F = llvm::Function::Create(
@@ -861,6 +866,13 @@ ASTNode * Parser::Call(const Token & id) {
         /* rule 69: Call_id -> ( Call_inner ) */
         _lexer.match(TokenType::Par_Open);
 
+        auto fn = _st->lookup_function(id.get_str());
+        if (!fn.has_value()) {
+            _err.emplace_back(id.pos,
+                              "in call: no matching function to call: " +
+                                  id.get_str());
+        }
+
         switch (_lexer.peek().type()) {
         case TokenType::Op_Minus:
         case TokenType::Op_Plus:
@@ -868,10 +880,31 @@ ASTNode * Parser::Call(const Token & id) {
         case TokenType::Identifier:
         case TokenType::IntVal:
         case TokenType::Par_Open: {
-            args.emplace_back(Expression());
+            const std::list<VariableRecord> & vars =
+                fn.has_value() ? fn.value().args : std::list<VariableRecord>();
+            std::size_t i = 0;
+            auto it = vars.begin();
+            if (!vars.empty() && it->pass_by_ref) {
+                args.emplace_back(VarByRef());
+                ++i;
+                if (i != vars.size()) {
+                    ++it;
+                }
+            } else {
+                args.emplace_back(Expression());
+            }
+
             while (_lexer.peek().type() == TokenType::Comma) {
                 _lexer.match(TokenType::Comma);
-                args.emplace_back(Expression());
+                if (it->pass_by_ref) {
+                    args.emplace_back(VarByRef());
+                } else {
+                    args.emplace_back(Expression());
+                }
+                if (i != vars.size()) {
+                    ++i;
+                    ++it;
+                }
             }
             break;
         }
@@ -885,12 +918,6 @@ ASTNode * Parser::Call(const Token & id) {
         }
         }
 
-        auto fn = _st->lookup_function(id.get_str());
-        if (!fn.has_value()) {
-            _err.emplace_back(id.pos,
-                              "in call: no matching function to call: " +
-                                  id.get_str());
-        }
         if (fn.has_value() && fn.value().arity != args.size()) {
             _err.emplace_back(id.pos,
                               "in call: arity mismatch: " + id.get_str());
@@ -938,6 +965,32 @@ ASTNode * Parser::Call(const Token & id) {
                           "Unknown token when parsing call: " + tok.get_str());
         return nullptr;
     }
+    }
+}
+
+ASTNode * Parser::VarByRef() {
+    switch(_lexer.peek().type()) {
+    case TokenType::Identifier: {
+        Token tok = _lexer.get();
+        std::string id = tok.get_str();
+
+        if (!_st->lookup_variable(id).has_value()) {
+            _err.emplace_back(tok.pos, "unbound identifier: " + id);
+        }
+        else if (!_st->lookup_variable(id).has_value() && _st->lookup_constant(id).has_value()) {
+            _err.emplace_back(tok.pos, "cannot pass a mutable reference to a constant: " + id);
+        }
+        else if (_lexer.peek().type() == TokenType::Par_Open) {
+            _err.emplace_back(tok.pos, "cannot pass a mutable reference to function call: " + id);
+        }
+
+        return new ASTNodeVarByRef(id);
+    }
+    default:
+        Token tok = _lexer.peek();
+        _err.emplace_back(tok.pos,
+                          "Unknown token when parsing variable reference: " + tok.get_str());
+        return nullptr;
     }
 }
 
