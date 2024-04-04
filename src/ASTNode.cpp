@@ -372,3 +372,7 @@ llvm::Value * ASTNodeWhile::codegen(llvm::Module & module,
     builder.SetInsertPoint(loop_end);
     return Constant::getNullValue(Type::getVoidTy(ctx));
 }
+
+llvm::AllocaInst * ASTNodeVarByRef::codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &, CodegenData &) {
+    return nullptr; // TODO
+}

@@ -259,3 +259,12 @@ class ASTNodeBlock : public ASTNode {
   private:
     std::list<std::shared_ptr<ASTNode>> _decls;
 };
+
+class ASTNodeVarByRef : public ASTNode {
+  public:
+    ASTNodeVarByRef(std::string var) : _var(std::move(var)) {}
+    llvm::AllocaInst * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
+  private:
+    std::string _var;
+};
