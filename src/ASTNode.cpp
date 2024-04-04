@@ -131,6 +131,7 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
     }
 
     BasicBlock * entry = BasicBlock::Create(ctx, "entry", function);
+    BasicBlock * old_insert_point = builder.GetInsertBlock();
     builder.SetInsertPoint(entry);
 
     auto old_vars = std::move(cdg.vars);
@@ -174,6 +175,9 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
     //restore symbol table
     cdg.vars = std::move(old_vars);
     cdg.consts = std::move(old_consts);
+    if (old_insert_point) {
+        builder.SetInsertPoint(old_insert_point); // restore insertion point
+    }
     return function;
 }
 
