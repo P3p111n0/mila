@@ -268,18 +268,24 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     builder.CreateStore(init_val, loop_var);
 
     // main loop body
+    BasicBlock * loop_cond = BasicBlock::Create(ctx, "loop_cond", function);
     BasicBlock * loop_bb = BasicBlock::Create(ctx, "loop", function);
     BasicBlock * loop_end = BasicBlock::Create(ctx, "loop_end");
     cdg.break_addrs.push(loop_end);
-    cdg.cont_addrs.push(loop_bb);
-    builder.CreateBr(loop_bb);
+    cdg.cont_addrs.push(loop_cond);
+    builder.CreateBr(loop_cond);
+    builder.SetInsertPoint(loop_cond);
+    Value * current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var);
+    Value * end_cond = _it_stop->codegen(module, builder, ctx, cdg);
+    Value * loop_cont_cond = builder.CreateICmpNE(current_val, end_cond, "loop_cont_cond");
+    builder.CreateCondBr(loop_cont_cond, loop_bb, loop_end);
+
     builder.SetInsertPoint(loop_bb);
     _body->codegen(module, builder, ctx, cdg);
     Value * step = ConstantInt::get(ctx, APInt(32, 1, true));
-    Value * end_cond = _it_stop->codegen(module, builder, ctx, cdg);
 
     // mutate iter var
-    Value * current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var);
+    current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var);
     Value * next_val = nullptr;
     if (_is_downto) {
         next_val = builder.CreateSub(current_val, step, "step");
@@ -287,9 +293,8 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
         next_val = builder.CreateAdd(current_val, step, "step");
     }
     builder.CreateStore(next_val, loop_var);
-    end_cond = builder.CreateICmpEQ(next_val, end_cond);
+    builder.CreateBr(loop_cond);
     function->insert(function->end(), loop_end);
-    builder.CreateCondBr(end_cond, loop_end, loop_bb);
     builder.SetInsertPoint(loop_end);
 
     if (loop_var_is_temp) {
