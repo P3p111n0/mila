@@ -94,6 +94,7 @@ bool Parser::is_statement(TokenType t) {
     case TokenType::While:
     case TokenType::For:
     case TokenType::Break:
+    case TokenType::Begin:
         return true;
     default:
         return false;
@@ -323,6 +324,14 @@ ASTNode * Parser::Stmt_helper() {
             _err.emplace_back(tok.pos, "\'break\' used outside of loop.");
         }
         return new ASTNodeBreak();
+    }
+    case TokenType::Begin: {
+        auto old_st = _st;
+        _st = _st->derive();
+        _st->current_scope = old_st->current_scope;
+        ASTNode * body = Body();
+        _st = old_st;
+        return body;
     }
     default: {
         Token tok = _lexer.peek();
