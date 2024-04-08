@@ -1122,7 +1122,6 @@ ASTNode * Parser::Mila() {
             _err.emplace_back(pg_name.pos,
                               "in main: program name expected, got: " +
                                   pg_name.get_str());
-            return nullptr;
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
             _err.emplace_back(tok.pos,
@@ -1132,19 +1131,16 @@ ASTNode * Parser::Mila() {
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
             _err.emplace_back(tok.pos, "in main: \'begin\' expected, got: " +
                                            tok.get_str());
-            return nullptr;
         }
         auto * main_body = new ASTNodeBody(Statement());
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
             _err.emplace_back(tok.pos, "in main: \'end\' expected, got: " +
                                            tok.get_str());
-            return nullptr;
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Period)) {
             _err.emplace_back(tok.pos,
                               "in main: \'.\' at main end expected, got: " +
                                   tok.get_str());
-            return nullptr;
         }
 
         if (!_forward_declared.empty()) {
