@@ -94,6 +94,8 @@ Statement_h  -> Assign_call
  	     -> If 
 	     -> While 
 	     -> For  
+	     -> begin Statement end
+	     -> Expression
 	     -> exit
 	     -> break
 Stmt_1       -> ; Stmt_dup
@@ -128,6 +130,9 @@ Var_h	     -> Var_decl ; Var_h
 	     -> 
 Var          -> var Var_decl ; Var_h
 
+Global_h     -> Var_decl ; Global_h
+Global       -> global Var_decl ; Global_h
+
 Forward      -> forward ;
              ->
 
@@ -147,6 +152,7 @@ Block	     -> Function Block
 	     -> Procedure Block
 	     -> Const Block
 	     -> Var Block
+	     -> Global Block
              ->
 
 Call_h	     -> , Expression
