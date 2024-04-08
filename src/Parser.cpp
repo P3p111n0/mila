@@ -311,7 +311,8 @@ ASTNode * Parser::Stmt_helper() {
         /* rule 27: Statement_h -> exit */
         auto tok = _lexer.get();
         if (_st->current_scope == SymbolTable::Scope::Global) {
-            _err.emplace_back(tok.pos, "\'exit\' not permitted in global scope.");
+            _err.emplace_back(tok.pos,
+                              "\'exit\' not permitted in global scope.");
         }
         return new ASTNodeExit();
     }
@@ -394,7 +395,8 @@ ASTNode * Parser::Function() {
             _err.emplace_back(id.pos,
                               "identifier expected, got: " + id.get_str());
         }
-        if (!_st->unique_global(id.get_str()) && !_forward_declared.count(id.get_str())) {
+        if (!_st->unique_global(id.get_str()) &&
+            !_forward_declared.count(id.get_str())) {
             _err.emplace_back(id.pos,
                               "function name is not unique: " + id.get_str());
         }
@@ -434,9 +436,10 @@ ASTNode * Parser::Function() {
         if (_lexer.peek().type() == TokenType::Forward) {
             (void)_lexer.get();
             if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
-                _err.emplace_back(tok.pos,
-                                  "in function forward declaration: \';\' expected, got: " +
-                                      tok.get_str());
+                _err.emplace_back(
+                    tok.pos,
+                    "in function forward declaration: \';\' expected, got: " +
+                        tok.get_str());
             }
             _st = old_st;
             _forward_declared.emplace(fn.name);
@@ -528,9 +531,10 @@ ASTNode * Parser::Procedure() {
         if (_lexer.peek().type() == TokenType::Forward) {
             (void)_lexer.get();
             if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
-                _err.emplace_back(tok.pos,
-                                  "in procedure forward declaration: \';\' expected, got: " +
-                                      tok.get_str());
+                _err.emplace_back(
+                    tok.pos,
+                    "in procedure forward declaration: \';\' expected, got: " +
+                        tok.get_str());
             }
             _st = old_st;
             _forward_declared.emplace(fn.name);
@@ -1022,19 +1026,22 @@ ASTNode * Parser::Call(const Token & id) {
 }
 
 ASTNode * Parser::VarByRef() {
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::Identifier: {
         Token tok = _lexer.get();
         std::string id = tok.get_str();
 
         if (!_st->lookup_variable(id).has_value()) {
             _err.emplace_back(tok.pos, "unbound identifier: " + id);
-        }
-        else if (!_st->lookup_variable(id).has_value() && _st->lookup_constant(id).has_value()) {
-            _err.emplace_back(tok.pos, "cannot pass a mutable reference to a constant: " + id);
-        }
-        else if (_lexer.peek().type() == TokenType::Par_Open) {
-            _err.emplace_back(tok.pos, "cannot pass a mutable reference to function call: " + id);
+        } else if (!_st->lookup_variable(id).has_value() &&
+                   _st->lookup_constant(id).has_value()) {
+            _err.emplace_back(
+                tok.pos,
+                "cannot pass a mutable reference to a constant: " + id);
+        } else if (_lexer.peek().type() == TokenType::Par_Open) {
+            _err.emplace_back(
+                tok.pos,
+                "cannot pass a mutable reference to function call: " + id);
         }
 
         return new ASTNodeVarByRef(id);
@@ -1042,7 +1049,8 @@ ASTNode * Parser::VarByRef() {
     default:
         Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
-                          "Unknown token when parsing variable reference: " + tok.get_str());
+                          "Unknown token when parsing variable reference: " +
+                              tok.get_str());
         return nullptr;
     }
 }
@@ -1141,7 +1149,8 @@ ASTNode * Parser::Mila() {
 
         if (!_forward_declared.empty()) {
             for (const auto & fn : _forward_declared) {
-                _err.emplace_back(Position(), "function definition missing: " + fn);
+                _err.emplace_back(Position(),
+                                  "function definition missing: " + fn);
             }
         }
 
@@ -1170,7 +1179,10 @@ bool Parser::Parse() {
 
 const llvm::Module & Parser::Generate() {
     llvm_init_lib();
-    CodegenData data;
+    CodegenData data{std::make_shared<ValMap<llvm::AllocaInst *>>(),
+                     std::make_shared<ValMap<llvm::Value *>>(),
+                     {},
+                     {}};
     _current_code->codegen(MilaModule, MilaBuilder, MilaContext, data);
     return this->MilaModule;
 }

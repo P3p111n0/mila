@@ -1,6 +1,7 @@
 #pragma once
 
 #include "VariableRecord.hpp"
+#include "ValMap.hpp"
 #include <list>
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/STLExtras.h>
@@ -21,8 +22,8 @@
 #include <stack>
 
 struct CodegenData {
-    std::map<std::string, llvm::AllocaInst *> vars;
-    std::map<std::string, llvm::Value *> consts;
+    std::shared_ptr<ValMap<llvm::AllocaInst*>> vars;
+    std::shared_ptr<ValMap<llvm::Value*>> consts;
     std::stack<llvm::BasicBlock *> break_addrs;
     std::stack<llvm::BasicBlock *> cont_addrs;
 };
