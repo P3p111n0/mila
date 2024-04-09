@@ -174,7 +174,7 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
     }
 
     builder.CreateRet(ret_val);
-    assert(!verifyFunction(*function));
+    verifyFunction(*function);
     //restore symbol table
     cdg.vars = std::move(old_vars);
     cdg.consts = std::move(old_consts);
@@ -237,10 +237,16 @@ llvm::Value * ASTNodeIf::codegen(llvm::Module & module,
 llvm::Value * ASTNodeBody::codegen(llvm::Module & module,
                                    llvm::IRBuilder<> & builder,
                                    llvm::LLVMContext & ctx, CodegenData & cdg) {
+    auto old_vars = cdg.vars;
+    auto old_consts = cdg.consts;
+    cdg.vars = cdg.vars->derive();
+    cdg.consts = cdg.consts->derive();
     for (auto & stmt : _stmts) {
         stmt->codegen(module, builder, ctx, cdg);
         // TODO error handling
     }
+    cdg.vars = old_vars;
+    cdg.consts = old_consts;
     return Constant::getNullValue(Type::getVoidTy(ctx));
 }
 

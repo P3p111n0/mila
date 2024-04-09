@@ -287,6 +287,7 @@ ASTNode * Parser::Stmt_helper() {
             ASTNode * rhs = Expression();
             return new ASTNodeAssign(id.get_str(), rhs);
         }
+        case TokenType::Colon:
         case TokenType::Par_Open: { // call
             return Call(id);
         }
@@ -1013,7 +1014,6 @@ ASTNode * Parser::Call(const Token & id) {
     case TokenType::Then:
     case TokenType::Do:
     case TokenType::Semicolon:
-    case TokenType::Colon:
     case TokenType::To:
     case TokenType::Downto:
     case TokenType::Else:
@@ -1024,6 +1024,14 @@ ASTNode * Parser::Call(const Token & id) {
             _err.emplace_back(id.pos, "unbound identifier: " + id.get_str());
         }
         return new ASTNodeIdentifier(id.get_str());
+    }
+    case TokenType::Colon: {
+        _lexer.match(TokenType::Colon);
+        if (!_st->unique_in_current_scope(id.get_str())) {
+            _err.emplace_back(id.pos, "in local variable declaration: identifier not unique in current scope: " + id.get_str());
+        }
+        VarType type = Var_type();
+        return new ASTNodeVar({{id.get_str(), type}});
     }
     default: {
         Token tok = _lexer.peek();
