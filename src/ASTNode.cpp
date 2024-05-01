@@ -217,7 +217,9 @@ llvm::Value * ASTNodeIf::codegen(llvm::Module & module,
     builder.SetInsertPoint(then_bb);
     // TODO body
     _body->codegen(module, builder, ctx, cdg);
-    builder.CreateBr(cont);
+    if (!builder.GetInsertBlock()->getTerminator()) {
+        builder.CreateBr(cont);
+    }
 
     //else branch
     function->insert(function->end(), else_bb);
@@ -226,7 +228,9 @@ llvm::Value * ASTNodeIf::codegen(llvm::Module & module,
     if (_else.has_value()) {
         _else.value()->codegen(module, builder, ctx, cdg);
     }
-    builder.CreateBr(cont);
+    if (!builder.GetInsertBlock()->getTerminator()) {
+        builder.CreateBr(cont);
+    }
 
     //after if block
     function->insert(function->end(), cont);
@@ -243,7 +247,9 @@ llvm::Value * ASTNodeBody::codegen(llvm::Module & module,
     cdg.consts = cdg.consts->derive();
     for (auto & stmt : _stmts) {
         stmt->codegen(module, builder, ctx, cdg);
-        // TODO error handling
+        if (builder.GetInsertBlock()->getTerminator()) {
+            break;
+        }
     }
     cdg.vars = old_vars;
     cdg.consts = old_consts;
@@ -299,16 +305,18 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     _body->codegen(module, builder, ctx, cdg);
     Value * step = ConstantInt::get(ctx, APInt(32, 1, true));
 
-    // mutate iter var
-    current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var, "loop_var_fetch");
-    Value * next_val = nullptr;
-    if (_is_downto) {
-        next_val = builder.CreateSub(current_val, step, "step");
-    } else {
-        next_val = builder.CreateAdd(current_val, step, "step");
+    if (!builder.GetInsertBlock()->getTerminator()) {
+        // mutate iter var
+        current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var, "loop_var_fetch");
+        Value * next_val = nullptr;
+        if (_is_downto) {
+            next_val = builder.CreateSub(current_val, step, "step");
+        } else {
+            next_val = builder.CreateAdd(current_val, step, "step");
+        }
+        builder.CreateStore(next_val, loop_var);
+        builder.CreateBr(loop_cond);
     }
-    builder.CreateStore(next_val, loop_var);
-    builder.CreateBr(loop_cond);
     function->insert(function->end(), loop_end);
     builder.SetInsertPoint(loop_end);
 
@@ -332,9 +340,7 @@ llvm::Value * ASTNodeAssign::codegen(llvm::Module & module,
 llvm::Value * ASTNodeBreak::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
                                     llvm::LLVMContext & ctx,
                                     CodegenData & cdg) {
-    if (cdg.break_addrs.empty()) {
-        //TODO error
-    }
+    assert(!cdg.break_addrs.empty());
     BasicBlock * loop_end = cdg.break_addrs.top();
     builder.CreateBr(loop_end);
     return Constant::getNullValue(Type::getVoidTy(ctx));
@@ -397,8 +403,10 @@ llvm::Value * ASTNodeWhile::codegen(llvm::Module & module,
     builder.CreateCondBr(end_cond, loop_body, loop_end);
 
     builder.SetInsertPoint(loop_body);
-    _body->codegen(module, builder, ctx, cdg); // TODO error handling
-    builder.CreateBr(loop_cond);
+    _body->codegen(module, builder, ctx, cdg);
+    if (!builder.GetInsertBlock()->getTerminator()) {
+        builder.CreateBr(loop_cond);
+    }
 
     function->insert(function->end(), loop_end);
     builder.SetInsertPoint(loop_end);
