@@ -375,7 +375,7 @@ std::list<VariableRecord> Parser::Function_arg() {
     case TokenType::Identifier: {
         /* rule 58: Function_arg -> Var_decl Fn_arg_h */
         res.emplace_back(Var_declaration());
-        while (_lexer.peek().type() == TokenType::Comma) {
+        while (_lexer.peek().type() == TokenType::Semicolon) {
             (void)_lexer.get();
             res.emplace_back(Var_declaration());
         }
@@ -1066,6 +1066,7 @@ ASTNode * Parser::Call(const Token & id) {
     case TokenType::Then:
     case TokenType::Do:
     case TokenType::Semicolon:
+    case TokenType::Comma:
     case TokenType::To:
     case TokenType::Downto:
     case TokenType::Else:
