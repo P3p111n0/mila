@@ -77,7 +77,7 @@ llvm::Value * ASTNodeBinary::codegen(llvm::Module & module,
     case Operator::And:
         return builder.CreateAnd(lhs, rhs, "and_tmp");
     case Operator::Mod:
-        return builder.CreateURem(lhs, rhs, "mod_tmp");
+        return builder.CreateSRem(lhs, rhs, "mod_tmp");
     case Operator::Eq:
         return builder.CreateICmpEQ(lhs, rhs, "eq_tmp");
     case Operator::NEq:
