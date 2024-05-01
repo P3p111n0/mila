@@ -111,6 +111,7 @@ ASTNodePrototype::codegen(Module & module, IRBuilder<> &,
     auto it = _args.begin();
     for (auto & arg : f->args()) {
         arg.setName(it->name);
+        ++it;
     }
     return f;
 }
