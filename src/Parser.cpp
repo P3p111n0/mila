@@ -674,6 +674,56 @@ ASTNode * Parser::Const() {
     }
 }
 
+std::list<VariableRecord> Parser::Var_decl_list() {
+    std::list<VariableRecord> res;
+    std::list<std::string> ids;
+    switch (_lexer.peek().type()) {
+    case TokenType::Identifier: {
+        /* rule 48: Var_decl -> Id : Type */
+        Token id = _lexer.get();
+        if (!_st->unique_in_current_scope(id.get_str())) {
+            _err.emplace_back(
+                id.pos, "in variable declaration: redefinition of variable: " +
+                            id.get_str());
+        }
+        ids.emplace_back(id.get_str());
+        while (_lexer.peek().type() == TokenType::Comma) {
+            (void)_lexer.get();
+            Token next_id = _lexer.get();
+            if (next_id.type() != TokenType::Identifier) {
+                _err.emplace_back(next_id.pos, "in variable declaration: identifier expected, got: " + next_id.get_str());
+            }
+            if (!_st->unique_in_current_scope(id.get_str())) {
+                _err.emplace_back(
+                    next_id.pos, "in variable declaration: redefinition of variable: " +
+                                     next_id.get_str());
+            }
+            ids.emplace_back(next_id.get_str());
+        }
+        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Colon)) {
+            _err.emplace_back(tok.pos,
+                              "in variable declaration: \':\' expected, got: " +
+                                  tok.get_str());
+        }
+        VarType var_type = Var_type();
+        std::transform(ids.begin(), ids.end(), std::back_inserter(res), [&](std::string x) {
+            return VariableRecord{std::move(x), var_type, false};
+        });
+        for (const auto & var : res) {
+            _st->variables[var.name] = var;
+        }
+        return res;
+    }
+    default: {
+        Token tok = _lexer.peek();
+        _err.emplace_back(tok.pos,
+                          "Unknown token parsing variable declaration: " +
+                              tok.get_str());
+        return {};
+    }
+    }
+}
+
 VariableRecord Parser::Var_declaration() {
     switch (_lexer.peek().type()) {
     case TokenType::Identifier: {
@@ -710,7 +760,7 @@ ASTNode * Parser::Var() {
     case TokenType::Var: {
         /* rule 51: Var -> var Var_decl ; Var_h */
         _lexer.match(TokenType::Var);
-        vars.emplace_back(Var_declaration());
+        vars.splice(vars.end(), Var_decl_list());
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
             _err.emplace_back(tok.pos,
                               "in variable declaration: \';\' expected, got: " +
@@ -720,7 +770,7 @@ ASTNode * Parser::Var() {
             switch (_lexer.peek().type()) {
             case TokenType::Identifier: {
                 /* rule 49: Var_h -> Var_decl ; Var_h */
-                vars.emplace_back(Var_declaration());
+                vars.splice(vars.end(), Var_decl_list());
                 if (auto tok = _lexer.peek();
                     !_lexer.match(TokenType::Semicolon)) {
                     _err.emplace_back(
@@ -734,6 +784,7 @@ ASTNode * Parser::Var() {
             case TokenType::Procedure:
             case TokenType::Const:
             case TokenType::Begin:
+            case TokenType::Var:
                 /* rule 50: Var_h ->  */
                 return new ASTNodeVar(vars);
             default: {
@@ -742,6 +793,7 @@ ASTNode * Parser::Var() {
                     tok.pos,
                     "Unknown token when parsing variable declarations: " +
                         tok.get_str());
+                return {};
             }
             }
         }

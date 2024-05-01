@@ -77,6 +77,7 @@ class Parser {
     ASTNode * Var();
     ASTNode * Block();
     VariableRecord Var_declaration();
+    std::list<VariableRecord> Var_decl_list();
     ASTNode * Function();
     std::list<VariableRecord> Function_arg();
     VarType Var_type();
