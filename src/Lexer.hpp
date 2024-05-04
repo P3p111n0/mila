@@ -56,7 +56,8 @@ enum class TokenType {
 
     // values
     IntVal,
-    Identifier
+    Identifier,
+    StringLiteral
 };
 
 struct Position {

@@ -106,6 +106,9 @@ q0:
         str_val += c;
         _pos.advance(c);
         goto colon;
+    case '\'':
+        _pos.advance(c);
+        goto string;
     case '+':
     case '-':
     case '*':
@@ -234,6 +237,15 @@ comment: {
         goto comment;
     }
     goto q0;
-};
+}
 
+string: {
+    c = _in.get();
+    _pos.advance(c);
+    if (c != '\'') {
+        str_val += c;
+        goto string;
+    }
+    return Token(TokenType::StringLiteral, str_val, _pos);
+}
 }
