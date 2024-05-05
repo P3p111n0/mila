@@ -4,12 +4,21 @@ Parser::Parser(std::istream & is)
     : _lexer(is), MilaContext(), MilaBuilder(MilaContext),
       MilaModule("mila", MilaContext), _st(std::make_shared<SymbolTable>()) {
     // init symbol table with lib
-    FunctionRecord writeln{
-        "writeln", VarType::Int, {{"x", VarType::Int}}, 1, _st->derive()};
-    FunctionRecord readln{
-        "readln", VarType::Int, {{"x", VarType::Int, true}}, 1, _st->derive()};
-    FunctionRecord dec{
-        "dec", VarType::Int, {{"x", VarType::Int, true}}, 1, _st->derive()};
+    FunctionRecord writeln{"writeln",
+                           std::shared_ptr<Type>(_tf.get_int_t()),
+                           {{"x", std::shared_ptr<Type>(_tf.get_int_t())}},
+                           1,
+                           _st->derive()};
+    FunctionRecord readln{"readln",
+                          std::shared_ptr<Type>(_tf.get_int_t()),
+                          {{"x", std::shared_ptr<Type>(_tf.get_int_t()), true}},
+                          1,
+                          _st->derive()};
+    FunctionRecord dec{"dec",
+                       std::shared_ptr<Type>(_tf.get_int_t()),
+                       {{"x", std::shared_ptr<Type>(_tf.get_int_t()), true}},
+                       1,
+                       _st->derive()};
 
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[readln.name] = std::move(readln);
@@ -101,16 +110,16 @@ bool Parser::is_statement(TokenType t) {
     }
 }
 
-VarType Parser::Var_type() {
+Type * Parser::Var_type() {
     switch (_lexer.peek().type()) {
     case TokenType::Integer:
         _lexer.match(TokenType::Integer);
-        return VarType::Int;
+        return _tf.get_int_t();
     default: {
         Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
                           "Type identifier expected, got: " + tok.get_str());
-        return VarType(-1);
+        return nullptr;
     }
     }
 }
@@ -229,7 +238,8 @@ ASTNode * Parser::For() {
         auto old_st = _st; // create new scope
         _st = _st->derive();
         _st->current_scope = SymbolTable::Scope::Loop;
-        _st->variables[id.get_str()] = {id.get_str(), VarType::Int, false};
+        _st->variables[id.get_str()] = {
+            id.get_str(), std::shared_ptr<Type>(_tf.get_int_t()), false};
 
         ASTNode * it_start = Expression();
 
@@ -433,7 +443,7 @@ ASTNode * Parser::Function() {
                               "in function signature: \':\' expected, got: " +
                                   tok.get_str());
         }
-        fn.return_type = Var_type();
+        fn.return_type = std::shared_ptr<Type>(Var_type());
         // implicit return value variable
         fn.symbol_table->variables[fn.name] = {fn.name, fn.return_type};
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
@@ -515,7 +525,8 @@ ASTNode * Parser::Procedure() {
         _st = _st->derive();
         _st->current_scope = SymbolTable::Scope::Function;
         FunctionRecord fn{.name = id.get_str(),
-                          .return_type = VarType::Void,
+                          .return_type =
+                              std::shared_ptr<Type>(_tf.get_void_t()),
                           .args = {},
                           .arity = 0,
                           .symbol_table = _st};
@@ -691,12 +702,16 @@ std::list<VariableRecord> Parser::Var_decl_list() {
             (void)_lexer.get();
             Token next_id = _lexer.get();
             if (next_id.type() != TokenType::Identifier) {
-                _err.emplace_back(next_id.pos, "in variable declaration: identifier expected, got: " + next_id.get_str());
+                _err.emplace_back(
+                    next_id.pos,
+                    "in variable declaration: identifier expected, got: " +
+                        next_id.get_str());
             }
             if (!_st->unique_in_current_scope(id.get_str())) {
                 _err.emplace_back(
-                    next_id.pos, "in variable declaration: redefinition of variable: " +
-                                     next_id.get_str());
+                    next_id.pos,
+                    "in variable declaration: redefinition of variable: " +
+                        next_id.get_str());
             }
             ids.emplace_back(next_id.get_str());
         }
@@ -705,10 +720,11 @@ std::list<VariableRecord> Parser::Var_decl_list() {
                               "in variable declaration: \':\' expected, got: " +
                                   tok.get_str());
         }
-        VarType var_type = Var_type();
-        std::transform(ids.begin(), ids.end(), std::back_inserter(res), [&](std::string x) {
-            return VariableRecord{std::move(x), var_type, false};
-        });
+        std::shared_ptr<Type> var_type = std::shared_ptr<Type>(Var_type());
+        std::transform(ids.begin(), ids.end(), std::back_inserter(res),
+                       [&](std::string x) {
+                           return VariableRecord{std::move(x), var_type, false};
+                       });
         for (const auto & var : res) {
             _st->variables[var.name] = var;
         }
@@ -739,7 +755,7 @@ VariableRecord Parser::Var_declaration() {
                               "in variable declaration: \':\' expected, got: " +
                                   tok.get_str());
         }
-        VarType var_type = Var_type();
+        std::shared_ptr<Type> var_type = std::shared_ptr<Type>(Var_type());
         VariableRecord var_record = {id.get_str(), var_type};
         _st->variables[id.get_str()] = {id.get_str(), var_type};
         return var_record;
@@ -1081,9 +1097,12 @@ ASTNode * Parser::Call(const Token & id) {
     case TokenType::Colon: {
         _lexer.match(TokenType::Colon);
         if (!_st->unique_in_current_scope(id.get_str())) {
-            _err.emplace_back(id.pos, "in local variable declaration: identifier not unique in current scope: " + id.get_str());
+            _err.emplace_back(id.pos,
+                              "in local variable declaration: identifier not "
+                              "unique in current scope: " +
+                                  id.get_str());
         }
-        VarType type = Var_type();
+        std::shared_ptr<Type> type = std::shared_ptr<Type>(Var_type());
         return new ASTNodeVar({{id.get_str(), type}});
     }
     default: {
@@ -1220,7 +1239,8 @@ ASTNode * Parser::Mila() {
             }
         }
 
-        auto * proto = new ASTNodePrototype("main", {}, VarType::Int);
+        auto * proto = new ASTNodePrototype(
+            "main", {}, std::shared_ptr<Type>(_tf.get_int_t()));
         return new ASTNodeFunction(proto, block, main_body);
     }
     default: {

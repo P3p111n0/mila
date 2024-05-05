@@ -2,6 +2,7 @@
 
 #include "VariableRecord.hpp"
 #include "ASTNode.hpp"
+#include "Type.hpp"
 #include <memory>
 #include <unordered_map>
 #include <list>
@@ -11,7 +12,7 @@ struct SymbolTable;
 
 struct FunctionRecord {
     std::string name;
-    VarType return_type;
+    std::shared_ptr<Type> return_type;
     std::list<VariableRecord> args;
     std::size_t arity;
     std::shared_ptr<SymbolTable> symbol_table;

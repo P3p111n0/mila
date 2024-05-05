@@ -2,6 +2,7 @@
 
 #include "VariableRecord.hpp"
 #include "ValMap.hpp"
+#include "Type.hpp"
 #include <list>
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/STLExtras.h>
@@ -221,9 +222,9 @@ class ASTNodeConst : public ASTNode {
 class ASTNodePrototype : public ASTNode {
   public:
     ASTNodePrototype(std::string name, std::list<VariableRecord> arguments,
-                     VarType return_type)
+                     std::shared_ptr<Type> return_type)
         : _fn_name(std::move(name)), _args(std::move(arguments)),
-          _arity(_args.size()), _return_type(return_type) {}
+          _arity(_args.size()), _return_type(std::move(return_type)) {}
 
     const std::string & name() const { return _fn_name; }
     llvm::Function * codegen(llvm::Module &, llvm::IRBuilder<> &,
@@ -233,7 +234,7 @@ class ASTNodePrototype : public ASTNode {
     std::string _fn_name;
     std::list<VariableRecord> _args;
     std::size_t _arity;
-    VarType _return_type;
+    std::shared_ptr<Type> _return_type;
 };
 
 class ASTNodeFunction : public ASTNode {

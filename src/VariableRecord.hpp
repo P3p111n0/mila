@@ -1,14 +1,10 @@
 #pragma once
 
+#include "Type.hpp"
 #include <string>
-
-enum class VarType {
-    Int,
-    Void
-};
 
 struct VariableRecord {
     std::string name;
-    VarType type;
+    std::shared_ptr<Type> type;
     bool pass_by_ref = false;
 };

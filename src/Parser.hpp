@@ -1,6 +1,12 @@
 #ifndef PJPPROJECT_PARSER_HPP
 #define PJPPROJECT_PARSER_HPP
 
+#include "ASTNode.hpp"
+#include "Lexer.hpp"
+#include "SymbolTable.hpp"
+#include "Type.hpp"
+#include "BaseTypeFactory.hpp"
+
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/STLExtras.h>
 #include <llvm/IR/BasicBlock.h>
@@ -13,10 +19,6 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
-
-#include "ASTNode.hpp"
-#include "Lexer.hpp"
-#include "SymbolTable.hpp"
 #include <vector>
 #include <set>
 
@@ -64,6 +66,7 @@ class Parser {
     std::vector<ErrorLog> _err;
     std::shared_ptr<ASTNode> _current_code;
     std::set<std::string> _forward_declared;
+    BaseTypeFactory _tf;
 
     void llvm_init_lib();
 
@@ -80,7 +83,7 @@ class Parser {
     std::list<VariableRecord> Var_decl_list();
     ASTNode * Function();
     std::list<VariableRecord> Function_arg();
-    VarType Var_type();
+    Type * Var_type();
     std::list<std::shared_ptr<ASTNode>> Statement();
     ASTNode * Stmt_helper();
     ASTNode * Procedure();
