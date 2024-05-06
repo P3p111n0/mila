@@ -49,11 +49,12 @@ class ASTNodeInt : public ASTNode {
 
 class ASTNodeIdentifier : public ASTNode {
   public:
-    ASTNodeIdentifier(std::string name) : _name(std::move(name)) {}
+    ASTNodeIdentifier(std::shared_ptr<Type> t, std::string name) : _var_type(t), _name(std::move(name)) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
 
   private:
+    std::shared_ptr<Type> _var_type;
     std::string _name;
 };
 
@@ -113,13 +114,14 @@ class ASTNodeBody : public ASTNode {
 
 class ASTNodeAssign : public ASTNode {
   public:
-    ASTNodeAssign(std::string target, ASTNode * rhs)
-        : _target(std::move(target)), _rhs(rhs) {}
+    ASTNodeAssign(std::string target, std::shared_ptr<Type> target_type, ASTNode * rhs)
+        : _target(std::move(target)), _target_type(target_type), _rhs(rhs) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::string _target;
+    std::shared_ptr<Type> _target_type;
     std::shared_ptr<ASTNode> _rhs;
 };
 
@@ -182,13 +184,14 @@ class ASTNodeBreak : public ASTNode {
 
 class ASTNodeCall : public ASTNode {
   public:
-    ASTNodeCall(std::string fun, std::list<std::shared_ptr<ASTNode>> args)
-        : _fn(std::move(fun)), _args(std::move(args)) {}
+    ASTNodeCall(std::string fun, std::shared_ptr<FnType> function_type, std::list<std::shared_ptr<ASTNode>> args)
+        : _fn(std::move(fun)), _function_type(function_type), _args(std::move(args)) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
 
   private:
     std::string _fn;
+    std::shared_ptr<FnType> _function_type;
     std::list<std::shared_ptr<ASTNode>> _args;
 };
 
@@ -221,9 +224,9 @@ class ASTNodeConst : public ASTNode {
 
 class ASTNodePrototype : public ASTNode {
   public:
-    ASTNodePrototype(std::string name, std::list<VariableRecord> arguments,
+    ASTNodePrototype(std::string name, std::shared_ptr<FnType> function_type, std::list<VariableRecord> arguments,
                      std::shared_ptr<Type> return_type)
-        : _fn_name(std::move(name)), _args(std::move(arguments)),
+        : _fn_name(std::move(name)), _function_type(function_type), _args(std::move(arguments)),
           _arity(_args.size()), _return_type(std::move(return_type)) {}
 
     const std::string & name() const { return _fn_name; }
@@ -232,6 +235,7 @@ class ASTNodePrototype : public ASTNode {
 
   private:
     std::string _fn_name;
+    std::shared_ptr<FnType> _function_type;
     std::list<VariableRecord> _args;
     std::size_t _arity;
     std::shared_ptr<Type> _return_type;
@@ -264,9 +268,10 @@ class ASTNodeBlock : public ASTNode {
 
 class ASTNodeVarByRef : public ASTNode {
   public:
-    ASTNodeVarByRef(std::string var) : _var(std::move(var)) {}
+    ASTNodeVarByRef(std::shared_ptr<Type> ref_type, std::string var) : _referenced_type(ref_type), _var(std::move(var)) {}
     llvm::AllocaInst * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
   private:
+    std::shared_ptr<Type> _referenced_type;
     std::string _var;
 };

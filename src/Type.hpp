@@ -45,7 +45,7 @@ class RefType : public Type {
 
 class FnType : public Type {
   public:
-    FnType(std::vector<std::shared_ptr<Type>> args, Type * rtype)
+    FnType(std::vector<std::shared_ptr<Type>> args, std::shared_ptr<Type> rtype)
         : _args(std::move(args)), _return_type(rtype) {}
     TypeVariant as_variant() override {
         return this;

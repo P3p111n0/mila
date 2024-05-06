@@ -1,24 +1,34 @@
 #include "Parser.hpp"
 
+#include <memory>
+
 Parser::Parser(std::istream & is)
     : _lexer(is), MilaContext(), MilaBuilder(MilaContext),
       MilaModule("mila", MilaContext), _st(std::make_shared<SymbolTable>()) {
     // init symbol table with lib
+    std::shared_ptr<Type> int_ref_ty = std::shared_ptr<Type>(new RefType(_tf.get_int_t()));
+    std::shared_ptr<Type> int_ty = std::shared_ptr<Type>(_tf.get_int_t());
     FunctionRecord writeln{"writeln",
                            std::shared_ptr<Type>(_tf.get_int_t()),
                            {{"x", std::shared_ptr<Type>(_tf.get_int_t())}},
                            1,
-                           _st->derive()};
+                           _st->derive(),
+                           std::shared_ptr<FnType>(new FnType({int_ty}, int_ty))
+    };
     FunctionRecord readln{"readln",
                           std::shared_ptr<Type>(_tf.get_int_t()),
                           {{"x", std::shared_ptr<Type>(_tf.get_int_t()), true}},
                           1,
-                          _st->derive()};
+                          _st->derive(),
+                          std::shared_ptr<FnType>(new FnType({int_ref_ty}, int_ty))
+    };
     FunctionRecord dec{"dec",
                        std::shared_ptr<Type>(_tf.get_int_t()),
                        {{"x", std::shared_ptr<Type>(_tf.get_int_t()), true}},
                        1,
-                       _st->derive()};
+                       _st->derive(),
+                       std::shared_ptr<FnType>(new FnType({int_ref_ty}, int_ty))
+    };
 
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[readln.name] = std::move(readln);
@@ -290,12 +300,13 @@ ASTNode * Parser::Stmt_helper() {
         switch (_lexer.peek().type()) {
         case TokenType::Op_Assign: { // assignment
             _lexer.match(TokenType::Op_Assign);
-            if (!_st->lookup_variable(id.get_str())) {
+            auto lookup = _st->lookup_variable(id.get_str());
+            if (!lookup.has_value()) {
                 _err.emplace_back(id.pos,
                                   "unbound identifier: " + id.get_str());
             }
             ASTNode * rhs = Expression();
-            return new ASTNodeAssign(id.get_str(), rhs);
+            return new ASTNodeAssign(id.get_str(), lookup.value().type, rhs);
         }
         case TokenType::Colon:
         case TokenType::Par_Open: { // call
@@ -444,6 +455,11 @@ ASTNode * Parser::Function() {
                                   tok.get_str());
         }
         fn.return_type = std::shared_ptr<Type>(Var_type());
+        std::vector<std::shared_ptr<Type>> arg_types;
+        std::transform(fn.args.begin(), fn.args.end(),
+                       std::back_inserter(arg_types),
+                       [&](const VariableRecord & v) { return v.type; });
+        fn.fn_type = std::make_shared<FnType>(arg_types, fn.return_type);
         // implicit return value variable
         fn.symbol_table->variables[fn.name] = {fn.name, fn.return_type};
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Semicolon)) {
@@ -463,7 +479,8 @@ ASTNode * Parser::Function() {
             }
             _st = old_st;
             _forward_declared.emplace(fn.name);
-            return new ASTNodePrototype(fn.name, fn.args, fn.return_type);
+            return new ASTNodePrototype(fn.name, fn.fn_type, fn.args,
+                                        fn.return_type);
         }
 
         ASTNode * block = Block();
@@ -488,7 +505,8 @@ ASTNode * Parser::Function() {
         if (_forward_declared.count(fn.name)) {
             _forward_declared.erase(fn.name);
         }
-        auto * proto = new ASTNodePrototype(fn.name, fn.args, fn.return_type);
+        auto * proto =
+            new ASTNodePrototype(fn.name, fn.fn_type, fn.args, fn.return_type);
         return new ASTNodeFunction(proto, block, body);
     }
     default: {
@@ -529,7 +547,8 @@ ASTNode * Parser::Procedure() {
                               std::shared_ptr<Type>(_tf.get_void_t()),
                           .args = {},
                           .arity = 0,
-                          .symbol_table = _st};
+                          .symbol_table = _st,
+                          .fn_type = nullptr};
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Open)) {
             _err.emplace_back(tok.pos,
                               "in procedure signature: \'(\' expected, got: " +
@@ -548,6 +567,12 @@ ASTNode * Parser::Procedure() {
                                   tok.get_str());
         }
 
+        std::vector<std::shared_ptr<Type>> arg_types;
+        std::transform(fn.args.begin(), fn.args.end(),
+                       std::back_inserter(arg_types),
+                       [&](const VariableRecord & v) { return v.type; });
+        fn.fn_type = std::make_shared<FnType>(arg_types, fn.return_type);
+
         old_st->functions[fn.name] = fn; // add incomplete function info
         if (_lexer.peek().type() == TokenType::Forward) {
             (void)_lexer.get();
@@ -559,7 +584,8 @@ ASTNode * Parser::Procedure() {
             }
             _st = old_st;
             _forward_declared.emplace(fn.name);
-            return new ASTNodePrototype(fn.name, fn.args, fn.return_type);
+            return new ASTNodePrototype(fn.name, fn.fn_type, fn.args,
+                                        fn.return_type);
         }
 
         ASTNode * block = Block();
@@ -589,7 +615,8 @@ ASTNode * Parser::Procedure() {
             _forward_declared.erase(fn.name);
         }
 
-        auto * proto = new ASTNodePrototype(fn.name, fn.args, fn.return_type);
+        auto * proto =
+            new ASTNodePrototype(fn.name, fn.fn_type, fn.args, fn.return_type);
         return new ASTNodeFunction(proto, block, body);
     }
     default: {
@@ -1062,7 +1089,7 @@ ASTNode * Parser::Call(const Token & id) {
             _err.emplace_back(tok.pos,
                               "in call: \')\' expected, got: " + tok.get_str());
         }
-        return new ASTNodeCall(id.get_str(), args);
+        return new ASTNodeCall(id.get_str(), fn.value().fn_type, args);
     }
     case TokenType::Op_Mul:
     case TokenType::Op_Div:
@@ -1092,7 +1119,12 @@ ASTNode * Parser::Call(const Token & id) {
         if (!var_r.has_value() && !cst_r.has_value()) {
             _err.emplace_back(id.pos, "unbound identifier: " + id.get_str());
         }
-        return new ASTNodeIdentifier(id.get_str());
+        if (var_r.has_value() && cst_r.has_value()) {
+            _err.emplace_back(id.pos, "name is ambiguous: " + id.get_str());
+        }
+        std::shared_ptr<Type> ty;
+        ty = var_r.has_value() ? var_r.value().type : nullptr; // TODO
+        return new ASTNodeIdentifier(ty, id.get_str());
     }
     case TokenType::Colon: {
         _lexer.match(TokenType::Colon);
@@ -1120,20 +1152,21 @@ ASTNode * Parser::VarByRef() {
         Token tok = _lexer.get();
         std::string id = tok.get_str();
 
-        if (!_st->lookup_variable(id).has_value()) {
+        auto lookup = _st->lookup_variable(id);
+
+        if (!lookup.has_value()) {
             _err.emplace_back(tok.pos, "unbound identifier: " + id);
-        } else if (!_st->lookup_variable(id).has_value() &&
+        } else if (!lookup.has_value() &&
                    _st->lookup_constant(id).has_value()) {
             _err.emplace_back(
                 tok.pos,
                 "cannot pass a mutable reference to a constant: " + id);
         } else if (_lexer.peek().type() == TokenType::Par_Open) {
             _err.emplace_back(
-                tok.pos,
-                "cannot pass a mutable reference to function call: " + id);
+                tok.pos, "cannot pass a mutable reference to function: " + id);
         }
 
-        return new ASTNodeVarByRef(id);
+        return new ASTNodeVarByRef(lookup.value().type, id);
     }
     default:
         Token tok = _lexer.peek();
@@ -1239,8 +1272,10 @@ ASTNode * Parser::Mila() {
             }
         }
 
+        std::shared_ptr<FnType> fn_ty = std::shared_ptr<FnType>(
+            new FnType({}, std::shared_ptr<Type>(_tf.get_int_t())));
         auto * proto = new ASTNodePrototype(
-            "main", {}, std::shared_ptr<Type>(_tf.get_int_t()));
+            "main", fn_ty, {}, std::shared_ptr<Type>(_tf.get_int_t()));
         return new ASTNodeFunction(proto, block, main_body);
     }
     default: {
