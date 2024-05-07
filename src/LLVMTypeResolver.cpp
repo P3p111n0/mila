@@ -17,15 +17,16 @@ llvm::Type * LLVMTypeResolver::operator()(ArrayType *) {
 
 llvm::Type * LLVMTypeResolver::operator()(BaseType * t) {
     auto id = t->id();
-    if (id == "int") {
+    switch (id) {
+    case BaseType::Builtin::Int:
         return llvm::Type::getInt32Ty(_ctx);
-    } else if (id == "double") {
+    case BaseType::Builtin::Double:
         return llvm::Type::getDoubleTy(_ctx);
-    } else if (id == "void") {
+    case BaseType::Builtin::Void:
         return llvm::Type::getVoidTy(_ctx);
-    } else if (id == "string") {
+    case BaseType::Builtin::String:
         return llvm::Type::getInt8PtrTy(_ctx);
-    } else {
+    default:
         //this shouldn't happen
         return nullptr;
     }

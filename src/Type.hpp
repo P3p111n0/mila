@@ -21,14 +21,20 @@ class Type {
 
 class BaseType : public Type {
   public:
-    explicit BaseType(std::string id) : _id(std::move(id)) {}
-    const std::string & id() const { return _id; }
+    enum class Builtin {
+        Int,
+        Double,
+        String,
+        Void
+    };
+    explicit BaseType(Builtin id) : _id(std::move(id)) {}
+    Builtin id() const { return _id; }
     TypeVariant as_variant() override {
         return this;
     };
 
   private:
-    std::string _id;
+    Builtin _id;
 };
 
 class RefType : public Type {
