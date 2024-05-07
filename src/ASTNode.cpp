@@ -413,3 +413,7 @@ llvm::AllocaInst * ASTNodeVarByRef::codegen(llvm::Module &, llvm::IRBuilder<> &,
     llvm::AllocaInst * var_ = cdg.vars->lookup(var).value();
     return var_;
 }
+
+llvm::Value * ASTNodeTypeCast::codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &, CodegenData &) {
+    assert(0); // TODO
+}
