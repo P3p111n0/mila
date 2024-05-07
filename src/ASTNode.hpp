@@ -270,3 +270,11 @@ class ASTNodeVarByRef : public ASTNode {
   private:
     std::string _var;
 };
+
+class ASTNodeTypeCast : public ASTNode {
+  public:
+    ASTNodeTypeCast(Type * src, Type * dst) : _src(src), _dst(dst) {}
+  private:
+    std::shared_ptr<Type> _src;
+    std::shared_ptr<Type> _dst;
+};
