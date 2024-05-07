@@ -306,7 +306,7 @@ ASTNode * Parser::Stmt_helper() {
                                   "unbound identifier: " + id.get_str());
             }
             ASTNode * rhs = Expression();
-            return new ASTNodeAssign(id.get_str(), lookup.value().type, rhs);
+            return new ASTNodeAssign(id.get_str(), rhs);
         }
         case TokenType::Colon:
         case TokenType::Par_Open: { // call
@@ -479,7 +479,7 @@ ASTNode * Parser::Function() {
             }
             _st = old_st;
             _forward_declared.emplace(fn.name);
-            return new ASTNodePrototype(fn.name, fn.fn_type, fn.args,
+            return new ASTNodePrototype(fn.name, fn.args,
                                         fn.return_type);
         }
 
@@ -506,7 +506,7 @@ ASTNode * Parser::Function() {
             _forward_declared.erase(fn.name);
         }
         auto * proto =
-            new ASTNodePrototype(fn.name, fn.fn_type, fn.args, fn.return_type);
+            new ASTNodePrototype(fn.name, fn.args, fn.return_type);
         return new ASTNodeFunction(proto, block, body);
     }
     default: {
@@ -584,7 +584,7 @@ ASTNode * Parser::Procedure() {
             }
             _st = old_st;
             _forward_declared.emplace(fn.name);
-            return new ASTNodePrototype(fn.name, fn.fn_type, fn.args,
+            return new ASTNodePrototype(fn.name, fn.args,
                                         fn.return_type);
         }
 
@@ -616,7 +616,7 @@ ASTNode * Parser::Procedure() {
         }
 
         auto * proto =
-            new ASTNodePrototype(fn.name, fn.fn_type, fn.args, fn.return_type);
+            new ASTNodePrototype(fn.name, fn.args, fn.return_type);
         return new ASTNodeFunction(proto, block, body);
     }
     default: {
@@ -1089,7 +1089,7 @@ ASTNode * Parser::Call(const Token & id) {
             _err.emplace_back(tok.pos,
                               "in call: \')\' expected, got: " + tok.get_str());
         }
-        return new ASTNodeCall(id.get_str(), fn.value().fn_type, args);
+        return new ASTNodeCall(id.get_str(), args);
     }
     case TokenType::Op_Mul:
     case TokenType::Op_Div:
@@ -1122,9 +1122,8 @@ ASTNode * Parser::Call(const Token & id) {
         if (var_r.has_value() && cst_r.has_value()) {
             _err.emplace_back(id.pos, "name is ambiguous: " + id.get_str());
         }
-        std::shared_ptr<Type> ty;
-        ty = var_r.has_value() ? var_r.value().type : nullptr; // TODO
-        return new ASTNodeIdentifier(ty, id.get_str());
+
+        return new ASTNodeIdentifier(id.get_str());
     }
     case TokenType::Colon: {
         _lexer.match(TokenType::Colon);
@@ -1166,7 +1165,7 @@ ASTNode * Parser::VarByRef() {
                 tok.pos, "cannot pass a mutable reference to function: " + id);
         }
 
-        return new ASTNodeVarByRef(lookup.value().type, id);
+        return new ASTNodeVarByRef(id);
     }
     default:
         Token tok = _lexer.peek();
@@ -1272,10 +1271,8 @@ ASTNode * Parser::Mila() {
             }
         }
 
-        std::shared_ptr<FnType> fn_ty = std::shared_ptr<FnType>(
-            new FnType({}, std::shared_ptr<Type>(_tf.get_int_t())));
         auto * proto = new ASTNodePrototype(
-            "main", fn_ty, {}, std::shared_ptr<Type>(_tf.get_int_t()));
+            "main", {}, std::shared_ptr<Type>(_tf.get_int_t()));
         return new ASTNodeFunction(proto, block, main_body);
     }
     default: {
