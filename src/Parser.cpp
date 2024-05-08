@@ -1,5 +1,6 @@
 #include "Parser.hpp"
 
+#include "TypeChecker.hpp"
 #include <memory>
 
 Parser::Parser(std::istream & is)
@@ -1290,6 +1291,12 @@ bool Parser::Parse() {
         for (const auto & error : _err) {
             std::cerr << error << std::endl;
         }
+        return false;
+    }
+    TypeChecker tc(_st);
+    _current_code = std::shared_ptr<ASTNode>(tc.tree_rebuild(_current_code.get()));
+    if (!_current_code) {
+        tc.errs(std::cerr);
         return false;
     }
     return true;

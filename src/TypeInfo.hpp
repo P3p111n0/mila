@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Type.hpp"
+#include "BaseTypeFactory.hpp"
 
 class TypeInfo {
   public:
@@ -12,4 +13,8 @@ class TypeInfo {
     static BaseType * to_base_type(Type *);
 
     static bool equal(Type *, Type *);
+
+    static bool is_convertible(Type *, Type *);
+    static Type * get_common_type(Type *, Type*);
+    static std::string get_type_identifier(Type *);
 };

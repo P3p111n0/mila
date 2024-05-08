@@ -1,4 +1,6 @@
 #include "TypeInfo.hpp"
+#include "BaseTypeFactory.hpp"
+#include <cassert>
 
 namespace {
 class BaseTypeResolver {
@@ -56,7 +58,53 @@ class TypeEqualityVisitor {
                           rhs->get_element_type()->as_variant());
     }
 
-    bool operator()(Type * lhs, Type * rhs) { return false; }
+    bool operator()(Type *, Type *) { return false; }
+};
+
+class TypeIdVisitor {
+  public:
+    std::string operator()(BaseType * t) {
+        switch(t->id()) {
+        case BaseType::Builtin::Int:
+            return "int";
+        case BaseType::Builtin::Double:
+            return "double";
+        case BaseType::Builtin::String:
+            return "string";
+        case BaseType::Builtin::Void:
+            return "void";
+        default:
+            assert(0 && "unreachable");
+        }
+    }
+
+    std::string operator()(RefType * ref) {
+        std::string reffd_name = std::visit(*this, ref->get_referenced_type()->as_variant());
+        reffd_name += "&";
+        return reffd_name;
+    }
+
+    std::string operator()(ArrayType * arr) {
+        std::string elem_name = std::visit(*this, arr->get_element_type()->as_variant());
+        elem_name += "[]";
+        return elem_name;
+    }
+
+    std::string operator()(FnType * fn) {
+        std::string ret_name = std::visit(*this, fn->get_return_type()->as_variant());
+        ret_name += " (";
+
+        std::vector<std::shared_ptr<Type>> args = fn->get_args();
+        for (size_t i = 0; i < args.size(); i++) {
+            std::string arg_name = std::visit(*this, args[i]->as_variant());
+            ret_name += arg_name;
+            if (i != args.size() - 1) {
+                ret_name += ", ";
+            }
+        }
+
+        return ret_name;
+    }
 };
 } // namespace
 
@@ -87,4 +135,37 @@ BaseType * TypeInfo::to_base_type(Type * ptr) {
 bool TypeInfo::equal(Type * lhs, Type * rhs) {
     TypeEqualityVisitor x;
     return std::visit(x, lhs->as_variant(), rhs->as_variant());
+}
+
+Type * TypeInfo::get_common_type(Type * lhs, Type * rhs) {
+    BaseTypeFactory btf;
+    // type equality
+    if (equal(lhs, rhs)) {
+        return lhs;
+    }
+
+    // promotion to double
+    if ((is_int(lhs) && is_double(rhs)) || (is_double(lhs) && is_int(rhs))) {
+        return btf.get_double_t();
+    }
+
+    // no conversion possible
+    return nullptr;
+}
+
+std::string TypeInfo::get_type_identifier(Type * ptr) {
+    TypeIdVisitor x;
+    return std::visit(x, ptr->as_variant());
+}
+
+bool TypeInfo::is_convertible(Type * src, Type * dst) {
+    if (equal(src, dst)) {
+        return true;
+    }
+
+    if ((is_int(src) && is_double(dst)) || (is_double(src) && is_int(dst))) {
+        return true;
+    }
+
+    return false;
 }

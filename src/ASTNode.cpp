@@ -417,3 +417,8 @@ llvm::AllocaInst * ASTNodeVarByRef::codegen(llvm::Module &, llvm::IRBuilder<> &,
 llvm::Value * ASTNodeTypeCast::codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &, CodegenData &) {
     assert(0); // TODO
 }
+llvm::Value * ASTNodeFBinary::codegen(llvm::Module &, llvm::IRBuilder<> &,
+                                      llvm::LLVMContext &, CodegenData &) {
+    assert(0); // TODO
+    return nullptr;
+}
