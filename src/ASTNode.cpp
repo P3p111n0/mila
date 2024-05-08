@@ -11,6 +11,11 @@ static llvm::AllocaInst * CreateEntryBlockAlloca(llvm::Function * f, llvm::Type 
     return alloca;
 }
 
+static llvm::Type * resolve_llvm_type(llvm::LLVMContext & ctx, std::shared_ptr<Type> t) {
+    LLVMTypeResolver llvmtr(ctx);
+    return std::visit(llvmtr, t->as_variant());
+}
+
 llvm::Value * ASTNodeInt::codegen(llvm::Module &, llvm::IRBuilder<> &,
                                   llvm::LLVMContext & ctx, CodegenData &) {
     return llvm::ConstantInt::get(ctx, llvm::APInt(32, val, true));
@@ -91,9 +96,7 @@ ASTNodePrototype::codegen(llvm::Module & module, llvm::IRBuilder<> &,
     std::vector<llvm::Type *> arg_types(args.size(),
                                         llvm::Type::getInt32Ty(ctx));
 
-    auto t = return_type->as_variant();
-    LLVMTypeResolver llvmtr(ctx);
-    llvm::Type * ret_type = std::visit(llvmtr, t);
+    llvm::Type * ret_type = resolve_llvm_type(ctx, return_type);
 
     llvm::FunctionType * ft = llvm::FunctionType::get(ret_type, arg_types, false);
     llvm::Function * f =
@@ -342,9 +345,7 @@ llvm::Value * ASTNodeVar::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
                                   llvm::LLVMContext & ctx, CodegenData & cdg) {
     llvm::Function * function = builder.GetInsertBlock()->getParent();
     for (const auto & var : vars) {
-        auto t = var.type->as_variant();
-        LLVMTypeResolver llvmtr(ctx);
-        llvm::Type * type = std::visit(llvmtr, t);
+        llvm::Type * type = resolve_llvm_type(ctx, var.type);
         llvm::AllocaInst * alloca = CreateEntryBlockAlloca(function, type, var.name);
         cdg.vars->data[var.name] = alloca;
     }
