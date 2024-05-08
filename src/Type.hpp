@@ -40,7 +40,7 @@ class BaseType : public Type {
 class RefType : public Type {
   public:
     explicit RefType(Type * t) : _base(t) {}
-    const Type * get_referenced_type() const { return _base.get(); }
+    Type * get_referenced_type() const { return _base.get(); }
     TypeVariant as_variant() override {
         return this;
     };
@@ -57,6 +57,13 @@ class FnType : public Type {
         return this;
     };
 
+    std::vector<std::shared_ptr<Type>> get_args() const {
+        return _args;
+    }
+
+    Type * get_return_type() const {
+        return _return_type.get();
+    }
   private:
     std::vector<std::shared_ptr<Type>> _args;
     std::shared_ptr<Type> _return_type;
@@ -68,6 +75,9 @@ class ArrayType : public Type {
     TypeVariant as_variant() override {
         return this;
     };
+    Type * get_element_type() const {
+        return _elem_type.get();
+    }
   private:
     std::shared_ptr<Type> _elem_type;
 };
