@@ -17,6 +17,7 @@ class Type {
     Type() = default;
     virtual ~Type() = default;
     virtual TypeVariant as_variant() = 0;
+    virtual Type * shallow_copy() const = 0;
 };
 
 class BaseType : public Type {
@@ -32,6 +33,9 @@ class BaseType : public Type {
     TypeVariant as_variant() override {
         return this;
     };
+    BaseType * shallow_copy() const override {
+        return new BaseType(*this);
+    }
 
   private:
     Builtin _id;
@@ -44,6 +48,9 @@ class RefType : public Type {
     TypeVariant as_variant() override {
         return this;
     };
+    RefType * shallow_copy() const override {
+        return new RefType(*this);
+    }
 
   private:
     std::shared_ptr<Type> _base;
@@ -56,6 +63,9 @@ class FnType : public Type {
     TypeVariant as_variant() override {
         return this;
     };
+    FnType * shallow_copy() const override {
+        return new FnType(*this);
+    }
 
     std::vector<std::shared_ptr<Type>> get_args() const {
         return _args;
@@ -75,6 +85,10 @@ class ArrayType : public Type {
     TypeVariant as_variant() override {
         return this;
     };
+    ArrayType * shallow_copy() const override {
+        return new ArrayType(*this);
+    }
+
     Type * get_element_type() const {
         return _elem_type.get();
     }

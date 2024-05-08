@@ -66,6 +66,7 @@ class ASTNode {
     virtual llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                                   llvm::LLVMContext &, CodegenData &) = 0;
     virtual ASTVariant as_variant() = 0;
+    virtual ASTNode * shallow_copy() const = 0;
 };
 
 class ASTNodeInt : public ASTNode {
@@ -74,6 +75,9 @@ class ASTNodeInt : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeInt * shallow_copy() const override {
+        return new ASTNodeInt(*this);
+    }
 
     int val;
 };
@@ -84,6 +88,9 @@ class ASTNodeIdentifier : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeIdentifier * shallow_copy() const override {
+        return new ASTNodeIdentifier(*this);
+    }
 
     std::string name;
 };
@@ -96,6 +103,9 @@ class ASTNodeUnary : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeUnary * shallow_copy() const override {
+        return new ASTNodeUnary(*this);
+    }
 
     std::shared_ptr<ASTNode> arg;
     Operator op;
@@ -125,6 +135,9 @@ class ASTNodeBinary : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeBinary * shallow_copy() const override {
+        return new ASTNodeBinary(*this);
+    }
 
     std::shared_ptr<ASTNode> lhs;
     std::shared_ptr<ASTNode> rhs;
@@ -139,6 +152,9 @@ class ASTNodeFBinary : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeFBinary * shallow_copy() const override {
+        return new ASTNodeFBinary(*this);
+    }
 
     std::shared_ptr<ASTNode> lhs;
     std::shared_ptr<ASTNode> rhs;
@@ -152,6 +168,9 @@ class ASTNodeBody : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeBody * shallow_copy() const override {
+        return new ASTNodeBody(*this);
+    }
 
     std::list<std::shared_ptr<ASTNode>> stmts;
 };
@@ -163,6 +182,9 @@ class ASTNodeAssign : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeAssign * shallow_copy() const override {
+        return new ASTNodeAssign(*this);
+    }
 
     std::string target;
     std::shared_ptr<ASTNode> rhs;
@@ -174,6 +196,9 @@ class ASTNodeExit : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeExit * shallow_copy() const override {
+        return new ASTNodeExit();
+    }
 };
 
 class ASTNodeIf : public ASTNode {
@@ -185,6 +210,9 @@ class ASTNodeIf : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeIf * shallow_copy() const override {
+        return new ASTNodeIf(*this);
+    }
 
     std::shared_ptr<ASTNode> cond;
     std::shared_ptr<ASTNode> body;
@@ -197,6 +225,9 @@ class ASTNodeWhile : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeWhile * shallow_copy() const override {
+        return new ASTNodeWhile(*this);
+    }
 
     std::shared_ptr<ASTNode> cond;
     std::shared_ptr<ASTNode> body;
@@ -211,6 +242,9 @@ class ASTNodeFor : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeFor * shallow_copy() const override {
+        return new ASTNodeFor(*this);
+    }
 
     std::string var;
     std::shared_ptr<ASTNode> it_start;
@@ -225,6 +259,9 @@ class ASTNodeBreak : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeBreak * shallow_copy() const override {
+        return new ASTNodeBreak();
+    }
 };
 
 class ASTNodeCall : public ASTNode {
@@ -234,6 +271,9 @@ class ASTNodeCall : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeCall * shallow_copy() const override {
+        return new ASTNodeCall(*this);
+    }
 
     std::string fn;
     std::list<std::shared_ptr<ASTNode>> args;
@@ -246,6 +286,9 @@ class ASTNodeVar : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeVar * shallow_copy() const override {
+        return new ASTNodeVar(*this);
+    }
 
     std::list<VariableRecord> vars;
 };
@@ -262,6 +305,9 @@ class ASTNodeConst : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeConst * shallow_copy() const override {
+        return new ASTNodeConst(*this);
+    }
 
     std::list<ConstExpr> constants;
 };
@@ -277,6 +323,9 @@ class ASTNodePrototype : public ASTNode {
     llvm::Function * codegen(llvm::Module &, llvm::IRBuilder<> &,
                              llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodePrototype * shallow_copy() const override {
+        return new ASTNodePrototype(*this);
+    }
 
     std::string fn_name;
     std::list<VariableRecord> args;
@@ -292,6 +341,9 @@ class ASTNodeFunction : public ASTNode {
     llvm::Function * codegen(llvm::Module &, llvm::IRBuilder<> &,
                              llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeFunction * shallow_copy() const override {
+        return new ASTNodeFunction(*this);
+    }
 
     std::shared_ptr<ASTNodePrototype> proto;
     std::shared_ptr<ASTNode> block;
@@ -305,6 +357,9 @@ class ASTNodeBlock : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeBlock * shallow_copy() const override {
+        return new ASTNodeBlock(*this);
+    }
 
     std::list<std::shared_ptr<ASTNode>> decls;
 };
@@ -315,6 +370,9 @@ class ASTNodeVarByRef : public ASTNode {
     llvm::AllocaInst * codegen(llvm::Module &, llvm::IRBuilder<> &,
                                llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeVarByRef * shallow_copy() const override {
+        return new ASTNodeVarByRef(*this);
+    }
 
     std::string var;
 };
@@ -326,6 +384,9 @@ class ASTNodeTypeCast : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
+    ASTNodeTypeCast * shallow_copy() const override {
+        return new ASTNodeTypeCast(*this);
+    }
 
     std::shared_ptr<Type> src;
     std::shared_ptr<Type> dst;

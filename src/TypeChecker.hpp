@@ -35,7 +35,7 @@ class TypeChecker {
     TypeResult operator()(ASTNodeWhile *);
     TypeResult operator()(ASTNodeFor *);
     TypeResult operator()(ASTNodeBody *);
-
+    TypeResult operator()(ASTNodeBlock *);
     TypeResult operator()(ASTNode *);
 
   private:
