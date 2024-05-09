@@ -457,3 +457,8 @@ llvm::Value * ASTNodeFBinary::codegen(llvm::Module &, llvm::IRBuilder<> &,
     assert(0); // TODO
     return nullptr;
 }
+
+llvm::Value * ASTNodeBuiltinCall::codegen(llvm::Module &, llvm::IRBuilder<> &,
+                                          llvm::LLVMContext &, CodegenData &) {
+    assert(0 && "node intended only as an intermediate");
+}
