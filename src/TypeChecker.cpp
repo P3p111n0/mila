@@ -171,13 +171,12 @@ TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
     for (auto & call_arg : cnode->args) {
         TypeResult arg_res = std::visit(*this, call_arg->as_variant());
         new_args.emplace_back(arg_res.node);
-
         if (TypeInfo::is_ref_type(arg_res.type.get())) {
-            RefType * ref = TypeInfo::to_ref_type(arg_res.type->shallow_copy());
+            auto ref(TypeInfo::to_ref_type(arg_res.type));
             new_name += "_" + TypeInfo::get_type_identifier(ref->get_referenced_type());
         } else if (TypeInfo::is_base_type(arg_res.type.get())) {
-            BaseType * base = TypeInfo::to_base_type(arg_res.type.get());
-            new_name += "_" + TypeInfo::get_type_identifier(base);
+            auto base(TypeInfo::to_base_type(arg_res.type));
+            new_name += "_" + TypeInfo::get_type_identifier(base.get());
         } else {
             _errs.emplace_back("No viable overload for builtin: " + cnode->fn);
             break;

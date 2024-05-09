@@ -12,7 +12,7 @@ int write_int(int x) {
     printf("%d", x);
     return 0;
 }
-int write_string(int x) {
+int write_string(const char * x) {
     printf("%s", x);
     return 0;
 }

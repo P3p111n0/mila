@@ -143,8 +143,16 @@ BaseType * TypeInfo::to_base_type(Type * ptr) {
     return dynamic_cast<BaseType *>(ptr);
 }
 
+std::shared_ptr<BaseType> TypeInfo::to_base_type(type_ptr ptr) {
+    return std::dynamic_pointer_cast<BaseType>(ptr);
+}
+
 RefType * TypeInfo::to_ref_type(Type * ptr) {
     return dynamic_cast<RefType *>(ptr);
+}
+
+std::shared_ptr<RefType> TypeInfo::to_ref_type(type_ptr ptr) {
+    return std::dynamic_pointer_cast<RefType>(ptr);
 }
 
 bool TypeInfo::equal(Type * lhs, Type * rhs) {
