@@ -10,7 +10,7 @@
 
 struct TypeResult {
     ASTNode * node;
-    Type * type;
+    type_ptr type;
 };
 
 class TypeChecker {
@@ -29,6 +29,7 @@ class TypeChecker {
     TypeResult operator()(ASTNodeIdentifier *);
     TypeResult operator()(ASTNodeAssign *);
     TypeResult operator()(ASTNodeCall *);
+    TypeResult operator()(ASTNodeBuiltinCall *);
     TypeResult operator()(ASTNodeVarByRef *);
     TypeResult operator()(ASTNodeFunction *);
     TypeResult operator()(ASTNodeIf *);

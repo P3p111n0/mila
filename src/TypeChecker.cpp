@@ -16,7 +16,7 @@ ASTNode * TypeChecker::tree_rebuild(ASTNode * main_node) {
 }
 
 TypeResult TypeChecker::operator()(ASTNodeInt * node) {
-    return {node->shallow_copy(), _tf.get_int_t()};
+    return {node->shallow_copy(), type_ptr(_tf.get_int_t())};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeUnary * node) {
@@ -30,27 +30,27 @@ TypeResult TypeChecker::operator()(ASTNodeBinary * binary_node) {
     TypeResult lhs_res = std::visit(*this, binary_node->lhs->as_variant());
     TypeResult rhs_res = std::visit(*this, binary_node->rhs->as_variant());
 
-    Type * common_type = TypeInfo::get_common_type(lhs_res.type, rhs_res.type);
+    Type * common_type = TypeInfo::get_common_type(lhs_res.type.get(), rhs_res.type.get());
     if (!common_type) {
-        std::string lhs_id = TypeInfo::get_type_identifier(lhs_res.type);
-        std::string rhs_id = TypeInfo::get_type_identifier(rhs_res.type);
+        std::string lhs_id = TypeInfo::get_type_identifier(lhs_res.type.get());
+        std::string rhs_id = TypeInfo::get_type_identifier(rhs_res.type.get());
         _errs.emplace_back("Cannot convert " + lhs_id + " and " + rhs_id +
                            " to a common type.");
         return {};
     }
 
     ASTNode * final_lhs;
-    if (!TypeInfo::equal(common_type, lhs_res.type)) {
+    if (!TypeInfo::equal(common_type, lhs_res.type.get())) {
         final_lhs =
-            new ASTNodeTypeCast(lhs_res.type, common_type, lhs_res.node);
+            new ASTNodeTypeCast(lhs_res.type->shallow_copy(), common_type, lhs_res.node);
     } else {
         final_lhs = lhs_res.node;
     }
 
     ASTNode * final_rhs;
-    if (!TypeInfo::equal(common_type, rhs_res.type)) {
+    if (!TypeInfo::equal(common_type, rhs_res.type.get())) {
         final_rhs =
-            new ASTNodeTypeCast(rhs_res.type, common_type, rhs_res.node);
+            new ASTNodeTypeCast(rhs_res.type->shallow_copy(), common_type, rhs_res.node);
     } else {
         final_rhs = rhs_res.node;
     }
@@ -67,7 +67,7 @@ TypeResult TypeChecker::operator()(ASTNodeBinary * binary_node) {
         assert(0 && "this shouldn't happen");
     }
 
-    return {final_binary_node, common_type};
+    return {final_binary_node, type_ptr(common_type)};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeFBinary *) {
@@ -77,13 +77,17 @@ TypeResult TypeChecker::operator()(ASTNodeFBinary *) {
 TypeResult TypeChecker::operator()(ASTNodeIdentifier * id) {
     auto var_lookup = _st->lookup_variable(id->name);
     auto consts_lookup = _st->lookup_constant(id->name);
-    assert(var_lookup.has_value() ^ consts_lookup.has_value()); // xor - exactly one has to contain a value
+    assert(
+        var_lookup.has_value() ^
+        consts_lookup.has_value()); // xor - exactly one has to contain a value
 
     if (var_lookup.has_value()) {
-        return {id->shallow_copy(), var_lookup.value().type->shallow_copy()};
+        return {id->shallow_copy(), type_ptr(var_lookup.value().type->shallow_copy())};
     } else {
-        TypeResult const_result = std::visit(*this, consts_lookup.value()->as_variant());
-        std::shared_ptr<ASTNode> const_node(const_result.node); // prevents leaks, TODO
+        TypeResult const_result =
+            std::visit(*this, consts_lookup.value()->as_variant());
+        std::shared_ptr<ASTNode> const_node(
+            const_result.node); // prevents leaks, TODO
         return {id->shallow_copy(), const_result.type};
     }
 }
@@ -94,15 +98,16 @@ TypeResult TypeChecker::operator()(ASTNodeAssign * assign) {
 
     VariableRecord var = target_lookup.value();
     TypeResult rhs = std::visit(*this, assign->rhs->as_variant());
-    if (!TypeInfo::is_convertible(var.type.get(), rhs.type)) {
+    if (!TypeInfo::is_convertible(var.type.get(), rhs.type.get())) {
         std::string var_id = TypeInfo::get_type_identifier(var.type.get());
-        std::string rhs_id = TypeInfo::get_type_identifier(rhs.type);
+        std::string rhs_id = TypeInfo::get_type_identifier(rhs.type.get());
         _errs.emplace_back("Cannot cast " + rhs_id + " to " + var_id);
     }
 
     ASTNode * rhs_node;
-    if (!TypeInfo::equal(var.type.get(), rhs.type)) {
-        rhs_node = new ASTNodeTypeCast(rhs.type, var.type->shallow_copy(), rhs.node);
+    if (!TypeInfo::equal(var.type.get(), rhs.type.get())) {
+        rhs_node =
+            new ASTNodeTypeCast(rhs.type->shallow_copy(), var.type->shallow_copy(), rhs.node);
     } else {
         rhs_node = rhs.node;
     }
@@ -126,9 +131,9 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
     std::list<std::shared_ptr<ASTNode>> new_args;
     for (auto & arg : fn_args) {
         TypeResult call_arg = std::visit(*this, (*call_arg_it)->as_variant());
-        if (!TypeInfo::is_convertible(arg.get(), call_arg.type)) {
+        if (!TypeInfo::is_convertible(arg.get(), call_arg.type.get())) {
             std::string call_arg_id =
-                TypeInfo::get_type_identifier(call_arg.type);
+                TypeInfo::get_type_identifier(call_arg.type.get());
             std::string fn_arg_id = TypeInfo::get_type_identifier(arg.get());
             _errs.emplace_back("Cannot cast " + call_arg_id + " to " +
                                fn_arg_id);
@@ -138,9 +143,9 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
         }
 
         ASTNode * argument;
-        if (!TypeInfo::equal(arg.get(), call_arg.type)) {
-            argument =
-                new ASTNodeTypeCast(call_arg.type, arg->shallow_copy(), call_arg.node);
+        if (!TypeInfo::equal(arg.get(), call_arg.type.get())) {
+            argument = new ASTNodeTypeCast(call_arg.type->shallow_copy(), arg->shallow_copy(),
+                                           call_arg.node);
         } else {
             argument = call_arg.node;
         }
@@ -151,7 +156,35 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
     ASTNodeCall * call_node = cnode->shallow_copy();
     call_node->args = std::move(new_args);
 
-    return {call_node, fn_lookup.value().fn_type->get_return_type()->shallow_copy()};
+    return {call_node,
+            type_ptr(fn_lookup.value().fn_type->get_return_type()->shallow_copy())};
+}
+
+TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
+    //TODO better overload checking
+    auto lookup = _st->lookup_function(cnode->fn);
+    assert(lookup.has_value());
+    FunctionRecord fnr = lookup.value();
+
+    std::string new_name = cnode->fn;
+    std::list<std::shared_ptr<ASTNode>> new_args;
+    for (auto & call_arg : cnode->args) {
+        TypeResult arg_res = std::visit(*this, call_arg->as_variant());
+        new_args.emplace_back(arg_res.node);
+
+        if (TypeInfo::is_ref_type(arg_res.type.get())) {
+            RefType * ref = TypeInfo::to_ref_type(arg_res.type->shallow_copy());
+            new_name += "_" + TypeInfo::get_type_identifier(ref->get_referenced_type());
+        } else if (TypeInfo::is_base_type(arg_res.type.get())) {
+            BaseType * base = TypeInfo::to_base_type(arg_res.type.get());
+            new_name += "_" + TypeInfo::get_type_identifier(base);
+        } else {
+            _errs.emplace_back("No viable overload for builtin: " + cnode->fn);
+            break;
+        }
+    }
+
+    return {new ASTNodeCall(new_name, new_args), type_ptr(fnr.return_type->shallow_copy())};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeVarByRef * ref) {
@@ -160,7 +193,7 @@ TypeResult TypeChecker::operator()(ASTNodeVarByRef * ref) {
 
     ASTNode * node = ref->shallow_copy();
     RefType * t = new RefType(lookup.value().type->shallow_copy());
-    return {node, t};
+    return {node, type_ptr(t)};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeFunction * fn) {
@@ -228,10 +261,10 @@ TypeResult TypeChecker::operator()(ASTNodeFor * fnode) {
     TypeResult it_start = std::visit(*this, fnode->it_start->as_variant());
     TypeResult it_stop = std::visit(*this, fnode->it_stop->as_variant());
 
-    if (!TypeInfo::is_int(it_start.type)) {
+    if (!TypeInfo::is_int(it_start.type.get())) {
         _errs.emplace_back("Iteration init is not of type int.");
     }
-    if (!TypeInfo::is_int(it_stop.type)) {
+    if (!TypeInfo::is_int(it_stop.type.get())) {
         _errs.emplace_back("Iteration stop val is not of type int.");
     }
 

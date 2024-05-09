@@ -20,7 +20,7 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
 #include <vector>
-#include <set>
+#include <unordered_set>
 
 class Parser {
   public:
@@ -65,8 +65,9 @@ class Parser {
     std::shared_ptr<SymbolTable> _st;
     std::vector<ErrorLog> _err;
     std::shared_ptr<ASTNode> _current_code;
-    std::set<std::string> _forward_declared;
+    std::unordered_set<std::string> _forward_declared;
     BaseTypeFactory _tf;
+    std::unordered_set<std::string> _builtin_names;
 
     void llvm_init_lib();
 

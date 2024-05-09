@@ -5,11 +5,13 @@
 #include <string>
 #include <variant>
 
+class Type;
 class BaseType;
 class RefType;
 class FnType;
 class ArrayType;
 
+using type_ptr = std::shared_ptr<Type>;
 using TypeVariant = std::variant<BaseType*, RefType*, FnType*, ArrayType*>;
 
 class Type {

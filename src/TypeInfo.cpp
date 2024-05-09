@@ -15,6 +15,14 @@ class BaseTypeResolver {
     BaseType::Builtin _t;
 };
 
+template<typename T>
+class IsTypeResolver {
+  public:
+    bool operator()(const T *) { return true; }
+
+    bool operator()(const Type *) { return false; }
+};
+
 class TypeEqualityVisitor {
   public:
     bool operator()(BaseType * lhs, BaseType * rhs) {
@@ -64,7 +72,7 @@ class TypeEqualityVisitor {
 class TypeIdVisitor {
   public:
     std::string operator()(BaseType * t) {
-        switch(t->id()) {
+        switch (t->id()) {
         case BaseType::Builtin::Int:
             return "int";
         case BaseType::Builtin::Double:
@@ -79,19 +87,22 @@ class TypeIdVisitor {
     }
 
     std::string operator()(RefType * ref) {
-        std::string reffd_name = std::visit(*this, ref->get_referenced_type()->as_variant());
+        std::string reffd_name =
+            std::visit(*this, ref->get_referenced_type()->as_variant());
         reffd_name += "&";
         return reffd_name;
     }
 
     std::string operator()(ArrayType * arr) {
-        std::string elem_name = std::visit(*this, arr->get_element_type()->as_variant());
+        std::string elem_name =
+            std::visit(*this, arr->get_element_type()->as_variant());
         elem_name += "[]";
         return elem_name;
     }
 
     std::string operator()(FnType * fn) {
-        std::string ret_name = std::visit(*this, fn->get_return_type()->as_variant());
+        std::string ret_name =
+            std::visit(*this, fn->get_return_type()->as_variant());
         ret_name += " (";
 
         std::vector<std::shared_ptr<Type>> args = fn->get_args();
@@ -132,6 +143,10 @@ BaseType * TypeInfo::to_base_type(Type * ptr) {
     return dynamic_cast<BaseType *>(ptr);
 }
 
+RefType * TypeInfo::to_ref_type(Type * ptr) {
+    return dynamic_cast<RefType *>(ptr);
+}
+
 bool TypeInfo::equal(Type * lhs, Type * rhs) {
     TypeEqualityVisitor x;
     return std::visit(x, lhs->as_variant(), rhs->as_variant());
@@ -141,7 +156,7 @@ Type * TypeInfo::get_common_type(Type * lhs, Type * rhs) {
     BaseTypeFactory btf;
     // type equality
     if (equal(lhs, rhs)) {
-        return lhs;
+        return lhs->shallow_copy();
     }
 
     // promotion to double
@@ -168,4 +183,14 @@ bool TypeInfo::is_convertible(Type * src, Type * dst) {
     }
 
     return false;
+}
+
+bool TypeInfo::is_ref_type(Type * ptr) {
+    IsTypeResolver<RefType> x;
+    return std::visit(x, ptr->as_variant());
+}
+
+bool TypeInfo::is_base_type(Type * ptr) {
+    IsTypeResolver<BaseType> x;
+    return std::visit(x, ptr->as_variant());
 }

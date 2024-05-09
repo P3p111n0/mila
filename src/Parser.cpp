@@ -6,6 +6,7 @@
 Parser::Parser(std::istream & is)
     : _lexer(is), MilaContext(), MilaBuilder(MilaContext),
       MilaModule("mila", MilaContext), _st(std::make_shared<SymbolTable>()) {
+
     // init symbol table with lib
     std::shared_ptr<Type> int_ref_ty = std::shared_ptr<Type>(new RefType(_tf.get_int_t()));
     std::shared_ptr<Type> int_ty = std::shared_ptr<Type>(_tf.get_int_t());
@@ -34,6 +35,7 @@ Parser::Parser(std::istream & is)
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[readln.name] = std::move(readln);
     _st->functions[dec.name] = std::move(dec);
+    _builtin_names = {"writeln", "write", "readln", "dec"};
 }
 
 void Parser::llvm_init_lib() {
@@ -42,7 +44,7 @@ void Parser::llvm_init_lib() {
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), Ints, false);
         llvm::Function * F = llvm::Function::Create(
-            FT, llvm::Function::ExternalLinkage, "writeln", MilaModule);
+            FT, llvm::Function::ExternalLinkage, "writeln_int", MilaModule);
         for (auto & Arg : F->args())
             Arg.setName("x");
     }
@@ -52,7 +54,7 @@ void Parser::llvm_init_lib() {
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), IntPtr, false);
         llvm::Function * F = llvm::Function::Create(
-            FT, llvm::Function::ExternalLinkage, "readln", MilaModule);
+            FT, llvm::Function::ExternalLinkage, "readln_int", MilaModule);
         for (auto & Arg : F->args())
             Arg.setName("x");
     }
@@ -62,7 +64,7 @@ void Parser::llvm_init_lib() {
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), IntPtr, false);
         llvm::Function * F = llvm::Function::Create(
-            FT, llvm::Function::ExternalLinkage, "dec", MilaModule);
+            FT, llvm::Function::ExternalLinkage, "dec_int", MilaModule);
         for (auto & Arg : F->args())
             Arg.setName("x");
     }
@@ -1089,6 +1091,9 @@ ASTNode * Parser::Call(const Token & id) {
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Close)) {
             _err.emplace_back(tok.pos,
                               "in call: \')\' expected, got: " + tok.get_str());
+        }
+        if (_builtin_names.contains(id.get_str())) {
+            return new ASTNodeBuiltinCall(id.get_str(), args);
         }
         return new ASTNodeCall(id.get_str(), args);
     }
