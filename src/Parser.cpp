@@ -9,28 +9,30 @@ Parser::Parser(std::istream & is)
 
     // init symbol table with lib
     type_ptr int_ref_ty = type_ptr(new RefType(_tf.get_int_t()));
+
     type_ptr int_ty = type_ptr(_tf.get_int_t());
     FunctionRecord writeln{"writeln",
-                           type_ptr(new MimicType({int_ty})),
-                           {{"x", int_ty}},
+                           int_ty,
+                           {{"x", type_ptr(new MimicType({int_ty}))}},
                            1,
                            _st->derive(),
-                           std::shared_ptr<FnType>(new FnType({int_ty}, int_ty))
-    };
-    FunctionRecord readln{"readln",
-                          type_ptr(new MimicType({int_ref_ty})),
-                          {{"x", int_ref_ty, true}},
-                          1,
-                          _st->derive(),
-                          std::shared_ptr<FnType>(new FnType({int_ref_ty}, int_ty))
-    };
+                           std::shared_ptr<FnType>(new FnType(
+                               {type_ptr(new MimicType({int_ty}))}, int_ty))};
+    FunctionRecord readln{
+        "readln",
+        int_ty,
+        {{"x", type_ptr(new MimicType({int_ref_ty})), true}},
+        1,
+        _st->derive(),
+        std::shared_ptr<FnType>(
+            new FnType({type_ptr(new MimicType({int_ref_ty}))}, int_ty))};
     FunctionRecord dec{"dec",
-                       type_ptr(new MimicType({int_ref_ty})),
-                       {{"x", int_ref_ty, true}},
+                       int_ty,
+                       {{"x", type_ptr(new MimicType({int_ref_ty})), true}},
                        1,
                        _st->derive(),
-                       std::shared_ptr<FnType>(new FnType({int_ref_ty}, int_ty))
-    };
+                       std::shared_ptr<FnType>(new FnType(
+                           {type_ptr(new MimicType({int_ref_ty}))}, int_ty))};
 
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[readln.name] = std::move(readln);
@@ -482,8 +484,7 @@ ASTNode * Parser::Function() {
             }
             _st = old_st;
             _forward_declared.emplace(fn.name);
-            return new ASTNodePrototype(fn.name, fn.args,
-                                        fn.return_type);
+            return new ASTNodePrototype(fn.name, fn.args, fn.return_type);
         }
 
         ASTNode * block = Block();
@@ -508,8 +509,7 @@ ASTNode * Parser::Function() {
         if (_forward_declared.count(fn.name)) {
             _forward_declared.erase(fn.name);
         }
-        auto * proto =
-            new ASTNodePrototype(fn.name, fn.args, fn.return_type);
+        auto * proto = new ASTNodePrototype(fn.name, fn.args, fn.return_type);
         return new ASTNodeFunction(proto, block, body);
     }
     default: {
@@ -587,8 +587,7 @@ ASTNode * Parser::Procedure() {
             }
             _st = old_st;
             _forward_declared.emplace(fn.name);
-            return new ASTNodePrototype(fn.name, fn.args,
-                                        fn.return_type);
+            return new ASTNodePrototype(fn.name, fn.args, fn.return_type);
         }
 
         ASTNode * block = Block();
@@ -618,8 +617,7 @@ ASTNode * Parser::Procedure() {
             _forward_declared.erase(fn.name);
         }
 
-        auto * proto =
-            new ASTNodePrototype(fn.name, fn.args, fn.return_type);
+        auto * proto = new ASTNodePrototype(fn.name, fn.args, fn.return_type);
         return new ASTNodeFunction(proto, block, body);
     }
     default: {

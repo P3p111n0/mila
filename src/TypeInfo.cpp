@@ -65,7 +65,7 @@ class TypeEqualityVisitor {
                           rhs->elem_type->as_variant());
     }
 
-    bool operator()(BaseType * lhs, MimicType * rhs) {
+    bool operator()(Type * lhs, MimicType * rhs) {
         for (auto & t : rhs->mimed_types) {
             if (std::visit(*this, lhs->as_variant(), t->as_variant())) {
                 return true;
@@ -73,11 +73,13 @@ class TypeEqualityVisitor {
         }
         return false;
     }
-
-    bool operator()(MimicType * lhs, BaseType * rhs) {
+    
+    /*
+    bool operator()(MimicType * lhs, Type * rhs) {
         // swap args
         return std::visit(*this, rhs->as_variant(), lhs->as_variant());
     }
+    */
 
     bool operator()(Type *, Type *) { return false; }
 };
@@ -188,7 +190,8 @@ std::shared_ptr<RefType> type_info::to_ref_type(type_ptr ptr) {
 
 bool type_info::equal(type_ptr lhs, type_ptr rhs) {
     TypeEqualityVisitor x;
-    return std::visit(x, lhs->as_variant(), rhs->as_variant());
+    return std::visit(x, lhs->as_variant(), rhs->as_variant()) ||
+           std::visit(x, rhs->as_variant(), lhs->as_variant());
 }
 
 type_ptr type_info::get_common_type(type_ptr lhs, type_ptr rhs) {
