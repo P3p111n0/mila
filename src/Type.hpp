@@ -3,44 +3,81 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <variant>
+
+class Type;
+class BaseType;
+class RefType;
+class FnType;
+class ArrayType;
+class MimicType;
+
+using type_ptr = std::shared_ptr<Type>;
+using TypeVariant = std::variant<BaseType*, RefType*, FnType*, ArrayType*, MimicType*>;
 
 class Type {
   public:
     Type() = default;
     virtual ~Type() = default;
+    virtual TypeVariant as_variant() = 0;
 };
 
 class BaseType : public Type {
   public:
-    explicit BaseType(std::string id) : _id(std::move(id)) {}
-    const std::string & id() const { return _id; }
+    enum class Builtin {
+        Int,
+        Double,
+        String,
+        Void
+    };
+    explicit BaseType(Builtin id) : id(std::move(id)) {}
+    TypeVariant as_variant() override {
+        return this;
+    };
 
-  private:
-    std::string _id;
+    Builtin id;
 };
 
 class RefType : public Type {
   public:
-    explicit RefType(Type * t) : _base(t) {}
-    const Type * get_referenced_type() const { return _base.get(); }
+    explicit RefType(Type * t) : base(t) {}
+    explicit RefType(type_ptr t) : base(t) {}
+    TypeVariant as_variant() override {
+        return this;
+    };
 
-  private:
-    std::shared_ptr<Type> _base;
+    std::shared_ptr<Type> base;
 };
 
 class FnType : public Type {
   public:
-    FnType(std::vector<std::shared_ptr<Type>> args, Type * rtype)
-        : _args(std::move(args)), _return_type(rtype) {}
+    FnType(std::vector<std::shared_ptr<Type>> args, std::shared_ptr<Type> rtype)
+        : args(std::move(args)), return_type(rtype) {}
+    TypeVariant as_variant() override {
+        return this;
+    };
 
-  private:
-    std::vector<std::shared_ptr<Type>> _args;
-    std::shared_ptr<Type> _return_type;
+    std::vector<std::shared_ptr<Type>> args;
+    std::shared_ptr<Type> return_type;
 };
 
 class ArrayType : public Type {
   public:
-    explicit ArrayType(Type * t) : _elem_type(t) {}
-  private:
-    std::shared_ptr<Type> _elem_type;
+    explicit ArrayType(Type * t) : elem_type(t) {}
+    explicit ArrayType(type_ptr t) : elem_type(t) {}
+    TypeVariant as_variant() override {
+        return this;
+    };
+
+    std::shared_ptr<Type> elem_type;
+};
+
+class MimicType : public Type {
+  public:
+    MimicType(std::vector<type_ptr> mimicted_types) : mimed_types(std::move(mimicted_types)) {}
+    TypeVariant as_variant() override {
+        return this;
+    }
+
+    std::vector<type_ptr> mimed_types;
 };

@@ -1,54 +1,51 @@
 #include "ASTNode.hpp"
+#include "LLVMTypeResolver.hpp"
 #include <stack>
+#include <variant>
 
-using namespace llvm;
-
-Type * resolve_type(LLVMContext & ctx, VarType t) {
-    switch (t) {
-    case VarType::Int:
-        return Type::getInt32Ty(ctx);
-    case VarType::Void:
-        return Type::getVoidTy(ctx);
-    default:
-        return nullptr;
-    }
+static llvm::AllocaInst * CreateEntryBlockAlloca(llvm::Function * f,
+                                                 llvm::Type * type,
+                                                 const std::string & name) {
+    llvm::IRBuilder<> TmpB(&f->getEntryBlock(), f->getEntryBlock().begin());
+    llvm::AllocaInst * alloca = TmpB.CreateAlloca(type, nullptr, name);
+    TmpB.CreateStore(llvm::Constant::getNullValue(alloca->getAllocatedType()),
+                     alloca);
+    return alloca;
 }
 
-static AllocaInst * CreateEntryBlockAlloca(Function * f, Type * type,
-                                           const std::string & name) {
-    IRBuilder<> TmpB(&f->getEntryBlock(), f->getEntryBlock().begin());
-    AllocaInst * alloca = TmpB.CreateAlloca(type, nullptr, name);
-    TmpB.CreateStore(Constant::getNullValue(alloca->getAllocatedType()), alloca);
-    return alloca;
+static llvm::Type * resolve_llvm_type(llvm::LLVMContext & ctx,
+                                      std::shared_ptr<Type> t) {
+    LLVMTypeResolver llvmtr(ctx);
+    return std::visit(llvmtr, t->as_variant());
 }
 
 llvm::Value * ASTNodeInt::codegen(llvm::Module &, llvm::IRBuilder<> &,
                                   llvm::LLVMContext & ctx, CodegenData &) {
-    return ConstantInt::get(ctx, APInt(32, _val, true));
+    return llvm::ConstantInt::get(ctx, llvm::APInt(32, val, true));
 }
 
-llvm::Value *
-ASTNodeIdentifier::codegen(llvm::Module &,
+llvm::Value * ASTNodeIdentifier::codegen(llvm::Module &,
                                          llvm::IRBuilder<> & builder,
                                          llvm::LLVMContext &,
                                          CodegenData & cdg) {
-    if (auto x = cdg.consts->lookup(_name); x.has_value()) {
+    if (auto x = cdg.consts->lookup(name); x.has_value()) {
         return x.value();
     } else {
-        auto val_opt = cdg.vars->lookup(_name);
+        auto val_opt = cdg.vars->lookup(name);
         assert(val_opt.has_value());
-        AllocaInst * val = val_opt.value();
-        return builder.CreateLoad(val->getAllocatedType(), val, _name);
+        llvm::AllocaInst * val = val_opt.value();
+        return builder.CreateLoad(val->getAllocatedType(), val, name);
     }
 }
 
 llvm::Value * ASTNodeUnary::codegen(llvm::Module & module,
                                     llvm::IRBuilder<> & builder,
-                                    llvm::LLVMContext & ctx, CodegenData & cdg) {
-    Value * arg = _arg->codegen(module, builder, ctx, cdg);
-    switch (_op) {
+                                    llvm::LLVMContext & ctx,
+                                    CodegenData & cdg) {
+    llvm::Value * arg_val = arg->codegen(module, builder, ctx, cdg);
+    switch (op) {
     case Operator::Not:
-        return builder.CreateNot(arg, "not_tmp");
+        return builder.CreateNot(arg_val, "not_tmp");
     default:
         return nullptr;
     }
@@ -58,57 +55,58 @@ llvm::Value * ASTNodeBinary::codegen(llvm::Module & module,
                                      llvm::IRBuilder<> & builder,
                                      llvm::LLVMContext & ctx,
                                      CodegenData & cdg) {
-    Value * lhs = _lhs->codegen(module, builder, ctx, cdg);
-    Value * rhs = _rhs->codegen(module, builder, ctx, cdg);
+    llvm::Value * lhs_val = lhs->codegen(module, builder, ctx, cdg);
+    llvm::Value * rhs_val = rhs->codegen(module, builder, ctx, cdg);
 
-    switch (_op) {
+    switch (op) {
     case Operator::Add:
-        return builder.CreateAdd(lhs, rhs, "add_tmp");
+        return builder.CreateAdd(lhs_val, rhs_val, "add_tmp");
     case Operator::Sub:
-        return builder.CreateSub(lhs, rhs, "sub_tmp");
+        return builder.CreateSub(lhs_val, rhs_val, "sub_tmp");
     case Operator::Mul:
-        return builder.CreateMul(lhs, rhs, "mul_tmp");
+        return builder.CreateMul(lhs_val, rhs_val, "mul_tmp");
     case Operator::Div:
-        return builder.CreateSDiv(lhs, rhs, "div_tmp");
+        return builder.CreateSDiv(lhs_val, rhs_val, "div_tmp");
     case Operator::Or:
-        return builder.CreateOr(lhs, rhs, "or_tmp");
+        return builder.CreateOr(lhs_val, rhs_val, "or_tmp");
     case Operator::Xor:
-        return builder.CreateXor(lhs, rhs, "xor_tmp");
+        return builder.CreateXor(lhs_val, rhs_val, "xor_tmp");
     case Operator::And:
-        return builder.CreateAnd(lhs, rhs, "and_tmp");
+        return builder.CreateAnd(lhs_val, rhs_val, "and_tmp");
     case Operator::Mod:
-        return builder.CreateSRem(lhs, rhs, "mod_tmp");
+        return builder.CreateSRem(lhs_val, rhs_val, "mod_tmp");
     case Operator::Eq:
-        return builder.CreateICmpEQ(lhs, rhs, "eq_tmp");
+        return builder.CreateICmpEQ(lhs_val, rhs_val, "eq_tmp");
     case Operator::NEq:
-        return builder.CreateICmpNE(lhs, rhs, "neq_tmp");
+        return builder.CreateICmpNE(lhs_val, rhs_val, "neq_tmp");
     case Operator::Lt:
-        return builder.CreateICmpSLT(lhs, rhs, "lt_tmp");
+        return builder.CreateICmpSLT(lhs_val, rhs_val, "lt_tmp");
     case Operator::Gt:
-        return builder.CreateICmpSGT(lhs, rhs, "gt_tmp");
+        return builder.CreateICmpSGT(lhs_val, rhs_val, "gt_tmp");
     case Operator::LtE:
-        return builder.CreateICmpSLE(lhs, rhs, "lte_tmp");
+        return builder.CreateICmpSLE(lhs_val, rhs_val, "lte_tmp");
     case Operator::GtE:
-        return builder.CreateICmpSGE(lhs, rhs, "gte_tmp");
+        return builder.CreateICmpSGE(lhs_val, rhs_val, "gte_tmp");
     default:
         return nullptr;
     }
 }
 
-Function *
-ASTNodePrototype::codegen(Module & module, IRBuilder<> &,
-                          LLVMContext & ctx,
-                          CodegenData &) {
-    std::vector<llvm::Type *> arg_types(_args.size(),
+llvm::Function * ASTNodePrototype::codegen(llvm::Module & module,
+                                           llvm::IRBuilder<> &,
+                                           llvm::LLVMContext & ctx,
+                                           CodegenData &) {
+    std::vector<llvm::Type *> arg_types(args.size(),
                                         llvm::Type::getInt32Ty(ctx));
 
-    llvm::Type * ret_type = resolve_type(ctx, _return_type);
+    llvm::Type * ret_type = resolve_llvm_type(ctx, return_type);
 
-    FunctionType * ft = FunctionType::get(ret_type, arg_types, false);
-    Function * f =
-        Function::Create(ft, Function::ExternalLinkage, _fn_name, module);
+    llvm::FunctionType * ft =
+        llvm::FunctionType::get(ret_type, arg_types, false);
+    llvm::Function * f = llvm::Function::Create(
+        ft, llvm::Function::ExternalLinkage, fn_name, module);
 
-    auto it = _args.begin();
+    auto it = args.begin();
     for (auto & arg : f->args()) {
         arg.setName(it->name);
         ++it;
@@ -116,14 +114,14 @@ ASTNodePrototype::codegen(Module & module, IRBuilder<> &,
     return f;
 }
 
-Function *
-ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
-                         LLVMContext & ctx,
-                         CodegenData & cdg) {
-    Function * function = module.getFunction(_proto->name());
+llvm::Function * ASTNodeFunction::codegen(llvm::Module & module,
+                                          llvm::IRBuilder<> & builder,
+                                          llvm::LLVMContext & ctx,
+                                          CodegenData & cdg) {
+    llvm::Function * function = module.getFunction(proto->name());
 
     if (!function) {
-        function = _proto->codegen(module, builder, ctx, cdg);
+        function = proto->codegen(module, builder, ctx, cdg);
     }
 
     if (!function) {
@@ -134,8 +132,8 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
         // TODO error
     }
 
-    BasicBlock * entry = BasicBlock::Create(ctx, "entry", function);
-    BasicBlock * old_insert_point = builder.GetInsertBlock();
+    llvm::BasicBlock * entry = llvm::BasicBlock::Create(ctx, "entry", function);
+    llvm::BasicBlock * old_insert_point = builder.GetInsertBlock();
     builder.SetInsertPoint(entry);
 
     auto old_vars = cdg.vars;
@@ -143,31 +141,31 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
     cdg.vars = cdg.vars->derive();
     cdg.consts = cdg.consts->derive();
     // insert return value var
-    if (function->getReturnType()->getTypeID() != Type::VoidTyID) {
-        AllocaInst * ret_var =
-            CreateEntryBlockAlloca(function, function->getReturnType(),
-                                   function->getName().str());
+    if (function->getReturnType()->getTypeID() != llvm::Type::VoidTyID) {
+        llvm::AllocaInst * ret_var = CreateEntryBlockAlloca(
+            function, function->getReturnType(), function->getName().str());
         cdg.vars->data[function->getName().str()] = ret_var;
     }
 
     for (auto & arg : function->args()) {
-        AllocaInst * alloca = CreateEntryBlockAlloca(
+        llvm::AllocaInst * alloca = CreateEntryBlockAlloca(
             function, arg.getType(), arg.getName().str());
         builder.CreateStore(&arg, alloca);
         cdg.vars->data[arg.getName().str()] = alloca;
     }
 
-    _block->codegen(module, builder, ctx, cdg);
+    block->codegen(module, builder, ctx, cdg);
 
     // TODO body
     builder.SetInsertPoint(entry);
-    BasicBlock * function_body = BasicBlock::Create(ctx, "function_body", function);
+    llvm::BasicBlock * function_body =
+        llvm::BasicBlock::Create(ctx, "function_body", function);
     builder.CreateBr(function_body);
     builder.SetInsertPoint(function_body);
-    _body->codegen(module, builder, ctx, cdg);
+    body->codegen(module, builder, ctx, cdg);
 
-    Value * ret_val = nullptr;
-    if (function->getReturnType()->getTypeID() != Type::VoidTyID) {
+    llvm::Value * ret_val = nullptr;
+    if (function->getReturnType()->getTypeID() != llvm::Type::VoidTyID) {
         // load return value if expected
         ret_val = builder.CreateLoad(function->getReturnType(),
                                      cdg.vars->data[function->getName().str()],
@@ -176,7 +174,7 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
 
     builder.CreateRet(ret_val);
     verifyFunction(*function);
-    //restore symbol table
+    // restore symbol table
     cdg.vars = std::move(old_vars);
     cdg.consts = std::move(old_consts);
     if (old_insert_point) {
@@ -188,55 +186,56 @@ ASTNodeFunction::codegen(Module & module, IRBuilder<> & builder,
 llvm::Value * ASTNodeCall::codegen(llvm::Module & module,
                                    llvm::IRBuilder<> & builder,
                                    llvm::LLVMContext & ctx, CodegenData & cdg) {
-    Function * function = module.getFunction(_fn);
+    llvm::Function * function = module.getFunction(fn);
     if (!function) {
-        //TODO error
+        // TODO error
     }
 
-    std::vector<Value*> args;
-    for (auto & arg : _args) {
-        args.push_back(arg->codegen(module, builder, ctx, cdg));
-        //TODO compile error handling
+    std::vector<llvm::Value *> args_;
+    for (auto & arg : args) {
+        args_.push_back(arg->codegen(module, builder, ctx, cdg));
+        // TODO compile error handling
     }
-    return builder.CreateCall(function, args, "call_tmp");
+    return builder.CreateCall(function, args_, "call_tmp");
 }
 
 llvm::Value * ASTNodeIf::codegen(llvm::Module & module,
                                  llvm::IRBuilder<> & builder,
                                  llvm::LLVMContext & ctx, CodegenData & cdg) {
-    Value * cond = _cond->codegen(module, builder, ctx, cdg);
-    Value * null = Constant::getNullValue(cond->getType());
-    cond = builder.CreateICmpNE(cond, null, "if_cond");
+    llvm::Value * cond_val = cond->codegen(module, builder, ctx, cdg);
+    llvm::Value * null = llvm::Constant::getNullValue(cond_val->getType());
+    cond_val = builder.CreateICmpNE(cond_val, null, "if_cond");
 
-    Function * function = builder.GetInsertBlock()->getParent();
-    BasicBlock * then_bb = BasicBlock::Create(ctx, "then_block", function);
-    BasicBlock * else_bb = BasicBlock::Create(ctx, "else_block");
-    BasicBlock * cont = BasicBlock::Create(ctx, "after_block");
-    builder.CreateCondBr(cond, then_bb, else_bb);
+    llvm::Function * function = builder.GetInsertBlock()->getParent();
+    llvm::BasicBlock * then_bb =
+        llvm::BasicBlock::Create(ctx, "then_block", function);
+    llvm::BasicBlock * else_bb = llvm::BasicBlock::Create(ctx, "else_block");
+    llvm::BasicBlock * cont = llvm::BasicBlock::Create(ctx, "after_block");
+    builder.CreateCondBr(cond_val, then_bb, else_bb);
 
-    //then branch
+    // then branch
     builder.SetInsertPoint(then_bb);
     // TODO body
-    _body->codegen(module, builder, ctx, cdg);
+    body->codegen(module, builder, ctx, cdg);
     if (!builder.GetInsertBlock()->getTerminator()) {
         builder.CreateBr(cont);
     }
 
-    //else branch
+    // else branch
     function->insert(function->end(), else_bb);
     builder.SetInsertPoint(else_bb);
-    //TODO body
-    if (_else.has_value()) {
-        _else.value()->codegen(module, builder, ctx, cdg);
+    // TODO body
+    if (else_.has_value()) {
+        else_.value()->codegen(module, builder, ctx, cdg);
     }
     if (!builder.GetInsertBlock()->getTerminator()) {
         builder.CreateBr(cont);
     }
 
-    //after if block
+    // after if block
     function->insert(function->end(), cont);
     builder.SetInsertPoint(cont);
-    return Constant::getNullValue(Type::getVoidTy(ctx));
+    return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
 llvm::Value * ASTNodeBody::codegen(llvm::Module & module,
@@ -246,7 +245,7 @@ llvm::Value * ASTNodeBody::codegen(llvm::Module & module,
     auto old_consts = cdg.consts;
     cdg.vars = cdg.vars->derive();
     cdg.consts = cdg.consts->derive();
-    for (auto & stmt : _stmts) {
+    for (auto & stmt : stmts) {
         stmt->codegen(module, builder, ctx, cdg);
         if (builder.GetInsertBlock()->getTerminator()) {
             break;
@@ -254,16 +253,18 @@ llvm::Value * ASTNodeBody::codegen(llvm::Module & module,
     }
     cdg.vars = old_vars;
     cdg.consts = old_consts;
-    return Constant::getNullValue(Type::getVoidTy(ctx));
+    return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
 llvm::Value * ASTNodeExit::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
                                    llvm::LLVMContext &, CodegenData & cdg) {
-    Function * function = builder.GetInsertBlock()->getParent();
-    Value * ret = nullptr;
-    if (function->getReturnType()->getTypeID() != Type::VoidTyID) {
-        AllocaInst * ret_alloca = cdg.vars->lookup(function->getName().str()).value();
-        ret = builder.CreateLoad(function->getReturnType(), ret_alloca, "return_value");
+    llvm::Function * function = builder.GetInsertBlock()->getParent();
+    llvm::Value * ret = nullptr;
+    if (function->getReturnType()->getTypeID() != llvm::Type::VoidTyID) {
+        llvm::AllocaInst * ret_alloca =
+            cdg.vars->lookup(function->getName().str()).value();
+        ret = builder.CreateLoad(function->getReturnType(), ret_alloca,
+                                 "return_value");
     }
     return builder.CreateRet(ret);
 }
@@ -275,42 +276,47 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     auto old_consts = cdg.consts;
     cdg.vars = cdg.vars->derive();
     cdg.consts = cdg.consts->derive();
-    Value * init_val = _it_start->codegen(module, builder, ctx, cdg);
-    //TODO compile error handling
+    llvm::Value * init_val = it_start->codegen(module, builder, ctx, cdg);
+    // TODO compile error handling
 
-    Function * function = builder.GetInsertBlock()->getParent();
-    AllocaInst * loop_var = nullptr;
-    if (!cdg.vars->lookup(_var).has_value()) {
+    llvm::Function * function = builder.GetInsertBlock()->getParent();
+    llvm::AllocaInst * loop_var = nullptr;
+    if (!cdg.vars->lookup(var).has_value()) {
         loop_var =
-            CreateEntryBlockAlloca(function, Type::getInt32Ty(ctx), _var);
-        cdg.vars->data[_var] = loop_var;
+            CreateEntryBlockAlloca(function, llvm::Type::getInt32Ty(ctx), var);
+        cdg.vars->data[var] = loop_var;
     } else {
-        loop_var = cdg.vars->lookup(_var).value();
+        loop_var = cdg.vars->lookup(var).value();
     }
     builder.CreateStore(init_val, loop_var, "iter_var_init");
 
     // main loop body
-    BasicBlock * loop_cond = BasicBlock::Create(ctx, "loop_cond", function);
-    BasicBlock * loop_bb = BasicBlock::Create(ctx, "loop", function);
-    BasicBlock * loop_end = BasicBlock::Create(ctx, "loop_end");
+    llvm::BasicBlock * loop_cond =
+        llvm::BasicBlock::Create(ctx, "loop_cond", function);
+    llvm::BasicBlock * loop_bb =
+        llvm::BasicBlock::Create(ctx, "loop", function);
+    llvm::BasicBlock * loop_end = llvm::BasicBlock::Create(ctx, "loop_end");
     cdg.break_addrs.push(loop_end);
     cdg.cont_addrs.push(loop_cond);
     builder.CreateBr(loop_cond);
     builder.SetInsertPoint(loop_cond);
-    Value * current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var, "loop_current_val");
-    Value * end_cond = _it_stop->codegen(module, builder, ctx, cdg);
-    Value * loop_cont_cond = builder.CreateICmpNE(current_val, end_cond, "loop_cont_cond");
+    llvm::Value * current_val = builder.CreateLoad(
+        llvm::Type::getInt32Ty(ctx), loop_var, "loop_current_val");
+    llvm::Value * end_cond = it_stop->codegen(module, builder, ctx, cdg);
+    llvm::Value * loop_cont_cond =
+        builder.CreateICmpNE(current_val, end_cond, "loop_cont_cond");
     builder.CreateCondBr(loop_cont_cond, loop_bb, loop_end);
 
     builder.SetInsertPoint(loop_bb);
-    _body->codegen(module, builder, ctx, cdg);
-    Value * step = ConstantInt::get(ctx, APInt(32, 1, true));
+    body->codegen(module, builder, ctx, cdg);
+    llvm::Value * step = llvm::ConstantInt::get(ctx, llvm::APInt(32, 1, true));
 
     if (!builder.GetInsertBlock()->getTerminator()) {
         // mutate iter var
-        current_val = builder.CreateLoad(Type::getInt32Ty(ctx), loop_var, "loop_var_fetch");
-        Value * next_val = nullptr;
-        if (_is_downto) {
+        current_val = builder.CreateLoad(llvm::Type::getInt32Ty(ctx), loop_var,
+                                         "loop_var_fetch");
+        llvm::Value * next_val = nullptr;
+        if (is_downto) {
             next_val = builder.CreateSub(current_val, step, "step");
         } else {
             next_val = builder.CreateAdd(current_val, step, "step");
@@ -325,86 +331,92 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     cdg.cont_addrs.pop();
     cdg.vars = old_vars;
     cdg.consts = old_consts;
-    return Constant::getNullValue(Type::getVoidTy(ctx));
+    return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
 llvm::Value * ASTNodeAssign::codegen(llvm::Module & module,
                                      llvm::IRBuilder<> & builder,
                                      llvm::LLVMContext & ctx,
                                      CodegenData & cdg) {
-    AllocaInst * var = cdg.vars->lookup(_target).value();
-    Value * value = _rhs->codegen(module, builder, ctx, cdg);
+    llvm::AllocaInst * var = cdg.vars->lookup(target).value();
+    llvm::Value * value = rhs->codegen(module, builder, ctx, cdg);
     builder.CreateStore(value, var);
-    return Constant::getNullValue(Type::getVoidTy(ctx));
+    return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
 llvm::Value * ASTNodeBreak::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
                                     llvm::LLVMContext & ctx,
                                     CodegenData & cdg) {
     assert(!cdg.break_addrs.empty());
-    BasicBlock * loop_end = cdg.break_addrs.top();
+    llvm::BasicBlock * loop_end = cdg.break_addrs.top();
     builder.CreateBr(loop_end);
-    return Constant::getNullValue(Type::getVoidTy(ctx));
+    return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
 llvm::Value * ASTNodeVar::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
                                   llvm::LLVMContext & ctx, CodegenData & cdg) {
-    Function * function = builder.GetInsertBlock()->getParent();
-    for (const auto & var : _vars) {
-        Type * type = resolve_type(ctx, var.type);
-        AllocaInst * alloca = CreateEntryBlockAlloca(function, type, var.name);
+    llvm::Function * function = builder.GetInsertBlock()->getParent();
+    for (const auto & var : vars) {
+        llvm::Type * type = resolve_llvm_type(ctx, var.type);
+        llvm::AllocaInst * alloca =
+            CreateEntryBlockAlloca(function, type, var.name);
         cdg.vars->data[var.name] = alloca;
     }
-    return Constant::getNullValue(Type::getVoidTy(ctx));
+    return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
 llvm::Value * ASTNodeConst::codegen(llvm::Module & module,
                                     llvm::IRBuilder<> & builder,
-                                    llvm::LLVMContext & ctx, CodegenData & cdg) {
-    Function * function = builder.GetInsertBlock()->getParent();
-    BasicBlock * current_block = builder.GetInsertBlock();
-    BasicBlock * entry = &function->getEntryBlock();
+                                    llvm::LLVMContext & ctx,
+                                    CodegenData & cdg) {
+    llvm::Function * function = builder.GetInsertBlock()->getParent();
+    llvm::BasicBlock * current_block = builder.GetInsertBlock();
+    llvm::BasicBlock * entry = &function->getEntryBlock();
     builder.SetInsertPoint(entry);
-    for (const auto & c : _constants) {
-        Value * val = c.value->codegen(module, builder, ctx, cdg);
+    for (const auto & c : constants) {
+        llvm::Value * val = c.value->codegen(module, builder, ctx, cdg);
         cdg.consts->data[c.name] = val;
     }
     builder.SetInsertPoint(current_block);
-    return Constant::getNullValue(Type::getVoidTy(ctx));
+    return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
 llvm::Value * ASTNodeBlock::codegen(llvm::Module & module,
                                     llvm::IRBuilder<> & builder,
-                                    llvm::LLVMContext & ctx, CodegenData & cdg) {
-    for (auto & block : _decls) {
+                                    llvm::LLVMContext & ctx,
+                                    CodegenData & cdg) {
+    for (auto & block : decls) {
         block->codegen(module, builder, ctx, cdg);
     }
-    return Constant::getNullValue(Type::getVoidTy(ctx));
+    return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
 llvm::Value * ASTNodeWhile::codegen(llvm::Module & module,
                                     llvm::IRBuilder<> & builder,
-                                    llvm::LLVMContext & ctx, CodegenData & cdg) {
+                                    llvm::LLVMContext & ctx,
+                                    CodegenData & cdg) {
     auto old_vars = cdg.vars;
     auto old_consts = cdg.consts;
     cdg.vars = cdg.vars->derive();
     cdg.consts = cdg.consts->derive();
 
-    Function * function = builder.GetInsertBlock()->getParent();
-    BasicBlock * loop_cond = BasicBlock::Create(ctx, "while_cond", function);
-    BasicBlock * loop_body = BasicBlock::Create(ctx, "while_body", function);
-    BasicBlock * loop_end = BasicBlock::Create(ctx, "while_end");
+    llvm::Function * function = builder.GetInsertBlock()->getParent();
+    llvm::BasicBlock * loop_cond =
+        llvm::BasicBlock::Create(ctx, "while_cond", function);
+    llvm::BasicBlock * loop_body =
+        llvm::BasicBlock::Create(ctx, "while_body", function);
+    llvm::BasicBlock * loop_end = llvm::BasicBlock::Create(ctx, "while_end");
     cdg.break_addrs.push(loop_end);
 
     builder.CreateBr(loop_cond);
     builder.SetInsertPoint(loop_cond);
-    Value * cond = _cond->codegen(module, builder, ctx, cdg);
-    Value * null = Constant::getNullValue(cond->getType());
-    Value * end_cond = builder.CreateICmpNE(cond, null, "end_cond");
+    llvm::Value * cond_val = cond->codegen(module, builder, ctx, cdg);
+    llvm::Value * null = llvm::Constant::getNullValue(cond_val->getType());
+    llvm::Value * end_cond = builder.CreateICmpNE(cond_val, null, "end_cond");
     builder.CreateCondBr(end_cond, loop_body, loop_end);
 
     builder.SetInsertPoint(loop_body);
-    _body->codegen(module, builder, ctx, cdg);
+    body->codegen(module, builder, ctx, cdg);
     if (!builder.GetInsertBlock()->getTerminator()) {
         builder.CreateBr(loop_cond);
     }
@@ -413,10 +425,40 @@ llvm::Value * ASTNodeWhile::codegen(llvm::Module & module,
     builder.SetInsertPoint(loop_end);
     cdg.vars = old_vars;
     cdg.consts = old_consts;
-    return Constant::getNullValue(Type::getVoidTy(ctx));
+    return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
-llvm::AllocaInst * ASTNodeVarByRef::codegen(llvm::Module &, llvm::IRBuilder<> &, llvm::LLVMContext &, CodegenData & cdg) {
-    AllocaInst * var = cdg.vars->lookup(_var).value();
-    return var;
+llvm::AllocaInst * ASTNodeVarByRef::codegen(llvm::Module &, llvm::IRBuilder<> &,
+                                            llvm::LLVMContext &,
+                                            CodegenData & cdg) {
+    llvm::AllocaInst * var_ = cdg.vars->lookup(var).value();
+    return var_;
+}
+
+llvm::Value * ASTNodeTypeCast::codegen(llvm::Module & module,
+                                       llvm::IRBuilder<> & builder,
+                                       llvm::LLVMContext & ctx,
+                                       CodegenData & cdg) {
+    llvm::Type * dst_t = resolve_llvm_type(ctx, dst);
+
+    auto arg_val = arg->codegen(module, builder, ctx, cdg);
+
+    if (dst_t->isDoubleTy()) {
+        return builder.CreateSIToFP(arg_val, dst_t);
+    } else if (dst_t->isIntegerTy()) {
+        return builder.CreateFPToSI(arg_val, dst_t);
+    } else {
+        assert(0 && "this shouldn't happen");
+    }
+}
+
+llvm::Value * ASTNodeFBinary::codegen(llvm::Module &, llvm::IRBuilder<> &,
+                                      llvm::LLVMContext &, CodegenData &) {
+    assert(0); // TODO
+    return nullptr;
+}
+
+llvm::Value * ASTNodeBuiltinCall::codegen(llvm::Module &, llvm::IRBuilder<> &,
+                                          llvm::LLVMContext &, CodegenData &) {
+    assert(0 && "node intended only as an intermediate");
 }

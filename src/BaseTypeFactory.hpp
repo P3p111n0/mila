@@ -7,15 +7,15 @@ class BaseTypeFactory {
     BaseTypeFactory() = default;
 
     BaseType * get_int_t() const {
-        return new BaseType("int");
+        return new BaseType(BaseType::Builtin::Int);
     };
     BaseType * get_double_t() const {
-        return new BaseType("double");
+        return new BaseType(BaseType::Builtin::Double);
     };
     BaseType * get_string_t() const {
-        return new BaseType("string");
+        return new BaseType(BaseType::Builtin::String);
     };
     BaseType * get_void_t() const {
-        return new BaseType("void");
+        return new BaseType(BaseType::Builtin::Void);
     };
 };
