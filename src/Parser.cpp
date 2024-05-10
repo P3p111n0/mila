@@ -1299,7 +1299,7 @@ bool Parser::Parse() {
         return false;
     }
     TypeChecker tc(_st);
-    _current_code = std::shared_ptr<ASTNode>(tc.tree_rebuild(_current_code.get()));
+    _current_code = tc.tree_rebuild(_current_code.get());
     if (!_current_code) {
         tc.errs(std::cerr);
         return false;
