@@ -73,7 +73,7 @@ class TypeEqualityVisitor {
         }
         return false;
     }
-    
+
     /*
     bool operator()(MimicType * lhs, Type * rhs) {
         // swap args

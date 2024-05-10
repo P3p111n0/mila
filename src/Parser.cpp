@@ -8,12 +8,19 @@ Parser::Parser(std::istream & is)
       MilaModule("mila", MilaContext), _st(std::make_shared<SymbolTable>()) {
 
     // init symbol table with lib
-    type_ptr int_ref_ty = type_ptr(new RefType(_tf.get_int_t()));
-
     type_ptr int_ty = type_ptr(_tf.get_int_t());
+    type_ptr int_ref_ty = type_ptr(new RefType(int_ty));
+    type_ptr str_ty = type_ptr(_tf.get_string_t());
     FunctionRecord writeln{"writeln",
                            int_ty,
-                           {{"x", type_ptr(new MimicType({int_ty}))}},
+                           {{"x", type_ptr(new MimicType({int_ty, str_ty}))}},
+                           1,
+                           _st->derive(),
+                           std::shared_ptr<FnType>(new FnType(
+                               {type_ptr(new MimicType({int_ty}))}, int_ty))};
+    FunctionRecord write{"write",
+                           int_ty,
+                           {{"x", type_ptr(new MimicType({int_ty, str_ty}))}},
                            1,
                            _st->derive(),
                            std::shared_ptr<FnType>(new FnType(
@@ -35,6 +42,7 @@ Parser::Parser(std::istream & is)
                            {type_ptr(new MimicType({int_ref_ty}))}, int_ty))};
 
     _st->functions[writeln.name] = std::move(writeln);
+    _st->functions[write.name] = std::move(write);
     _st->functions[readln.name] = std::move(readln);
     _st->functions[dec.name] = std::move(dec);
     _builtin_names = {"writeln", "write", "readln", "dec"};
@@ -47,6 +55,33 @@ void Parser::llvm_init_lib() {
             llvm::Type::getInt32Ty(MilaContext), Ints, false);
         llvm::Function * F = llvm::Function::Create(
             FT, llvm::Function::ExternalLinkage, "writeln_int", MilaModule);
+        for (auto & Arg : F->args())
+            Arg.setName("x");
+    }
+    {
+        std::vector<llvm::Type *> PtrToStr(1, llvm::Type::getInt8PtrTy(MilaContext));
+        llvm::FunctionType * FT = llvm::FunctionType::get(
+            llvm::Type::getInt32Ty(MilaContext), PtrToStr, false);
+        llvm::Function * F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage, "writeln_string", MilaModule);
+        for (auto & Arg : F->args())
+            Arg.setName("x");
+    }
+    {
+        std::vector<llvm::Type *> PtrToStr(1, llvm::Type::getInt8PtrTy(MilaContext));
+        llvm::FunctionType * FT = llvm::FunctionType::get(
+            llvm::Type::getInt32Ty(MilaContext), PtrToStr, false);
+        llvm::Function * F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage, "write_int", MilaModule);
+        for (auto & Arg : F->args())
+            Arg.setName("x");
+    }
+    {
+        std::vector<llvm::Type *> PtrToStr(1, llvm::Type::getInt8PtrTy(MilaContext));
+        llvm::FunctionType * FT = llvm::FunctionType::get(
+            llvm::Type::getInt32Ty(MilaContext), PtrToStr, false);
+        llvm::Function * F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage, "write_string", MilaModule);
         for (auto & Arg : F->args())
             Arg.setName("x");
     }
@@ -858,6 +893,7 @@ ASTNode * Parser::Expression() {
     case TokenType::Op_Not:
     case TokenType::Identifier:
     case TokenType::IntVal:
+    case TokenType::StringLiteral:
     case TokenType::Par_Open: {
         /* rule 20: Expression -> Add Expression_h */
         ASTNode * lhs = Add();
@@ -905,6 +941,7 @@ ASTNode * Parser::Add() {
     case TokenType::Op_Not:
     case TokenType::Identifier:
     case TokenType::IntVal:
+    case TokenType::StringLiteral:
     case TokenType::Par_Open: {
         /* rule 17: Add -> Mul Add_h */
         ASTNode * lhs = Mul();
@@ -950,6 +987,7 @@ ASTNode * Parser::Mul() {
     case TokenType::Op_Not:
     case TokenType::Identifier:
     case TokenType::IntVal:
+    case TokenType::StringLiteral:
     case TokenType::Par_Open: {
         /* rule 14: Mul -> Unary Mul_h */
         ASTNode * lhs = Unary();
@@ -1010,6 +1048,7 @@ ASTNode * Parser::Unary() {
     }
     case TokenType::Identifier:
     case TokenType::IntVal:
+    case TokenType::StringLiteral:
     case TokenType::Par_Open:
         /* rule 11: Unary -> Factor */
         return Factor();
@@ -1042,6 +1081,7 @@ ASTNode * Parser::Call(const Token & id) {
         case TokenType::Op_Not:
         case TokenType::Identifier:
         case TokenType::IntVal:
+        case TokenType::StringLiteral:
         case TokenType::Par_Open: {
             const std::list<VariableRecord> & vars =
                 fn.has_value() ? fn.value().args : std::list<VariableRecord>();
@@ -1193,6 +1233,10 @@ ASTNode * Parser::Factor() {
     case TokenType::IntVal: {
         auto token = _lexer.get();
         return new ASTNodeInt(token.get_int());
+    }
+    case TokenType::StringLiteral: {
+        auto token = _lexer.get();
+        return new ASTNodeString(token.get_str());
     }
     case TokenType::Identifier: {
         Token id = _lexer.get();

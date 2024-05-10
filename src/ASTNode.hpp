@@ -51,13 +51,14 @@ class ASTNodeVarByRef;
 class ASTNodeTypeCast;
 class ASTNodeFBinary;
 class ASTNodeBuiltinCall;
+class ASTNodeString;
 
 using ASTVariant = std::variant<
     ASTNodeInt *, ASTNodeIdentifier *, ASTNodeUnary *, ASTNodeBinary *,
     ASTNodeBody *, ASTNodeAssign *, ASTNodeExit *, ASTNodeIf *, ASTNodeWhile *,
     ASTNodeFor *, ASTNodeBreak *, ASTNodeCall *, ASTNodeVar *, ASTNodeConst *,
     ASTNodePrototype *, ASTNodeFunction *, ASTNodeBlock *, ASTNodeVarByRef *,
-    ASTNodeTypeCast *, ASTNodeFBinary *, ASTNodeBuiltinCall *>;
+    ASTNodeTypeCast *, ASTNodeFBinary *, ASTNodeBuiltinCall *, ASTNodeString *>;
 
 class ASTNode {
   public:
@@ -393,4 +394,19 @@ class ASTNodeTypeCast : public ASTNode {
 
     std::shared_ptr<Type> dst;
     std::shared_ptr<ASTNode> arg;
+};
+
+class ASTNodeString : public ASTNode {
+  public:
+    ASTNodeString(std::string val) : str(std::move(val)) {}
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
+    ASTVariant as_variant() override {
+        return this;
+    }
+    ASTNodeString * shallow_copy() const override {
+        return new ASTNodeString(*this);
+    }
+
+    std::string str;
 };

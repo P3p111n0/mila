@@ -196,6 +196,11 @@ llvm::Value * ASTNodeCall::codegen(llvm::Module & module,
         args_.push_back(arg->codegen(module, builder, ctx, cdg));
         // TODO compile error handling
     }
+
+    if (function->getReturnType()->isVoidTy()) {
+        return builder.CreateCall(function, args_);
+    }
+
     return builder.CreateCall(function, args_, "call_tmp");
 }
 
@@ -461,4 +466,19 @@ llvm::Value * ASTNodeFBinary::codegen(llvm::Module &, llvm::IRBuilder<> &,
 llvm::Value * ASTNodeBuiltinCall::codegen(llvm::Module &, llvm::IRBuilder<> &,
                                           llvm::LLVMContext &, CodegenData &) {
     assert(0 && "node intended only as an intermediate");
+}
+
+llvm::Value * ASTNodeString::codegen(llvm::Module & module, llvm::IRBuilder<> &,
+                                     llvm::LLVMContext & ctx, CodegenData &) {
+    auto char_type = llvm::IntegerType::get(ctx, 8);
+    auto array_type = llvm::ArrayType::get(
+        char_type, str.length() + 1); // + 1 for the terminating zero byte
+
+    llvm::Constant * initializer = llvm::ConstantDataArray::getString(ctx, str);
+    llvm::GlobalVariable * global_str = new llvm::GlobalVariable(
+        module, array_type, true,
+        llvm::GlobalVariable::LinkageTypes::PrivateLinkage, initializer,
+        ".str");
+    return llvm::ConstantExpr::getBitCast(global_str,
+                                          char_type->getPointerTo());
 }

@@ -20,6 +20,10 @@ TypeResult TypeChecker::operator()(ASTNodeInt * node) {
     return {node->shallow_copy(), type_ptr(_tf.get_int_t())};
 }
 
+TypeResult TypeChecker::operator()(ASTNodeString * str) {
+    return {str->shallow_copy(), type_ptr(_tf.get_string_t())};
+}
+
 TypeResult TypeChecker::operator()(ASTNodeUnary * node) {
     TypeResult arg = std::visit(*this, node->arg->as_variant());
     ASTNodeUnary * new_node = node->shallow_copy();
