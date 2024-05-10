@@ -381,8 +381,9 @@ class ASTNodeVarByRef : public ASTNode {
 
 class ASTNodeTypeCast : public ASTNode {
   public:
-    ASTNodeTypeCast(Type * src, Type * dst, ASTNode * arg)
-        : src(src), dst(dst), arg(arg) {}
+    ASTNodeTypeCast(Type * dst, ASTNode * arg)
+        : dst(dst), arg(arg) {}
+    ASTNodeTypeCast(type_ptr dst, ASTNode * arg) : dst(dst), arg(arg) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
@@ -390,7 +391,6 @@ class ASTNodeTypeCast : public ASTNode {
         return new ASTNodeTypeCast(*this);
     }
 
-    std::shared_ptr<Type> src;
     std::shared_ptr<Type> dst;
     std::shared_ptr<ASTNode> arg;
 };

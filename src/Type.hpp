@@ -10,16 +10,16 @@ class BaseType;
 class RefType;
 class FnType;
 class ArrayType;
+class MimicType;
 
 using type_ptr = std::shared_ptr<Type>;
-using TypeVariant = std::variant<BaseType*, RefType*, FnType*, ArrayType*>;
+using TypeVariant = std::variant<BaseType*, RefType*, FnType*, ArrayType*, MimicType*>;
 
 class Type {
   public:
     Type() = default;
     virtual ~Type() = default;
     virtual TypeVariant as_variant() = 0;
-    virtual Type * shallow_copy() const = 0;
 };
 
 class BaseType : public Type {
@@ -34,9 +34,6 @@ class BaseType : public Type {
     TypeVariant as_variant() override {
         return this;
     };
-    BaseType * shallow_copy() const override {
-        return new BaseType(*this);
-    }
 
     Builtin id;
 };
@@ -48,9 +45,6 @@ class RefType : public Type {
     TypeVariant as_variant() override {
         return this;
     };
-    RefType * shallow_copy() const override {
-        return new RefType(*this);
-    }
 
     std::shared_ptr<Type> base;
 };
@@ -62,9 +56,6 @@ class FnType : public Type {
     TypeVariant as_variant() override {
         return this;
     };
-    FnType * shallow_copy() const override {
-        return new FnType(*this);
-    }
 
     std::vector<std::shared_ptr<Type>> args;
     std::shared_ptr<Type> return_type;
@@ -77,9 +68,16 @@ class ArrayType : public Type {
     TypeVariant as_variant() override {
         return this;
     };
-    ArrayType * shallow_copy() const override {
-        return new ArrayType(*this);
-    }
 
     std::shared_ptr<Type> elem_type;
+};
+
+class MimicType : public Type {
+  public:
+    MimicType(std::vector<type_ptr> mimicted_types) : mimed_types(std::move(mimicted_types)) {}
+    TypeVariant as_variant() override {
+        return this;
+    }
+
+    std::vector<type_ptr> mimed_types;
 };

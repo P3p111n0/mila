@@ -1,18 +1,7 @@
 #include "LLVMTypeResolver.hpp"
 
-llvm::Type * LLVMTypeResolver::operator()(FnType *) {
-    // this shouldn't happen
-    return nullptr;
-}
-
-llvm::Type * LLVMTypeResolver::operator()(RefType *) {
-    // this shouldn't happen
-    return nullptr;
-}
-
-llvm::Type * LLVMTypeResolver::operator()(ArrayType *) {
-    // this shouldn't happen
-    return nullptr;
+llvm::Type * LLVMTypeResolver::operator()(Type *) {
+    assert(0 && "this shouldn't happen");
 }
 
 llvm::Type * LLVMTypeResolver::operator()(BaseType * t) {

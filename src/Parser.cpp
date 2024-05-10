@@ -8,25 +8,25 @@ Parser::Parser(std::istream & is)
       MilaModule("mila", MilaContext), _st(std::make_shared<SymbolTable>()) {
 
     // init symbol table with lib
-    std::shared_ptr<Type> int_ref_ty = std::shared_ptr<Type>(new RefType(_tf.get_int_t()));
-    std::shared_ptr<Type> int_ty = std::shared_ptr<Type>(_tf.get_int_t());
+    type_ptr int_ref_ty = type_ptr(new RefType(_tf.get_int_t()));
+    type_ptr int_ty = type_ptr(_tf.get_int_t());
     FunctionRecord writeln{"writeln",
-                           std::shared_ptr<Type>(_tf.get_int_t()),
-                           {{"x", std::shared_ptr<Type>(_tf.get_int_t())}},
+                           type_ptr(new MimicType({int_ty})),
+                           {{"x", int_ty}},
                            1,
                            _st->derive(),
                            std::shared_ptr<FnType>(new FnType({int_ty}, int_ty))
     };
     FunctionRecord readln{"readln",
-                          std::shared_ptr<Type>(_tf.get_int_t()),
-                          {{"x", std::shared_ptr<Type>(_tf.get_int_t()), true}},
+                          type_ptr(new MimicType({int_ref_ty})),
+                          {{"x", int_ref_ty, true}},
                           1,
                           _st->derive(),
                           std::shared_ptr<FnType>(new FnType({int_ref_ty}, int_ty))
     };
     FunctionRecord dec{"dec",
-                       std::shared_ptr<Type>(_tf.get_int_t()),
-                       {{"x", std::shared_ptr<Type>(_tf.get_int_t()), true}},
+                       type_ptr(new MimicType({int_ref_ty})),
+                       {{"x", int_ref_ty, true}},
                        1,
                        _st->derive(),
                        std::shared_ptr<FnType>(new FnType({int_ref_ty}, int_ty))
