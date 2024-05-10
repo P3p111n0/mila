@@ -82,7 +82,7 @@ TypeResult TypeChecker::operator()(ASTNodeIdentifier * id) {
         consts_lookup.has_value()); // xor - exactly one has to contain a value
 
     if (var_lookup.has_value()) {
-        return {id->shallow_copy(), type_ptr(var_lookup.value().type->shallow_copy())};
+        return {id->shallow_copy(), var_lookup.value().type};
     } else {
         TypeResult const_result =
             std::visit(*this, consts_lookup.value()->as_variant());
@@ -122,10 +122,8 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
     auto fn_lookup = _st->lookup_function(cnode->fn);
     assert(fn_lookup.has_value());
 
+    auto fn_args = fn_lookup.value().fn_type->args;
     auto call_arg_it = cnode->args.begin();
-    std::vector<std::shared_ptr<Type>> fn_args =
-        fn_lookup.value().fn_type->get_args();
-
     assert(fn_args.size() == cnode->args.size());
 
     std::list<std::shared_ptr<ASTNode>> new_args;
@@ -157,7 +155,7 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
     call_node->args = std::move(new_args);
 
     return {call_node,
-            type_ptr(fn_lookup.value().fn_type->get_return_type()->shallow_copy())};
+            fn_lookup.value().fn_type->return_type};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
@@ -173,17 +171,16 @@ TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
         new_args.emplace_back(arg_res.node);
         if (TypeInfo::is_ref_type(arg_res.type.get())) {
             auto ref(TypeInfo::to_ref_type(arg_res.type));
-            new_name += "_" + TypeInfo::get_type_identifier(ref->get_referenced_type());
+            new_name += "_" + TypeInfo::get_type_identifier(ref->base.get());
         } else if (TypeInfo::is_base_type(arg_res.type.get())) {
-            auto base(TypeInfo::to_base_type(arg_res.type));
-            new_name += "_" + TypeInfo::get_type_identifier(base.get());
+            new_name += "_" + TypeInfo::get_type_identifier(arg_res.type.get());
         } else {
             _errs.emplace_back("No viable overload for builtin: " + cnode->fn);
             break;
         }
     }
 
-    return {new ASTNodeCall(new_name, new_args), type_ptr(fnr.return_type->shallow_copy())};
+    return {new ASTNodeCall(new_name, new_args), fnr.return_type};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeVarByRef * ref) {
@@ -191,8 +188,8 @@ TypeResult TypeChecker::operator()(ASTNodeVarByRef * ref) {
     assert(lookup.has_value());
 
     ASTNode * node = ref->shallow_copy();
-    RefType * t = new RefType(lookup.value().type->shallow_copy());
-    return {node, type_ptr(t)};
+    type_ptr t(new RefType(lookup.value().type));
+    return {node, t};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeFunction * fn) {

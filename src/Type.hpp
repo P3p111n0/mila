@@ -30,8 +30,7 @@ class BaseType : public Type {
         String,
         Void
     };
-    explicit BaseType(Builtin id) : _id(std::move(id)) {}
-    Builtin id() const { return _id; }
+    explicit BaseType(Builtin id) : id(std::move(id)) {}
     TypeVariant as_variant() override {
         return this;
     };
@@ -39,14 +38,13 @@ class BaseType : public Type {
         return new BaseType(*this);
     }
 
-  private:
-    Builtin _id;
+    Builtin id;
 };
 
 class RefType : public Type {
   public:
-    explicit RefType(Type * t) : _base(t) {}
-    Type * get_referenced_type() const { return _base.get(); }
+    explicit RefType(Type * t) : base(t) {}
+    explicit RefType(type_ptr t) : base(t) {}
     TypeVariant as_variant() override {
         return this;
     };
@@ -54,14 +52,13 @@ class RefType : public Type {
         return new RefType(*this);
     }
 
-  private:
-    std::shared_ptr<Type> _base;
+    std::shared_ptr<Type> base;
 };
 
 class FnType : public Type {
   public:
     FnType(std::vector<std::shared_ptr<Type>> args, std::shared_ptr<Type> rtype)
-        : _args(std::move(args)), _return_type(rtype) {}
+        : args(std::move(args)), return_type(rtype) {}
     TypeVariant as_variant() override {
         return this;
     };
@@ -69,21 +66,14 @@ class FnType : public Type {
         return new FnType(*this);
     }
 
-    std::vector<std::shared_ptr<Type>> get_args() const {
-        return _args;
-    }
-
-    Type * get_return_type() const {
-        return _return_type.get();
-    }
-  private:
-    std::vector<std::shared_ptr<Type>> _args;
-    std::shared_ptr<Type> _return_type;
+    std::vector<std::shared_ptr<Type>> args;
+    std::shared_ptr<Type> return_type;
 };
 
 class ArrayType : public Type {
   public:
-    explicit ArrayType(Type * t) : _elem_type(t) {}
+    explicit ArrayType(Type * t) : elem_type(t) {}
+    explicit ArrayType(type_ptr t) : elem_type(t) {}
     TypeVariant as_variant() override {
         return this;
     };
@@ -91,9 +81,5 @@ class ArrayType : public Type {
         return new ArrayType(*this);
     }
 
-    Type * get_element_type() const {
-        return _elem_type.get();
-    }
-  private:
-    std::shared_ptr<Type> _elem_type;
+    std::shared_ptr<Type> elem_type;
 };

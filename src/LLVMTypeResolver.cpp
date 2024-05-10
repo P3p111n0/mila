@@ -16,7 +16,7 @@ llvm::Type * LLVMTypeResolver::operator()(ArrayType *) {
 }
 
 llvm::Type * LLVMTypeResolver::operator()(BaseType * t) {
-    auto id = t->id();
+    auto id = t->id;
     switch (id) {
     case BaseType::Builtin::Int:
         return llvm::Type::getInt32Ty(_ctx);

@@ -7,7 +7,7 @@ class BaseTypeResolver {
   public:
     explicit BaseTypeResolver(BaseType::Builtin t) : _t(t) {}
 
-    bool operator()(const BaseType * ptr) { return ptr->id() == _t; }
+    bool operator()(const BaseType * ptr) { return ptr->id == _t; }
 
     bool operator()(const Type *) { return false; }
 
@@ -26,20 +26,20 @@ class IsTypeResolver {
 class TypeEqualityVisitor {
   public:
     bool operator()(BaseType * lhs, BaseType * rhs) {
-        return lhs->id() == rhs->id();
+        return lhs->id == rhs->id;
     }
 
     bool operator()(RefType * lhs, RefType * rhs) {
-        auto lhs_reffd_type = lhs->get_referenced_type();
-        auto rhs_reffd_type = rhs->get_referenced_type();
+        auto lhs_reffd_type = lhs->base;
+        auto rhs_reffd_type = rhs->base;
 
         return std::visit(*this, lhs_reffd_type->as_variant(),
                           rhs_reffd_type->as_variant());
     }
 
     bool operator()(FnType * lhs, FnType * rhs) {
-        auto lhs_args = lhs->get_args();
-        auto rhs_args = rhs->get_args();
+        auto lhs_args = lhs->args;
+        auto rhs_args = rhs->args;
 
         auto lhs_it = lhs_args.begin();
         auto rhs_it = rhs_args.begin();
@@ -56,14 +56,14 @@ class TypeEqualityVisitor {
             return false;
         }
 
-        return std::visit(*this, lhs->get_return_type()->as_variant(),
-                          rhs->get_return_type()->as_variant());
+        return std::visit(*this, lhs->return_type->as_variant(),
+                          rhs->return_type->as_variant());
     }
 
     bool operator()(ArrayType * lhs, ArrayType * rhs) {
         // TODO array size
-        return std::visit(*this, lhs->get_element_type()->as_variant(),
-                          rhs->get_element_type()->as_variant());
+        return std::visit(*this, lhs->elem_type->as_variant(),
+                          rhs->elem_type->as_variant());
     }
 
     bool operator()(Type *, Type *) { return false; }
@@ -72,7 +72,7 @@ class TypeEqualityVisitor {
 class TypeIdVisitor {
   public:
     std::string operator()(BaseType * t) {
-        switch (t->id()) {
+        switch (t->id) {
         case BaseType::Builtin::Int:
             return "int";
         case BaseType::Builtin::Double:
@@ -88,24 +88,24 @@ class TypeIdVisitor {
 
     std::string operator()(RefType * ref) {
         std::string reffd_name =
-            std::visit(*this, ref->get_referenced_type()->as_variant());
+            std::visit(*this, ref->base->as_variant());
         reffd_name += "&";
         return reffd_name;
     }
 
     std::string operator()(ArrayType * arr) {
         std::string elem_name =
-            std::visit(*this, arr->get_element_type()->as_variant());
+            std::visit(*this, arr->elem_type->as_variant());
         elem_name += "[]";
         return elem_name;
     }
 
     std::string operator()(FnType * fn) {
         std::string ret_name =
-            std::visit(*this, fn->get_return_type()->as_variant());
+            std::visit(*this, fn->return_type->as_variant());
         ret_name += " (";
 
-        std::vector<std::shared_ptr<Type>> args = fn->get_args();
+        std::vector<std::shared_ptr<Type>> args = fn->args;
         for (size_t i = 0; i < args.size(); i++) {
             std::string arg_name = std::visit(*this, args[i]->as_variant());
             ret_name += arg_name;
