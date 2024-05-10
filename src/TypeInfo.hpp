@@ -22,4 +22,5 @@ class TypeInfo {
     static bool is_convertible(Type *, Type *);
     static Type * get_common_type(Type *, Type*);
     static std::string get_type_identifier(Type *);
+    static std::string get_printable_id(Type *);
 };

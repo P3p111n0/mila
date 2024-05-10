@@ -15,8 +15,7 @@ class BaseTypeResolver {
     BaseType::Builtin _t;
 };
 
-template<typename T>
-class IsTypeResolver {
+template <typename T> class IsTypeResolver {
   public:
     bool operator()(const T *) { return true; }
 
@@ -71,6 +70,8 @@ class TypeEqualityVisitor {
 
 class TypeIdVisitor {
   public:
+    TypeIdVisitor(bool use_special_characters)
+        : _special_charactes(use_special_characters) {}
     std::string operator()(BaseType * t) {
         switch (t->id) {
         case BaseType::Builtin::Int:
@@ -87,22 +88,27 @@ class TypeIdVisitor {
     }
 
     std::string operator()(RefType * ref) {
-        std::string reffd_name =
-            std::visit(*this, ref->base->as_variant());
-        reffd_name += "&";
+        std::string reffd_name = std::visit(*this, ref->base->as_variant());
+        if (_special_charactes) {
+            reffd_name += "&";
+        } else {
+            reffd_name += "__ref";
+        }
         return reffd_name;
     }
 
     std::string operator()(ArrayType * arr) {
-        std::string elem_name =
-            std::visit(*this, arr->elem_type->as_variant());
-        elem_name += "[]";
+        std::string elem_name = std::visit(*this, arr->elem_type->as_variant());
+        if (_special_charactes) {
+            elem_name += "[]";
+        } else {
+            elem_name += "__arr";
+        }
         return elem_name;
     }
 
     std::string operator()(FnType * fn) {
-        std::string ret_name =
-            std::visit(*this, fn->return_type->as_variant());
+        std::string ret_name = std::visit(*this, fn->return_type->as_variant());
         ret_name += " (";
 
         std::vector<std::shared_ptr<Type>> args = fn->args;
@@ -116,6 +122,9 @@ class TypeIdVisitor {
 
         return ret_name;
     }
+
+  private:
+    bool _special_charactes;
 };
 } // namespace
 
@@ -177,7 +186,12 @@ Type * TypeInfo::get_common_type(Type * lhs, Type * rhs) {
 }
 
 std::string TypeInfo::get_type_identifier(Type * ptr) {
-    TypeIdVisitor x;
+    TypeIdVisitor x(true);
+    return std::visit(x, ptr->as_variant());
+}
+
+std::string TypeInfo::get_printable_id(Type * ptr) {
+    TypeIdVisitor x(false);
     return std::visit(x, ptr->as_variant());
 }
 

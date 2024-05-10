@@ -54,7 +54,7 @@ void Parser::llvm_init_lib() {
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), IntPtr, false);
         llvm::Function * F = llvm::Function::Create(
-            FT, llvm::Function::ExternalLinkage, "readln_int", MilaModule);
+            FT, llvm::Function::ExternalLinkage, "readln_int__ref", MilaModule);
         for (auto & Arg : F->args())
             Arg.setName("x");
     }
@@ -64,7 +64,7 @@ void Parser::llvm_init_lib() {
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), IntPtr, false);
         llvm::Function * F = llvm::Function::Create(
-            FT, llvm::Function::ExternalLinkage, "dec_int", MilaModule);
+            FT, llvm::Function::ExternalLinkage, "dec_int__ref", MilaModule);
         for (auto & Arg : F->args())
             Arg.setName("x");
     }

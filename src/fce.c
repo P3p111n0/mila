@@ -16,10 +16,10 @@ int write_string(const char * x) {
     printf("%s", x);
     return 0;
 }
-int readln_int(int *x) {
+int readln_int__ref(int *x) {
     scanf("%d", x);
     return 0;
 }
-int dec_int(int * x) {
+int dec_int__ref(int * x) {
     return --*x;
 }
