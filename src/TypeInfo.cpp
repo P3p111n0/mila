@@ -150,48 +150,48 @@ class TypeIdVisitor {
 };
 } // namespace
 
-bool TypeInfo::is_int(type_ptr ptr) {
+bool type_info::is_int(type_ptr ptr) {
     BaseTypeResolver btr(BaseType::Builtin::Int);
     return std::visit(btr, ptr->as_variant());
 }
 
-bool TypeInfo::is_double(type_ptr ptr) {
+bool type_info::is_double(type_ptr ptr) {
     BaseTypeResolver btr(BaseType::Builtin::Double);
     return std::visit(btr, ptr->as_variant());
 }
 
-bool TypeInfo::is_string(type_ptr ptr) {
+bool type_info::is_string(type_ptr ptr) {
     BaseTypeResolver btr(BaseType::Builtin::String);
     return std::visit(btr, ptr->as_variant());
 }
 
-bool TypeInfo::is_void(type_ptr ptr) {
+bool type_info::is_void(type_ptr ptr) {
     BaseTypeResolver btr(BaseType::Builtin::Void);
     return std::visit(btr, ptr->as_variant());
 }
 
-BaseType * TypeInfo::to_base_type(Type * ptr) {
+BaseType * type_info::to_base_type(Type * ptr) {
     return dynamic_cast<BaseType *>(ptr);
 }
 
-std::shared_ptr<BaseType> TypeInfo::to_base_type(type_ptr ptr) {
+std::shared_ptr<BaseType> type_info::to_base_type(type_ptr ptr) {
     return std::dynamic_pointer_cast<BaseType>(ptr);
 }
 
-RefType * TypeInfo::to_ref_type(Type * ptr) {
+RefType * type_info::to_ref_type(Type * ptr) {
     return dynamic_cast<RefType *>(ptr);
 }
 
-std::shared_ptr<RefType> TypeInfo::to_ref_type(type_ptr ptr) {
+std::shared_ptr<RefType> type_info::to_ref_type(type_ptr ptr) {
     return std::dynamic_pointer_cast<RefType>(ptr);
 }
 
-bool TypeInfo::equal(type_ptr lhs, type_ptr rhs) {
+bool type_info::equal(type_ptr lhs, type_ptr rhs) {
     TypeEqualityVisitor x;
     return std::visit(x, lhs->as_variant(), rhs->as_variant());
 }
 
-type_ptr TypeInfo::get_common_type(type_ptr lhs, type_ptr rhs) {
+type_ptr type_info::get_common_type(type_ptr lhs, type_ptr rhs) {
     BaseTypeFactory btf;
 
     if (is_mimic_type(lhs) && equal(lhs, rhs)) {
@@ -214,17 +214,17 @@ type_ptr TypeInfo::get_common_type(type_ptr lhs, type_ptr rhs) {
     return nullptr;
 }
 
-std::string TypeInfo::get_type_identifier(type_ptr ptr) {
+std::string type_info::get_type_identifier(type_ptr ptr) {
     TypeIdVisitor x(true);
     return std::visit(x, ptr->as_variant());
 }
 
-std::string TypeInfo::get_printable_id(type_ptr ptr) {
+std::string type_info::get_printable_id(type_ptr ptr) {
     TypeIdVisitor x(false);
     return std::visit(x, ptr->as_variant());
 }
 
-bool TypeInfo::is_convertible(type_ptr src, type_ptr dst) {
+bool type_info::is_convertible(type_ptr src, type_ptr dst) {
     if (equal(src, dst)) {
         return true;
     }
@@ -236,17 +236,17 @@ bool TypeInfo::is_convertible(type_ptr src, type_ptr dst) {
     return false;
 }
 
-bool TypeInfo::is_ref_type(type_ptr ptr) {
+bool type_info::is_ref_type(type_ptr ptr) {
     IsTypeResolver<RefType> x;
     return std::visit(x, ptr->as_variant());
 }
 
-bool TypeInfo::is_base_type(type_ptr ptr) {
+bool type_info::is_base_type(type_ptr ptr) {
     IsTypeResolver<BaseType> x;
     return std::visit(x, ptr->as_variant());
 }
 
-bool TypeInfo::is_mimic_type(type_ptr ptr) {
+bool type_info::is_mimic_type(type_ptr ptr) {
     IsTypeResolver<MimicType> x;
     return std::visit(x, ptr->as_variant());
 }

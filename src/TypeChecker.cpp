@@ -31,17 +31,18 @@ TypeResult TypeChecker::operator()(ASTNodeBinary * binary_node) {
     TypeResult lhs_res = std::visit(*this, binary_node->lhs->as_variant());
     TypeResult rhs_res = std::visit(*this, binary_node->rhs->as_variant());
 
-    type_ptr common_type = TypeInfo::get_common_type(lhs_res.type, rhs_res.type);
+    type_ptr common_type =
+        type_info::get_common_type(lhs_res.type, rhs_res.type);
     if (!common_type) {
-        std::string lhs_id = TypeInfo::get_type_identifier(lhs_res.type);
-        std::string rhs_id = TypeInfo::get_type_identifier(rhs_res.type);
+        std::string lhs_id = type_info::get_type_identifier(lhs_res.type);
+        std::string rhs_id = type_info::get_type_identifier(rhs_res.type);
         _errs.emplace_back("Cannot convert " + lhs_id + " and " + rhs_id +
                            " to a common type.");
         return {};
     }
 
     ASTNode * final_lhs;
-    if (!TypeInfo::equal(common_type, lhs_res.type)) {
+    if (!type_info::equal(common_type, lhs_res.type)) {
         final_lhs =
             new ASTNodeTypeCast(common_type, lhs_res.node);
     } else {
@@ -49,7 +50,7 @@ TypeResult TypeChecker::operator()(ASTNodeBinary * binary_node) {
     }
 
     ASTNode * final_rhs;
-    if (!TypeInfo::equal(common_type, rhs_res.type)) {
+    if (!type_info::equal(common_type, rhs_res.type)) {
         final_rhs =
             new ASTNodeTypeCast(common_type, rhs_res.node);
     } else {
@@ -57,10 +58,10 @@ TypeResult TypeChecker::operator()(ASTNodeBinary * binary_node) {
     }
 
     ASTNode * final_binary_node;
-    if (TypeInfo::is_int(common_type)) {
+    if (type_info::is_int(common_type)) {
         final_binary_node =
             new ASTNodeBinary(final_lhs, final_rhs, binary_node->op);
-    } else if (TypeInfo::is_double(common_type)) {
+    } else if (type_info::is_double(common_type)) {
         // TODO operation resolution
         final_binary_node = new ASTNodeFBinary(final_lhs, final_rhs,
                                                ASTNodeFBinary::Operator(-1));
@@ -99,14 +100,14 @@ TypeResult TypeChecker::operator()(ASTNodeAssign * assign) {
 
     VariableRecord var = target_lookup.value();
     TypeResult rhs = std::visit(*this, assign->rhs->as_variant());
-    if (!TypeInfo::is_convertible(var.type, rhs.type)) {
-        std::string var_id = TypeInfo::get_type_identifier(var.type);
-        std::string rhs_id = TypeInfo::get_type_identifier(rhs.type);
+    if (!type_info::is_convertible(var.type, rhs.type)) {
+        std::string var_id = type_info::get_type_identifier(var.type);
+        std::string rhs_id = type_info::get_type_identifier(rhs.type);
         _errs.emplace_back("Cannot cast " + rhs_id + " to " + var_id);
     }
 
     ASTNode * rhs_node;
-    if (!TypeInfo::equal(var.type, rhs.type)) {
+    if (!type_info::equal(var.type, rhs.type)) {
         rhs_node =
             new ASTNodeTypeCast(var.type, rhs.node);
     } else {
@@ -130,10 +131,10 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
     std::list<std::shared_ptr<ASTNode>> new_args;
     for (auto & arg : fn_args) {
         TypeResult call_arg = std::visit(*this, (*call_arg_it)->as_variant());
-        if (!TypeInfo::is_convertible(arg, call_arg.type)) {
+        if (!type_info::is_convertible(arg, call_arg.type)) {
             std::string call_arg_id =
-                TypeInfo::get_type_identifier(call_arg.type);
-            std::string fn_arg_id = TypeInfo::get_type_identifier(arg);
+                type_info::get_type_identifier(call_arg.type);
+            std::string fn_arg_id = type_info::get_type_identifier(arg);
             _errs.emplace_back("Cannot cast " + call_arg_id + " to " +
                                fn_arg_id);
             new_args.emplace_back(nullptr);
@@ -142,7 +143,7 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
         }
 
         ASTNode * argument;
-        if (!TypeInfo::equal(arg, call_arg.type)) {
+        if (!type_info::equal(arg, call_arg.type)) {
             argument = new ASTNodeTypeCast(arg,
                                            call_arg.node);
         } else {
@@ -173,7 +174,8 @@ TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
     for (; f_arg_it != fnr.args.end(); ++f_arg_it, ++c_arg_it) {
         TypeResult arg_res = std::visit(*this, (*c_arg_it)->as_variant());
 
-        auto common_type = TypeInfo::get_common_type((*f_arg_it).type, arg_res.type);
+        auto common_type =
+            type_info::get_common_type((*f_arg_it).type, arg_res.type);
 
         if (!common_type) {
             _errs.emplace_back("No viable overload for builtin: " + cnode->fn);
@@ -181,7 +183,7 @@ TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
             break;
         }
 
-        new_name += "_" + TypeInfo::get_printable_id(common_type);
+        new_name += "_" + type_info::get_printable_id(common_type);
         new_args.emplace_back(arg_res.node);
     }
 
@@ -262,10 +264,10 @@ TypeResult TypeChecker::operator()(ASTNodeFor * fnode) {
     TypeResult it_start = std::visit(*this, fnode->it_start->as_variant());
     TypeResult it_stop = std::visit(*this, fnode->it_stop->as_variant());
 
-    if (!TypeInfo::is_int(it_start.type)) {
+    if (!type_info::is_int(it_start.type)) {
         _errs.emplace_back("Iteration init is not of type int.");
     }
-    if (!TypeInfo::is_int(it_stop.type)) {
+    if (!type_info::is_int(it_stop.type)) {
         _errs.emplace_back("Iteration stop val is not of type int.");
     }
 
