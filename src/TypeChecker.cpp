@@ -99,7 +99,7 @@ TypeResult TypeChecker::operator()(ASTNodeIdentifier * id) {
 }
 
 TypeResult TypeChecker::operator()(ASTNodeAssign * assign) {
-    auto target_lookup = _st->lookup_variable(assign->target);
+    auto target_lookup = _st->lookup_variable(assign->target->name);
     assert(target_lookup.has_value());
 
     VariableRecord var = target_lookup.value();

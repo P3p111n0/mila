@@ -336,6 +336,7 @@ ASTNode * Parser::Stmt_helper() {
     case TokenType::Identifier: {
         /* rule 22: Statement_h -> Assignment */
         Token id = _lexer.get();
+        ASTNodeAssignable * target_ptr = new ASTNodeIdentifier(id.get_str());
 
         switch (_lexer.peek().type()) {
         case TokenType::Op_Assign: { // assignment
@@ -346,7 +347,7 @@ ASTNode * Parser::Stmt_helper() {
                                   "unbound identifier: " + id.get_str());
             }
             ASTNode * rhs = Expression();
-            return new ASTNodeAssign(id.get_str(), rhs);
+            return new ASTNodeAssign(target_ptr, rhs);
         }
         case TokenType::Colon:
         case TokenType::Par_Open: { // call

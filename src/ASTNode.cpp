@@ -38,7 +38,7 @@ llvm::Value * ASTNodeIdentifier::codegen(llvm::Module &,
     }
 }
 
-llvm::Value * ASTNodeIdentifier::get_allocated_ptr(CodegenData & cdg) const {
+llvm::AllocaInst * ASTNodeIdentifier::get_allocated_ptr(CodegenData & cdg) const {
     auto var_lookup = cdg.vars->lookup(name);
     assert(var_lookup.has_value());
     return var_lookup.value();
@@ -349,7 +349,7 @@ llvm::Value * ASTNodeAssign::codegen(llvm::Module & module,
                                      llvm::IRBuilder<> & builder,
                                      llvm::LLVMContext & ctx,
                                      CodegenData & cdg) {
-    llvm::AllocaInst * var = cdg.vars->lookup(target).value();
+    llvm::AllocaInst * var = target->get_allocated_ptr(cdg);
     llvm::Value * value = rhs->codegen(module, builder, ctx, cdg);
     builder.CreateStore(value, var);
     return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));

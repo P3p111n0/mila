@@ -84,7 +84,7 @@ class ASTNodeInt : public ASTNode {
 class ASTNodeAssignable : public ASTNode {
   public:
     ASTNodeAssignable(std::string id) : name(id) {}
-    virtual llvm::Value * get_allocated_ptr(CodegenData &) const = 0;
+    virtual llvm::AllocaInst * get_allocated_ptr(CodegenData &) const = 0;
 
     std::string name;
 };
@@ -94,7 +94,7 @@ class ASTNodeIdentifier : public ASTNodeAssignable {
     ASTNodeIdentifier(std::string name) : ASTNodeAssignable(std::move(name)) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
-    llvm::Value * get_allocated_ptr(CodegenData &) const override;
+    llvm::AllocaInst * get_allocated_ptr(CodegenData &) const override;
     ASTVariant as_variant() override { return this; }
     ASTNodeIdentifier * shallow_copy() const override {
         return new ASTNodeIdentifier(*this);
@@ -183,7 +183,7 @@ class ASTNodeBody : public ASTNode {
 
 class ASTNodeAssign : public ASTNode {
   public:
-    ASTNodeAssign(std::string target, ASTNode * rhs)
+    ASTNodeAssign(ASTNodeAssignable * target, ASTNode * rhs)
         : target(std::move(target)), rhs(rhs) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
@@ -192,7 +192,7 @@ class ASTNodeAssign : public ASTNode {
         return new ASTNodeAssign(*this);
     }
 
-    std::string target;
+    std::shared_ptr<ASTNodeAssignable> target;
     std::shared_ptr<ASTNode> rhs;
 };
 
