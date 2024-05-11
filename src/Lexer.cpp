@@ -35,7 +35,9 @@ const std::unordered_map<std::string, Token> _keyword_map = {
     {"downto", Token(TokenType::Downto, "downto")},
     {"else", Token(TokenType::Else, "else")},
     {"break", Token(TokenType::Break, "else")},
-    {"forward", Token(TokenType::Forward, "forward")}};
+    {"forward", Token(TokenType::Forward, "forward")},
+    {"array", Token(TokenType::Array, "array")},
+    {"of", Token(TokenType::Of, "of")}};
 
 const std::unordered_map<std::string, Token> _op_map = {
     {"+", Token(TokenType::Op_Plus, "+")},
@@ -84,12 +86,19 @@ q0:
         return Token(TokenType::Par_Open, "(", _pos);
     case ')':
         return Token(TokenType::Par_Close, ")", _pos);
+    case '[':
+        return Token(TokenType::Br_Open, "[", _pos);
+    case ']':
+        return Token(TokenType::Br_Close, "]", _pos);
     case ';':
         return Token(TokenType::Semicolon, ";", _pos);
     case ',':
         return Token(TokenType::Comma, ",", _pos);
-    case '.':
-        return Token(TokenType::Period, ".", _pos);
+    case '.': {
+        str_val += c;
+        _pos.advance(c);
+        goto dots;
+    }
     case '{':
         goto comment;
     case '0': {
@@ -248,4 +257,15 @@ string: {
     }
     return Token(TokenType::StringLiteral, str_val, _pos);
 }
+
+dots: {
+    c = _in.peek();
+    if (c == '.') {
+        (void)_in.get();
+        str_val += c;
+        _pos.advance(c);
+        return Token(TokenType::DoubleDot, str_val, _pos);
+    }
+    return Token(TokenType::Period, str_val, _pos);
+};
 }

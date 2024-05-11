@@ -10,6 +10,7 @@ enum class TokenType {
     Colon,
     Comma,
     Period,
+    DoubleDot,
 
     // keywords
     Program,
@@ -31,10 +32,14 @@ enum class TokenType {
     To,
     Downto,
     Forward,
+    Array,
+    Of,
 
     // symbols
     Par_Open,
     Par_Close,
+    Br_Open,
+    Br_Close,
 
     // operators
     Op_Plus,
