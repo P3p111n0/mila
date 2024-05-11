@@ -47,16 +47,14 @@ TypeResult TypeChecker::operator()(ASTNodeBinary * binary_node) {
 
     ASTNode * final_lhs;
     if (!type_info::equal(common_type, lhs_res.type)) {
-        final_lhs =
-            new ASTNodeTypeCast(common_type, lhs_res.node);
+        final_lhs = new ASTNodeTypeCast(common_type, lhs_res.node);
     } else {
         final_lhs = lhs_res.node;
     }
 
     ASTNode * final_rhs;
     if (!type_info::equal(common_type, rhs_res.type)) {
-        final_rhs =
-            new ASTNodeTypeCast(common_type, rhs_res.node);
+        final_rhs = new ASTNodeTypeCast(common_type, rhs_res.node);
     } else {
         final_rhs = rhs_res.node;
     }
@@ -98,11 +96,30 @@ TypeResult TypeChecker::operator()(ASTNodeIdentifier * id) {
     }
 }
 
-TypeResult TypeChecker::operator()(ASTNodeAssign * assign) {
-    auto target_lookup = _st->lookup_variable(assign->target->name);
-    assert(target_lookup.has_value());
+TypeResult TypeChecker::operator()(ASTNodeArrAccess * arr) {
+    TypeResult base_result = std::visit(*this, arr->base->as_variant());
+    TypeResult index_result = std::visit(*this, arr->expr->as_variant());
 
-    VariableRecord var = target_lookup.value();
+    if (!type_info::is_array_type(base_result.type)) {
+        _errs.emplace_back("Cannot index a non-array type.");
+    }
+    if (!type_info::is_int(index_result.type)) {
+        _errs.emplace_back("Array index is not of type int.");
+    }
+
+    std::shared_ptr<ArrayType> type = type_info::to_array_type(base_result.type);
+    assert(type);
+    auto * new_base = static_cast<ASTNodeAssignable*>(base_result.node);
+    assert(new_base);
+
+    ASTNode * new_index = new ASTNodeBinary(
+        index_result.node, new ASTNodeInt(type->normalizer), ASTNodeBinary::Operator::Add);
+
+    return {new ASTNodeArrAccess(new_base, new_index), type};
+}
+
+TypeResult TypeChecker::operator()(ASTNodeAssign * assign) {
+    TypeResult var = std::visit(*this, assign->target->as_variant());
     TypeResult rhs = std::visit(*this, assign->rhs->as_variant());
     if (!type_info::is_convertible(var.type, rhs.type)) {
         std::string var_id = type_info::get_type_identifier(var.type);
@@ -112,13 +129,15 @@ TypeResult TypeChecker::operator()(ASTNodeAssign * assign) {
 
     ASTNode * rhs_node;
     if (!type_info::equal(var.type, rhs.type)) {
-        rhs_node =
-            new ASTNodeTypeCast(var.type, rhs.node);
+        rhs_node = new ASTNodeTypeCast(var.type, rhs.node);
     } else {
         rhs_node = rhs.node;
     }
 
     ASTNodeAssign * assign_node = assign->shallow_copy();
+    auto * tgt = static_cast<ASTNodeAssignable *>(var.node);
+    assert(tgt);
+    assign_node->target = std::shared_ptr<ASTNodeAssignable>(tgt);
     assign_node->rhs = std::shared_ptr<ASTNode>(rhs_node);
 
     return {assign_node, nullptr};
@@ -148,8 +167,7 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
 
         ASTNode * argument;
         if (!type_info::equal(arg, call_arg.type)) {
-            argument = new ASTNodeTypeCast(arg,
-                                           call_arg.node);
+            argument = new ASTNodeTypeCast(arg, call_arg.node);
         } else {
             argument = call_arg.node;
         }
@@ -160,12 +178,11 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
     ASTNodeCall * call_node = cnode->shallow_copy();
     call_node->args = std::move(new_args);
 
-    return {call_node,
-            fn_lookup.value().fn_type->return_type};
+    return {call_node, fn_lookup.value().fn_type->return_type};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
-    //TODO better overload checking
+    // TODO better overload checking
     auto lookup = _st->lookup_function(cnode->fn);
     assert(lookup.has_value());
     FunctionRecord fnr = lookup.value();

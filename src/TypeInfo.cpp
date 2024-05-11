@@ -188,6 +188,14 @@ std::shared_ptr<RefType> type_info::to_ref_type(type_ptr ptr) {
     return std::dynamic_pointer_cast<RefType>(ptr);
 }
 
+ArrayType * type_info::to_array_type(Type * ptr) {
+    return dynamic_cast<ArrayType *>(ptr);
+}
+
+std::shared_ptr<ArrayType> type_info::to_array_type(type_ptr ptr) {
+    return dynamic_pointer_cast<ArrayType>(ptr);
+}
+
 bool type_info::equal(type_ptr lhs, type_ptr rhs) {
     TypeEqualityVisitor x;
     return std::visit(x, lhs->as_variant(), rhs->as_variant()) ||
@@ -251,5 +259,10 @@ bool type_info::is_base_type(type_ptr ptr) {
 
 bool type_info::is_mimic_type(type_ptr ptr) {
     IsTypeResolver<MimicType> x;
+    return std::visit(x, ptr->as_variant());
+}
+
+bool type_info::is_array_type(type_ptr ptr) {
+    IsTypeResolver<ArrayType> x;
     return std::visit(x, ptr->as_variant());
 }

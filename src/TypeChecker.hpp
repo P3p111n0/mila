@@ -28,6 +28,7 @@ class TypeChecker {
     TypeResult operator()(ASTNodeBinary *);
     TypeResult operator()(ASTNodeFBinary *);
     TypeResult operator()(ASTNodeIdentifier *);
+    TypeResult operator()(ASTNodeArrAccess *);
     TypeResult operator()(ASTNodeAssign *);
     TypeResult operator()(ASTNodeCall *);
     TypeResult operator()(ASTNodeBuiltinCall *);
