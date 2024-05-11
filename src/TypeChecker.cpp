@@ -97,25 +97,31 @@ TypeResult TypeChecker::operator()(ASTNodeIdentifier * id) {
 }
 
 TypeResult TypeChecker::operator()(ASTNodeArrAccess * arr) {
-    TypeResult base_result = std::visit(*this, arr->base->as_variant());
-    TypeResult index_result = std::visit(*this, arr->expr->as_variant());
+    auto lookup = _st->lookup_variable(arr->name);
+    assert(lookup.has_value());
 
-    if (!type_info::is_array_type(base_result.type)) {
-        _errs.emplace_back("Cannot index a non-array type.");
+    type_ptr type = lookup->type;
+    std::vector<std::shared_ptr<ASTNode>> new_idx;
+    for (auto & idx : arr->idx_list) {
+        if (!type_info::is_array_type(type)) {
+            _errs.emplace_back("Cannot index a variable of non-array type: " +
+                               arr->name);
+        }
+        std::shared_ptr<ArrayType> array_type = type_info::to_array_type(type);
+        assert(array_type);
+
+        TypeResult idx_res = std::visit(*this, idx->as_variant());
+        if (!type_info::is_int(idx_res.type)) {
+            _errs.emplace_back("Array index is not of int type: array name: " +
+                               arr->name);
+        }
+        new_idx.emplace_back(new ASTNodeBinary(
+            idx_res.node, new ASTNodeInt(array_type->normalizer),
+            ASTNodeBinary::Operator::Add));
+        type = array_type->elem_type;
     }
-    if (!type_info::is_int(index_result.type)) {
-        _errs.emplace_back("Array index is not of type int.");
-    }
 
-    std::shared_ptr<ArrayType> type = type_info::to_array_type(base_result.type);
-    assert(type);
-    auto * new_base = static_cast<ASTNodeAssignable*>(base_result.node);
-    assert(new_base);
-
-    ASTNode * new_index = new ASTNodeBinary(
-        index_result.node, new ASTNodeInt(type->normalizer), ASTNodeBinary::Operator::Add);
-
-    return {new ASTNodeArrAccess(new_base, new_index), type};
+    return {new ASTNodeArrAccess(arr->name, new_idx), type};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeAssign * assign) {

@@ -9,6 +9,7 @@ class LLVMTypeResolver {
   public:
     explicit LLVMTypeResolver(llvm::LLVMContext & ctx) : _ctx(ctx) {}
     llvm::Type * operator()(BaseType *);
+    llvm::Type * operator()(ArrayType *);
     llvm::Type * operator()(Type *);
 
   private:

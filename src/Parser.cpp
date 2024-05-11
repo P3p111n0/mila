@@ -380,7 +380,7 @@ ASTNode * Parser::Stmt_helper() {
         Token id = _lexer.get();
         ASTNodeAssignable * target_ptr = nullptr;
         if (_lexer.peek().type() == TokenType::Br_Open) {
-            target_ptr = ArrayAccess(new ASTNodeIdentifier(id.get_str()));
+            target_ptr = ArrayAccess(id.get_str());
         } else {
             target_ptr = new ASTNodeIdentifier(id.get_str());
         }
@@ -1199,6 +1199,7 @@ ASTNode * Parser::Call(const Token & id) {
     case TokenType::Op_LtE:
     case TokenType::Op_GtE:
     case TokenType::Par_Close:
+    case TokenType::Br_Close:
     case TokenType::Then:
     case TokenType::Do:
     case TokenType::Semicolon:
@@ -1230,8 +1231,7 @@ ASTNode * Parser::Call(const Token & id) {
         return new ASTNodeVar({{id.get_str(), type}});
     }
     case TokenType::Br_Open: {
-        ASTNodeAssignable * base = new ASTNodeIdentifier(id.get_str());
-        return ArrayAccess(base);
+        return ArrayAccess(id.get_str());
     }
     default: {
         Token tok = _lexer.peek();
@@ -1273,7 +1273,8 @@ ASTNode * Parser::VarByRef() {
     }
 }
 
-ASTNodeAssignable * Parser::ArrayAccess(ASTNodeAssignable * base) {
+ASTNodeAssignable * Parser::ArrayAccess(const std::string & name) {
+    std::vector<std::shared_ptr<ASTNode>> idx;
     switch(_lexer.peek().type()) {
     case TokenType::Br_Open: {
         while (_lexer.peek().type() == TokenType::Br_Open) {
@@ -1282,9 +1283,9 @@ ASTNodeAssignable * Parser::ArrayAccess(ASTNodeAssignable * base) {
             if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Br_Close)) {
                 _err.emplace_back(tok.pos, "in array access: ']' expected, got: " + tok.get_str());
             }
-            base = new ASTNodeArrAccess(base, expr);
+            idx.emplace_back(expr);
         }
-        return base;
+        return new ASTNodeArrAccess(name, idx);
     }
     default: {
         Token tok = _lexer.peek();

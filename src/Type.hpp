@@ -55,7 +55,7 @@ class ArrayType : public Type {
   public:
     explicit ArrayType(Type * t, int lb, int ub)
         : elem_type(t), lower_bound(lb), upper_bound(ub) {
-        normalizer = upper_bound - lower_bound;
+        normalizer = -lower_bound;
     }
     explicit ArrayType(type_ptr t) : elem_type(t) {}
     TypeVariant as_variant() override { return this; };

@@ -54,12 +54,14 @@ class ASTNodeBuiltinCall;
 class ASTNodeString;
 class ASTNodeArrAccess;
 
-using ASTVariant = std::variant<
-    ASTNodeInt *, ASTNodeIdentifier *, ASTNodeUnary *, ASTNodeBinary *,
-    ASTNodeBody *, ASTNodeAssign *, ASTNodeExit *, ASTNodeIf *, ASTNodeWhile *,
-    ASTNodeFor *, ASTNodeBreak *, ASTNodeCall *, ASTNodeVar *, ASTNodeConst *,
-    ASTNodePrototype *, ASTNodeFunction *, ASTNodeBlock *, ASTNodeVarByRef *,
-    ASTNodeTypeCast *, ASTNodeFBinary *, ASTNodeBuiltinCall *, ASTNodeString *, ASTNodeArrAccess *>;
+using ASTVariant =
+    std::variant<ASTNodeInt *, ASTNodeIdentifier *, ASTNodeUnary *,
+                 ASTNodeBinary *, ASTNodeBody *, ASTNodeAssign *, ASTNodeExit *,
+                 ASTNodeIf *, ASTNodeWhile *, ASTNodeFor *, ASTNodeBreak *,
+                 ASTNodeCall *, ASTNodeVar *, ASTNodeConst *,
+                 ASTNodePrototype *, ASTNodeFunction *, ASTNodeBlock *,
+                 ASTNodeVarByRef *, ASTNodeTypeCast *, ASTNodeFBinary *,
+                 ASTNodeBuiltinCall *, ASTNodeString *, ASTNodeArrAccess *>;
 
 class ASTNode {
   public:
@@ -84,37 +86,45 @@ class ASTNodeInt : public ASTNode {
 
 class ASTNodeAssignable : public ASTNode {
   public:
-    ASTNodeAssignable() = default;
-    virtual llvm::AllocaInst * get_allocated_ptr(CodegenData &) const = 0;
-};
-
-class ASTNodeIdentifier : public ASTNodeAssignable {
-  public:
-    ASTNodeIdentifier(std::string name) : name(std::move(name)) {}
-    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
-                          llvm::LLVMContext &, CodegenData &) override;
-    llvm::AllocaInst * get_allocated_ptr(CodegenData &) const override;
-    ASTVariant as_variant() override { return this; }
-    ASTNodeIdentifier * shallow_copy() const override {
-        return new ASTNodeIdentifier(*this);
-    }
+    ASTNodeAssignable(std::string name) : name(std::move(name)) {}
+    virtual llvm::Value * get_allocated_ptr(llvm::Module &,
+                                                 llvm::IRBuilder<> &,
+                                                 llvm::LLVMContext &,
+                                                 CodegenData &) const = 0;
 
     std::string name;
 };
 
-class ASTNodeArrAccess : public ASTNodeAssignable {
+class ASTNodeIdentifier : public ASTNodeAssignable {
   public:
-    ASTNodeArrAccess(ASTNodeAssignable * base, ASTNode * expr) : base(base), expr(expr) {}
+    ASTNodeIdentifier(std::string name) : ASTNodeAssignable(name) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
-    llvm::AllocaInst * get_allocated_ptr(CodegenData &) const override;
+    llvm::Value * get_allocated_ptr(llvm::Module &, llvm::IRBuilder<> &,
+                                         llvm::LLVMContext &,
+                                         CodegenData &) const override;
+    ASTVariant as_variant() override { return this; }
+    ASTNodeIdentifier * shallow_copy() const override {
+        return new ASTNodeIdentifier(*this);
+    }
+};
+
+class ASTNodeArrAccess : public ASTNodeAssignable {
+  public:
+    ASTNodeArrAccess(std::string name,
+                     std::vector<std::shared_ptr<ASTNode>> index_list)
+        : ASTNodeAssignable(std::move(name)), idx_list(std::move(index_list)) {}
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
+    llvm::Value * get_allocated_ptr(llvm::Module &, llvm::IRBuilder<> &,
+                                         llvm::LLVMContext &,
+                                         CodegenData &) const override;
     ASTVariant as_variant() override { return this; }
     ASTNodeArrAccess * shallow_copy() const override {
         return new ASTNodeArrAccess(*this);
     }
 
-    std::shared_ptr<ASTNodeAssignable> base;
-    std::shared_ptr<ASTNode> expr;
+    std::vector<std::shared_ptr<ASTNode>> idx_list;
 };
 
 class ASTNodeUnary : public ASTNode {
@@ -405,8 +415,7 @@ class ASTNodeVarByRef : public ASTNode {
 
 class ASTNodeTypeCast : public ASTNode {
   public:
-    ASTNodeTypeCast(Type * dst, ASTNode * arg)
-        : dst(dst), arg(arg) {}
+    ASTNodeTypeCast(Type * dst, ASTNode * arg) : dst(dst), arg(arg) {}
     ASTNodeTypeCast(type_ptr dst, ASTNode * arg) : dst(dst), arg(arg) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
@@ -424,9 +433,7 @@ class ASTNodeString : public ASTNode {
     ASTNodeString(std::string val) : str(std::move(val)) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
-    ASTVariant as_variant() override {
-        return this;
-    }
+    ASTVariant as_variant() override { return this; }
     ASTNodeString * shallow_copy() const override {
         return new ASTNodeString(*this);
     }

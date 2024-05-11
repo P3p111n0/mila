@@ -38,7 +38,10 @@ llvm::Value * ASTNodeIdentifier::codegen(llvm::Module &,
     }
 }
 
-llvm::AllocaInst * ASTNodeIdentifier::get_allocated_ptr(CodegenData & cdg) const {
+llvm::Value *
+ASTNodeIdentifier::get_allocated_ptr(llvm::Module &, llvm::IRBuilder<> &,
+                                     llvm::LLVMContext &,
+                                     CodegenData & cdg) const {
     auto var_lookup = cdg.vars->lookup(name);
     assert(var_lookup.has_value());
     return var_lookup.value();
@@ -299,7 +302,7 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     } else {
         loop_var = cdg.vars->lookup(var).value();
     }
-    builder.CreateStore(init_val, loop_var, "iter_var_init");
+    builder.CreateStore(init_val, loop_var);
 
     // main loop body
     llvm::BasicBlock * loop_cond =
@@ -314,8 +317,14 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     llvm::Value * current_val = builder.CreateLoad(
         llvm::Type::getInt32Ty(ctx), loop_var, "loop_current_val");
     llvm::Value * end_cond = it_stop->codegen(module, builder, ctx, cdg);
-    llvm::Value * loop_cont_cond =
-        builder.CreateICmpNE(current_val, end_cond, "loop_cont_cond");
+    llvm::Value * loop_cont_cond;
+    if (is_downto) {
+        loop_cont_cond =
+            builder.CreateICmpSGE(current_val, end_cond, "loop_cont_cond");
+    } else {
+        loop_cont_cond =
+            builder.CreateICmpSLE(current_val, end_cond, "loop_cont_cond");
+    }
     builder.CreateCondBr(loop_cont_cond, loop_bb, loop_end);
 
     builder.SetInsertPoint(loop_bb);
@@ -349,7 +358,7 @@ llvm::Value * ASTNodeAssign::codegen(llvm::Module & module,
                                      llvm::IRBuilder<> & builder,
                                      llvm::LLVMContext & ctx,
                                      CodegenData & cdg) {
-    llvm::AllocaInst * var = target->get_allocated_ptr(cdg);
+    llvm::Value * var = target->get_allocated_ptr(module, builder, ctx, cdg);
     llvm::Value * value = rhs->codegen(module, builder, ctx, cdg);
     builder.CreateStore(value, var);
     return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
@@ -487,4 +496,36 @@ llvm::Value * ASTNodeString::codegen(llvm::Module & module, llvm::IRBuilder<> &,
         ".str");
     return llvm::ConstantExpr::getBitCast(global_str,
                                           char_type->getPointerTo());
+}
+
+llvm::Value * ASTNodeArrAccess::codegen(llvm::Module & module, llvm::IRBuilder<> & builder,
+                                        llvm::LLVMContext & ctx, CodegenData & cdg) {
+    llvm::Value * ptr = get_allocated_ptr(module, builder, ctx, cdg);
+    auto alloca_lookup = cdg.vars->lookup(name);
+    assert(alloca_lookup.has_value());
+    llvm::Type * type = alloca_lookup.value()->getAllocatedType();
+    for (size_t i = 0; i < idx_list.size(); i++) {
+        type = type->getArrayElementType();
+    }
+
+    return builder.CreateLoad(type, ptr);
+}
+
+llvm::Value * ASTNodeArrAccess::get_allocated_ptr(llvm::Module & module,
+                                                       llvm::IRBuilder<> & builder,
+                                                       llvm::LLVMContext & ctx,
+                                                       CodegenData & cdg) const {
+    std::vector<llvm::Value *> idxs;
+    // not sure why this is here, but it works
+    // https://stackoverflow.com/questions/64838994/correct-use-of-llvm-irbuildercreategep
+    idxs.emplace_back(llvm::ConstantInt::get(ctx, llvm::APInt(32, 0, true)));
+    for (auto & index : idx_list) {
+        idxs.emplace_back(index->codegen(module, builder, ctx, cdg));
+    }
+
+    auto alloca_lookup = cdg.vars->lookup(name);
+    assert(alloca_lookup.has_value());
+    llvm::AllocaInst * alloca = alloca_lookup.value();
+
+    return builder.CreateGEP(alloca->getAllocatedType(), alloca, idxs, name + "_gep", true);
 }

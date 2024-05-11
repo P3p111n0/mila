@@ -95,7 +95,7 @@ class Parser {
     ASTNode * Call(const Token &);
     ASTNode * Mila();
     ASTNode * VarByRef();
-    ASTNodeAssignable * ArrayAccess(ASTNodeAssignable *);
+    ASTNodeAssignable * ArrayAccess(const std::string &);
     std::pair<int, int> ArrayBounds();
 
     static bool is_mul_operator(TokenType);

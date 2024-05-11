@@ -20,3 +20,10 @@ llvm::Type * LLVMTypeResolver::operator()(BaseType * t) {
         return nullptr;
     }
 }
+
+llvm::Type * LLVMTypeResolver::operator()(ArrayType * ptr) {
+    llvm::Type * elem = std::visit(*this, ptr->elem_type->as_variant());
+    int size = ptr->upper_bound - ptr->lower_bound + 1;
+    llvm::Type * type = llvm::ArrayType::get(elem, size);
+    return type;
+}
