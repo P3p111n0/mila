@@ -1,5 +1,5 @@
 #include "Parser.hpp"
-
+#include "ExprEvaluator.hpp"
 #include "TypeChecker.hpp"
 #include <memory>
 
@@ -160,11 +160,53 @@ bool Parser::is_statement(TokenType t) {
     }
 }
 
+std::pair<int, int> Parser::ArrayBounds() {
+    if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Br_Open)) {
+        _err.emplace_back(tok.pos, "in array decl: '[' expected, got : " + tok.get_str());
+    }
+    ExprEvaluator<int> evaluator(_st);
+    Position approx_pos = _lexer.peek().pos;
+    std::unique_ptr<ASTNode> lower_bound(Expression());
+    std::optional<int> lb_val = evaluator.eval(lower_bound.get());
+    if (!lb_val.has_value()) {
+        _err.emplace_back(
+            approx_pos, "in array decl: lower bound cannot be calculated at compile time.");
+    }
+    if (auto tok = _lexer.peek(); !_lexer.match(TokenType::DoubleDot)) {
+        _err.emplace_back(tok.pos, "in array decl: '..' expected, got : " + tok.get_str());
+    }
+    approx_pos = _lexer.peek().pos;
+    std::unique_ptr<ASTNode> upper_bound(Expression());
+    std::optional<int> ub_val = evaluator.eval(upper_bound.get());
+    if (!ub_val.has_value()) {
+        _err.emplace_back(
+            approx_pos, "in array decl: upper bound cannot be calculated at compile time.");
+    }
+    if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Br_Close)) {
+        _err.emplace_back(tok.pos, "in array decl: ']' expected, got : " + tok.get_str());
+    }
+
+    if (!lb_val.has_value() || !ub_val.has_value()) {
+        return {};
+    }
+
+    return {lb_val.value(), ub_val.value()};
+}
+
 Type * Parser::Var_type() {
     switch (_lexer.peek().type()) {
     case TokenType::Integer:
         _lexer.match(TokenType::Integer);
         return _tf.get_int_t();
+    case TokenType::Array: {
+        _lexer.match(TokenType::Array);
+        auto [lower_bound, upper_bound] = ArrayBounds();
+        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Of)) {
+            _err.emplace_back(tok.pos, "in array decl: 'of' expected, got : " + tok.get_str());
+        }
+        Type * elem_t = Var_type();
+        return new ArrayType(elem_t, lower_bound, upper_bound);
+    }
     default: {
         Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
@@ -336,7 +378,12 @@ ASTNode * Parser::Stmt_helper() {
     case TokenType::Identifier: {
         /* rule 22: Statement_h -> Assignment */
         Token id = _lexer.get();
-        ASTNodeAssignable * target_ptr = new ASTNodeIdentifier(id.get_str());
+        ASTNodeAssignable * target_ptr = nullptr;
+        if (_lexer.peek().type() == TokenType::Br_Open) {
+            target_ptr = ArrayAccess(new ASTNodeIdentifier(id.get_str()));
+        } else {
+            target_ptr = new ASTNodeIdentifier(id.get_str());
+        }
 
         switch (_lexer.peek().type()) {
         case TokenType::Op_Assign: { // assignment
@@ -351,6 +398,7 @@ ASTNode * Parser::Stmt_helper() {
         }
         case TokenType::Colon:
         case TokenType::Par_Open: { // call
+            delete target_ptr;
             return Call(id);
         }
         default: {
@@ -1181,6 +1229,10 @@ ASTNode * Parser::Call(const Token & id) {
         std::shared_ptr<Type> type = std::shared_ptr<Type>(Var_type());
         return new ASTNodeVar({{id.get_str(), type}});
     }
+    case TokenType::Br_Open: {
+        ASTNodeAssignable * base = new ASTNodeIdentifier(id.get_str());
+        return ArrayAccess(base);
+    }
     default: {
         Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
@@ -1218,6 +1270,29 @@ ASTNode * Parser::VarByRef() {
                           "Unknown token when parsing variable reference: " +
                               tok.get_str());
         return nullptr;
+    }
+}
+
+ASTNodeAssignable * Parser::ArrayAccess(ASTNodeAssignable * base) {
+    switch(_lexer.peek().type()) {
+    case TokenType::Br_Open: {
+        while (_lexer.peek().type() == TokenType::Br_Open) {
+            _lexer.match(TokenType::Br_Open);
+            ASTNode * expr = Expression();
+            if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Br_Close)) {
+                _err.emplace_back(tok.pos, "in array access: ']' expected, got: " + tok.get_str());
+            }
+            base = new ASTNodeArrAccess(base, expr);
+        }
+        return base;
+    }
+    default: {
+        Token tok = _lexer.peek();
+        _err.emplace_back(tok.pos,
+                          "Unknown token when parsing array acces: " +
+                              tok.get_str());
+        return nullptr;
+    }
     }
 }
 

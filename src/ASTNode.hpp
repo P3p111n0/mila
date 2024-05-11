@@ -52,13 +52,14 @@ class ASTNodeTypeCast;
 class ASTNodeFBinary;
 class ASTNodeBuiltinCall;
 class ASTNodeString;
+class ASTNodeArrAccess;
 
 using ASTVariant = std::variant<
     ASTNodeInt *, ASTNodeIdentifier *, ASTNodeUnary *, ASTNodeBinary *,
     ASTNodeBody *, ASTNodeAssign *, ASTNodeExit *, ASTNodeIf *, ASTNodeWhile *,
     ASTNodeFor *, ASTNodeBreak *, ASTNodeCall *, ASTNodeVar *, ASTNodeConst *,
     ASTNodePrototype *, ASTNodeFunction *, ASTNodeBlock *, ASTNodeVarByRef *,
-    ASTNodeTypeCast *, ASTNodeFBinary *, ASTNodeBuiltinCall *, ASTNodeString *>;
+    ASTNodeTypeCast *, ASTNodeFBinary *, ASTNodeBuiltinCall *, ASTNodeString *, ASTNodeArrAccess *>;
 
 class ASTNode {
   public:
@@ -83,15 +84,13 @@ class ASTNodeInt : public ASTNode {
 
 class ASTNodeAssignable : public ASTNode {
   public:
-    ASTNodeAssignable(std::string id) : name(id) {}
+    ASTNodeAssignable() = default;
     virtual llvm::AllocaInst * get_allocated_ptr(CodegenData &) const = 0;
-
-    std::string name;
 };
 
 class ASTNodeIdentifier : public ASTNodeAssignable {
   public:
-    ASTNodeIdentifier(std::string name) : ASTNodeAssignable(std::move(name)) {}
+    ASTNodeIdentifier(std::string name) : name(std::move(name)) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     llvm::AllocaInst * get_allocated_ptr(CodegenData &) const override;
@@ -99,6 +98,23 @@ class ASTNodeIdentifier : public ASTNodeAssignable {
     ASTNodeIdentifier * shallow_copy() const override {
         return new ASTNodeIdentifier(*this);
     }
+
+    std::string name;
+};
+
+class ASTNodeArrAccess : public ASTNodeAssignable {
+  public:
+    ASTNodeArrAccess(ASTNodeAssignable * base, ASTNode * expr) : base(base), expr(expr) {}
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
+    llvm::AllocaInst * get_allocated_ptr(CodegenData &) const override;
+    ASTVariant as_variant() override { return this; }
+    ASTNodeArrAccess * shallow_copy() const override {
+        return new ASTNodeArrAccess(*this);
+    }
+
+    std::shared_ptr<ASTNodeAssignable> base;
+    std::shared_ptr<ASTNode> expr;
 };
 
 class ASTNodeUnary : public ASTNode {

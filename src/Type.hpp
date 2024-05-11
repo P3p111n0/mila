@@ -1,9 +1,9 @@
 #pragma once
 
 #include <memory>
-#include <vector>
 #include <string>
 #include <variant>
+#include <vector>
 
 class Type;
 class BaseType;
@@ -13,7 +13,8 @@ class ArrayType;
 class MimicType;
 
 using type_ptr = std::shared_ptr<Type>;
-using TypeVariant = std::variant<BaseType*, RefType*, FnType*, ArrayType*, MimicType*>;
+using TypeVariant =
+    std::variant<BaseType *, RefType *, FnType *, ArrayType *, MimicType *>;
 
 class Type {
   public:
@@ -24,16 +25,9 @@ class Type {
 
 class BaseType : public Type {
   public:
-    enum class Builtin {
-        Int,
-        Double,
-        String,
-        Void
-    };
+    enum class Builtin { Int, Double, String, Void };
     explicit BaseType(Builtin id) : id(std::move(id)) {}
-    TypeVariant as_variant() override {
-        return this;
-    };
+    TypeVariant as_variant() override { return this; };
 
     Builtin id;
 };
@@ -42,9 +36,7 @@ class RefType : public Type {
   public:
     explicit RefType(Type * t) : base(t) {}
     explicit RefType(type_ptr t) : base(t) {}
-    TypeVariant as_variant() override {
-        return this;
-    };
+    TypeVariant as_variant() override { return this; };
 
     std::shared_ptr<Type> base;
 };
@@ -53,9 +45,7 @@ class FnType : public Type {
   public:
     FnType(std::vector<std::shared_ptr<Type>> args, std::shared_ptr<Type> rtype)
         : args(std::move(args)), return_type(rtype) {}
-    TypeVariant as_variant() override {
-        return this;
-    };
+    TypeVariant as_variant() override { return this; };
 
     std::vector<std::shared_ptr<Type>> args;
     std::shared_ptr<Type> return_type;
@@ -63,21 +53,24 @@ class FnType : public Type {
 
 class ArrayType : public Type {
   public:
-    explicit ArrayType(Type * t) : elem_type(t) {}
+    explicit ArrayType(Type * t, int lb, int ub)
+        : elem_type(t), lower_bound(lb), upper_bound(ub) {
+        normalizer = upper_bound - lower_bound;
+    }
     explicit ArrayType(type_ptr t) : elem_type(t) {}
-    TypeVariant as_variant() override {
-        return this;
-    };
+    TypeVariant as_variant() override { return this; };
 
     std::shared_ptr<Type> elem_type;
+    int lower_bound;
+    int upper_bound;
+    int normalizer;
 };
 
 class MimicType : public Type {
   public:
-    MimicType(std::vector<type_ptr> mimicted_types) : mimed_types(std::move(mimicted_types)) {}
-    TypeVariant as_variant() override {
-        return this;
-    }
+    MimicType(std::vector<type_ptr> mimicted_types)
+        : mimed_types(std::move(mimicted_types)) {}
+    TypeVariant as_variant() override { return this; }
 
     std::vector<type_ptr> mimed_types;
 };

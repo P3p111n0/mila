@@ -8,6 +8,9 @@ template <typename T> class ExprEvaluator {
   public:
     explicit ExprEvaluator(std::shared_ptr<SymbolTable> symbol_table)
         : _st(std::move(symbol_table)) {}
+    std::optional<T> eval(ASTNode * ptr) const {
+        return std::visit(*this, ptr->as_variant());
+    }
     std::optional<T> operator()(const ASTNode *) const {
         return std::nullopt;
     }
