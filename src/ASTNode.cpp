@@ -38,6 +38,12 @@ llvm::Value * ASTNodeIdentifier::codegen(llvm::Module &,
     }
 }
 
+llvm::Value * ASTNodeIdentifier::get_allocated_ptr(CodegenData & cdg) const {
+    auto var_lookup = cdg.vars->lookup(name);
+    assert(var_lookup.has_value());
+    return var_lookup.value();
+}
+
 llvm::Value * ASTNodeUnary::codegen(llvm::Module & module,
                                     llvm::IRBuilder<> & builder,
                                     llvm::LLVMContext & ctx,

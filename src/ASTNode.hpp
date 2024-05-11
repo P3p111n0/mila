@@ -81,17 +81,24 @@ class ASTNodeInt : public ASTNode {
     int val;
 };
 
-class ASTNodeIdentifier : public ASTNode {
+class ASTNodeAssignable : public ASTNode {
   public:
-    ASTNodeIdentifier(std::string name) : name(std::move(name)) {}
+    ASTNodeAssignable(std::string id) : name(id) {}
+    virtual llvm::Value * get_allocated_ptr(CodegenData &) const = 0;
+
+    std::string name;
+};
+
+class ASTNodeIdentifier : public ASTNodeAssignable {
+  public:
+    ASTNodeIdentifier(std::string name) : ASTNodeAssignable(std::move(name)) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
+    llvm::Value * get_allocated_ptr(CodegenData &) const override;
     ASTVariant as_variant() override { return this; }
     ASTNodeIdentifier * shallow_copy() const override {
         return new ASTNodeIdentifier(*this);
     }
-
-    std::string name;
 };
 
 class ASTNodeUnary : public ASTNode {
