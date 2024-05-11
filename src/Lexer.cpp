@@ -266,6 +266,6 @@ dots: {
         _pos.advance(c);
         return Token(TokenType::DoubleDot, str_val, _pos);
     }
-    return Token(TokenType::Period, str_val, _pos);
+    return Token(TokenType::Dot, str_val, _pos);
 };
 }

@@ -1306,7 +1306,7 @@ ASTNode * Parser::Mila() {
             _err.emplace_back(tok.pos, "in main: \'end\' expected, got: " +
                                            tok.get_str());
         }
-        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Period)) {
+        if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Dot)) {
             _err.emplace_back(tok.pos,
                               "in main: \'.\' at main end expected, got: " +
                                   tok.get_str());

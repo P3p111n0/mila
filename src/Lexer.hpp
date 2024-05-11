@@ -9,7 +9,7 @@ enum class TokenType {
     Semicolon,
     Colon,
     Comma,
-    Period,
+    Dot,
     DoubleDot,
 
     // keywords
