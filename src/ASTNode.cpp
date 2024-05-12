@@ -105,8 +105,10 @@ llvm::Function * ASTNodePrototype::codegen(llvm::Module & module,
                                            llvm::IRBuilder<> &,
                                            llvm::LLVMContext & ctx,
                                            CodegenData &) {
-    std::vector<llvm::Type *> arg_types(args.size(),
-                                        llvm::Type::getInt32Ty(ctx));
+    std::vector<llvm::Type *> arg_types;
+    for (auto & arg : args) {
+        arg_types.emplace_back(resolve_llvm_type(ctx, arg.type));
+    }
 
     llvm::Type * ret_type = resolve_llvm_type(ctx, return_type);
 
