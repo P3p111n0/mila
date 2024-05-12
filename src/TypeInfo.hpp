@@ -2,6 +2,7 @@
 
 #include "Type.hpp"
 #include "BaseTypeFactory.hpp"
+#include "ASTNode.hpp"
 
 namespace type_info {
 
@@ -43,4 +44,7 @@ std::string get_type_identifier(type_ptr);
 
 std::string get_printable_id(type_ptr);
 
+std::optional<ASTNodeFBinary::Operator> int_to_fp_arithmetic(ASTNodeBinary::Operator);
+
+std::optional<ASTNodeBinary::Operator> fp_to_int_arithmetic(ASTNodeFBinary::Operator);
 }

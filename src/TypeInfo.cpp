@@ -269,3 +269,61 @@ bool type_info::is_array_type(type_ptr ptr) {
     IsTypeResolver<ArrayType> x;
     return std::visit(x, ptr->as_variant());
 }
+
+std::optional<ASTNodeFBinary::Operator> type_info::int_to_fp_arithmetic(ASTNodeBinary::Operator op) {
+    switch (op) {
+    case ASTNodeBinary::Operator::Add:
+        return ASTNodeFBinary::Operator::Add;
+    case ASTNodeBinary::Operator::Sub:
+        return ASTNodeFBinary::Operator::Sub;
+    case ASTNodeBinary::Operator::Mul:
+        return ASTNodeFBinary::Operator::Mul;
+    case ASTNodeBinary::Operator::Div:
+        return ASTNodeFBinary::Operator::Div;
+    case ASTNodeBinary::Operator::Mod:
+        return ASTNodeFBinary::Operator::Mod;
+    case ASTNodeBinary::Operator::Eq:
+        return ASTNodeFBinary::Operator::Eq;
+    case ASTNodeBinary::Operator::NEq:
+        return ASTNodeFBinary::Operator::NEq;
+    case ASTNodeBinary::Operator::Lt:
+        return ASTNodeFBinary::Operator::Lt;
+    case ASTNodeBinary::Operator::Gt:
+        return ASTNodeFBinary::Operator::Gt;
+    case ASTNodeBinary::Operator::LtE:
+        return ASTNodeFBinary::Operator::LtE;
+    case ASTNodeBinary::Operator::GtE:
+        return ASTNodeFBinary::Operator::GtE;
+    default:
+        return std::nullopt;
+    }
+}
+
+std::optional<ASTNodeBinary::Operator> type_info::fp_to_int_arithmetic(ASTNodeFBinary::Operator op) {
+    switch (op) {
+    case ASTNodeFBinary::Operator::Add:
+        return ASTNodeBinary::Operator::Add;
+    case ASTNodeFBinary::Operator::Sub:
+        return ASTNodeBinary::Operator::Sub;
+    case ASTNodeFBinary::Operator::Mul:
+        return ASTNodeBinary::Operator::Mul;
+    case ASTNodeFBinary::Operator::Div:
+        return ASTNodeBinary::Operator::Div;
+    case ASTNodeFBinary::Operator::Mod:
+        return ASTNodeBinary::Operator::Mod;
+    case ASTNodeFBinary::Operator::Eq:
+        return ASTNodeBinary::Operator::Eq;
+    case ASTNodeFBinary::Operator::NEq:
+        return ASTNodeBinary::Operator::NEq;
+    case ASTNodeFBinary::Operator::Lt:
+        return ASTNodeBinary::Operator::Lt;
+    case ASTNodeFBinary::Operator::Gt:
+        return ASTNodeBinary::Operator::Gt;
+    case ASTNodeFBinary::Operator::LtE:
+        return ASTNodeBinary::Operator::LtE;
+    case ASTNodeFBinary::Operator::GtE:
+        return ASTNodeBinary::Operator::GtE;
+    default:
+        assert(0 && "unreachable");
+    }
+}
