@@ -66,7 +66,7 @@ enum class TokenType {
 };
 
 struct Position {
-    Position() : row(0), column(0) {}
+    Position() : row(1), column(0) {}
     void advance(char c) {
         column++;
         if (c == '\n') {

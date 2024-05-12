@@ -553,7 +553,7 @@ ASTNode * Parser::Function() {
         fn.arity = fn.args.size();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Close)) {
             _err.emplace_back(tok.pos,
-                              "in function signature: \'(\' expected, got: " +
+                              "in function signature: \')\' expected, got: " +
                                   tok.get_str());
         }
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Colon)) {
