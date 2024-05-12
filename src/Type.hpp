@@ -59,6 +59,9 @@ class ArrayType : public Type {
     }
     explicit ArrayType(type_ptr t) : elem_type(t) {}
     TypeVariant as_variant() override { return this; };
+    int size() const {
+        return upper_bound - lower_bound + 1;
+    }
 
     std::shared_ptr<Type> elem_type;
     int lower_bound;

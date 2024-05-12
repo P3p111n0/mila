@@ -23,7 +23,6 @@ llvm::Type * LLVMTypeResolver::operator()(BaseType * t) {
 
 llvm::Type * LLVMTypeResolver::operator()(ArrayType * ptr) {
     llvm::Type * elem = std::visit(*this, ptr->elem_type->as_variant());
-    int size = ptr->upper_bound - ptr->lower_bound + 1;
-    llvm::Type * type = llvm::ArrayType::get(elem, size);
+    llvm::Type * type = llvm::ArrayType::get(elem, ptr->size());
     return type;
 }
