@@ -24,6 +24,11 @@ llvm::Value * ASTNodeInt::codegen(llvm::Module &, llvm::IRBuilder<> &,
     return llvm::ConstantInt::get(ctx, llvm::APInt(32, val, true));
 }
 
+llvm::Value * ASTNodeDouble::codegen(llvm::Module &, llvm::IRBuilder<> &,
+                                     llvm::LLVMContext & ctx, CodegenData &) {
+    return llvm::ConstantFP::get(ctx, llvm::APFloat(val));
+}
+
 llvm::Value * ASTNodeIdentifier::codegen(llvm::Module &,
                                          llvm::IRBuilder<> & builder,
                                          llvm::LLVMContext &,
@@ -38,10 +43,10 @@ llvm::Value * ASTNodeIdentifier::codegen(llvm::Module &,
     }
 }
 
-llvm::Value *
-ASTNodeIdentifier::get_allocated_ptr(llvm::Module &, llvm::IRBuilder<> &,
-                                     llvm::LLVMContext &,
-                                     CodegenData & cdg) const {
+llvm::Value * ASTNodeIdentifier::get_allocated_ptr(llvm::Module &,
+                                                   llvm::IRBuilder<> &,
+                                                   llvm::LLVMContext &,
+                                                   CodegenData & cdg) const {
     auto var_lookup = cdg.vars->lookup(name);
     assert(var_lookup.has_value());
     return var_lookup.value();
@@ -184,8 +189,8 @@ llvm::Function * ASTNodeFunction::codegen(llvm::Module & module,
     }
 
     builder.CreateRet(ret_val);
-    //assert(!verifyFunction(*function, &llvm::errs()));
-    // restore symbol table
+    // assert(!verifyFunction(*function, &llvm::errs()));
+    //  restore symbol table
     cdg.vars = std::move(old_vars);
     cdg.consts = std::move(old_consts);
     if (old_insert_point) {
@@ -450,10 +455,11 @@ llvm::Value * ASTNodeWhile::codegen(llvm::Module & module,
     return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
-llvm::Value * ASTNodeVarByRef::codegen(llvm::Module & module, llvm::IRBuilder<> & builder,
-                                            llvm::LLVMContext & ctx,
-                                            CodegenData & cdg) {
-    return var-> get_allocated_ptr(module, builder, ctx, cdg);
+llvm::Value * ASTNodeVarByRef::codegen(llvm::Module & module,
+                                       llvm::IRBuilder<> & builder,
+                                       llvm::LLVMContext & ctx,
+                                       CodegenData & cdg) {
+    return var->get_allocated_ptr(module, builder, ctx, cdg);
 }
 
 llvm::Value * ASTNodeTypeCast::codegen(llvm::Module & module,
@@ -499,8 +505,10 @@ llvm::Value * ASTNodeString::codegen(llvm::Module & module, llvm::IRBuilder<> &,
                                           char_type->getPointerTo());
 }
 
-llvm::Value * ASTNodeArrAccess::codegen(llvm::Module & module, llvm::IRBuilder<> & builder,
-                                        llvm::LLVMContext & ctx, CodegenData & cdg) {
+llvm::Value * ASTNodeArrAccess::codegen(llvm::Module & module,
+                                        llvm::IRBuilder<> & builder,
+                                        llvm::LLVMContext & ctx,
+                                        CodegenData & cdg) {
     llvm::Value * ptr = get_allocated_ptr(module, builder, ctx, cdg);
     auto alloca_lookup = cdg.vars->lookup(name);
     assert(alloca_lookup.has_value());
@@ -513,9 +521,9 @@ llvm::Value * ASTNodeArrAccess::codegen(llvm::Module & module, llvm::IRBuilder<>
 }
 
 llvm::Value * ASTNodeArrAccess::get_allocated_ptr(llvm::Module & module,
-                                                       llvm::IRBuilder<> & builder,
-                                                       llvm::LLVMContext & ctx,
-                                                       CodegenData & cdg) const {
+                                                  llvm::IRBuilder<> & builder,
+                                                  llvm::LLVMContext & ctx,
+                                                  CodegenData & cdg) const {
     std::vector<llvm::Value *> idxs;
     // not sure why this is here, but it works
     // https://stackoverflow.com/questions/64838994/correct-use-of-llvm-irbuildercreategep
@@ -528,5 +536,6 @@ llvm::Value * ASTNodeArrAccess::get_allocated_ptr(llvm::Module & module,
     assert(alloca_lookup.has_value());
     llvm::AllocaInst * alloca = alloca_lookup.value();
 
-    return builder.CreateGEP(alloca->getAllocatedType(), alloca, idxs, name + "_gep", true);
+    return builder.CreateGEP(alloca->getAllocatedType(), alloca, idxs,
+                             name + "_gep", true);
 }
