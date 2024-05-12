@@ -960,6 +960,7 @@ ASTNode * Parser::Expression() {
     case TokenType::Op_Not:
     case TokenType::Identifier:
     case TokenType::IntVal:
+    case TokenType::DoubleVal:
     case TokenType::StringLiteral:
     case TokenType::Par_Open: {
         /* rule 20: Expression -> Add Expression_h */
@@ -1008,6 +1009,7 @@ ASTNode * Parser::Add() {
     case TokenType::Op_Not:
     case TokenType::Identifier:
     case TokenType::IntVal:
+    case TokenType::DoubleVal:
     case TokenType::StringLiteral:
     case TokenType::Par_Open: {
         /* rule 17: Add -> Mul Add_h */
@@ -1054,6 +1056,7 @@ ASTNode * Parser::Mul() {
     case TokenType::Op_Not:
     case TokenType::Identifier:
     case TokenType::IntVal:
+    case TokenType::DoubleVal:
     case TokenType::StringLiteral:
     case TokenType::Par_Open: {
         /* rule 14: Mul -> Unary Mul_h */
@@ -1115,6 +1118,7 @@ ASTNode * Parser::Unary() {
     }
     case TokenType::Identifier:
     case TokenType::IntVal:
+    case TokenType::DoubleVal:
     case TokenType::StringLiteral:
     case TokenType::Par_Open:
         /* rule 11: Unary -> Factor */
@@ -1148,6 +1152,7 @@ ASTNode * Parser::Call(const Token & id) {
         case TokenType::Op_Not:
         case TokenType::Identifier:
         case TokenType::IntVal:
+        case TokenType::DoubleVal:
         case TokenType::StringLiteral:
         case TokenType::Par_Open: {
             const std::list<VariableRecord> & vars =
@@ -1336,6 +1341,10 @@ ASTNode * Parser::Factor() {
     case TokenType::IntVal: {
         auto token = _lexer.get();
         return new ASTNodeInt(token.get_int());
+    }
+    case TokenType::DoubleVal: {
+        auto token = _lexer.get();
+        return new ASTNodeDouble(token.get_double());
     }
     case TokenType::StringLiteral: {
         auto token = _lexer.get();
