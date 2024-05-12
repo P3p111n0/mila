@@ -166,9 +166,6 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
             std::string fn_arg_id = type_info::get_type_identifier(arg);
             _errs.emplace_back("Cannot cast " + call_arg_id + " to " +
                                fn_arg_id);
-            new_args.emplace_back(nullptr);
-            ++call_arg_it;
-            continue;
         }
 
         ASTNode * argument;
@@ -218,12 +215,10 @@ TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
 }
 
 TypeResult TypeChecker::operator()(ASTNodeVarByRef * ref) {
-    auto lookup = _st->lookup_variable(ref->var);
-    assert(lookup.has_value());
-
-    ASTNode * node = ref->shallow_copy();
-    type_ptr t(new RefType(lookup.value().type));
-    return {node, t};
+    auto reffd_val = std::visit(*this, ref->var->as_variant());
+    auto * var = static_cast<ASTNodeAssignable*>(reffd_val.node);
+    type_ptr t(new RefType(reffd_val.type));
+    return {new ASTNodeVarByRef(var), t};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeFunction * fn) {

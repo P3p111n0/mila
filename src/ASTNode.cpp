@@ -184,7 +184,7 @@ llvm::Function * ASTNodeFunction::codegen(llvm::Module & module,
     }
 
     builder.CreateRet(ret_val);
-    verifyFunction(*function);
+    //assert(!verifyFunction(*function, &llvm::errs()));
     // restore symbol table
     cdg.vars = std::move(old_vars);
     cdg.consts = std::move(old_consts);
@@ -450,11 +450,10 @@ llvm::Value * ASTNodeWhile::codegen(llvm::Module & module,
     return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
-llvm::AllocaInst * ASTNodeVarByRef::codegen(llvm::Module &, llvm::IRBuilder<> &,
-                                            llvm::LLVMContext &,
+llvm::Value * ASTNodeVarByRef::codegen(llvm::Module & module, llvm::IRBuilder<> & builder,
+                                            llvm::LLVMContext & ctx,
                                             CodegenData & cdg) {
-    llvm::AllocaInst * var_ = cdg.vars->lookup(var).value();
-    return var_;
+    return var-> get_allocated_ptr(module, builder, ctx, cdg);
 }
 
 llvm::Value * ASTNodeTypeCast::codegen(llvm::Module & module,

@@ -1280,7 +1280,14 @@ ASTNode * Parser::VarByRef() {
                 tok.pos, "cannot pass a mutable reference to function: " + id);
         }
 
-        return new ASTNodeVarByRef(id);
+        ASTNodeAssignable * ptr;
+        if (_lexer.peek().type() == TokenType::Br_Open) {
+            ptr = ArrayAccess(id);
+        } else {
+            ptr = new ASTNodeIdentifier(id);
+        }
+
+        return new ASTNodeVarByRef(ptr);
     }
     default:
         Token tok = _lexer.peek();

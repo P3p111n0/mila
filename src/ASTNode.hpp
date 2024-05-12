@@ -402,15 +402,15 @@ class ASTNodeBlock : public ASTNode {
 
 class ASTNodeVarByRef : public ASTNode {
   public:
-    ASTNodeVarByRef(std::string var) : var(std::move(var)) {}
-    llvm::AllocaInst * codegen(llvm::Module &, llvm::IRBuilder<> &,
+    ASTNodeVarByRef(ASTNodeAssignable * ptr) : var(std::move(ptr)) {}
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                                llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
     ASTNodeVarByRef * shallow_copy() const override {
         return new ASTNodeVarByRef(*this);
     }
 
-    std::string var;
+    std::shared_ptr<ASTNodeAssignable> var;
 };
 
 class ASTNodeTypeCast : public ASTNode {
