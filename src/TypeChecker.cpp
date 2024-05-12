@@ -30,6 +30,9 @@ TypeResult TypeChecker::operator()(ASTNodeDouble * dval) {
 
 TypeResult TypeChecker::operator()(ASTNodeUnary * node) {
     TypeResult arg = std::visit(*this, node->arg->as_variant());
+    if (!type_info::is_int(arg.type)) {
+        _errs.emplace_back("argument of unary operation has to be of type int");
+    }
     ASTNodeUnary * new_node = node->shallow_copy();
     new_node->arg = std::shared_ptr<ASTNode>(arg.node);
     return {new_node, arg.type};
@@ -46,7 +49,6 @@ TypeResult TypeChecker::operator()(ASTNodeBinary * binary_node) {
         std::string rhs_id = type_info::get_type_identifier(rhs_res.type);
         _errs.emplace_back("Cannot convert " + lhs_id + " and " + rhs_id +
                            " to a common type.");
-        return {};
     }
 
     ASTNode * final_lhs;
@@ -68,9 +70,14 @@ TypeResult TypeChecker::operator()(ASTNodeBinary * binary_node) {
         final_binary_node =
             new ASTNodeBinary(final_lhs, final_rhs, binary_node->op);
     } else if (type_info::is_double(common_type)) {
-        // TODO operation resolution
+        auto op = type_info::int_to_fp_arithmetic(binary_node->op);
+        if (!op.has_value()) {
+            _errs.emplace_back("operation not supported for fp type");
+            final_binary_node = new ASTNodeFBinary(final_lhs, final_rhs,
+                                      ASTNodeFBinary::Operator(-1));
+        }
         final_binary_node = new ASTNodeFBinary(final_lhs, final_rhs,
-                                               ASTNodeFBinary::Operator(-1));
+                                               op.value());
     } else {
         assert(0 && "this shouldn't happen");
     }
@@ -318,9 +325,9 @@ TypeResult TypeChecker::operator()(ASTNodeBody * bnode) {
     return {body, nullptr};
 }
 
-TypeResult TypeChecker::operator()(ASTNodeBlock * block) {
+TypeResult TypeChecker::operator()(ASTNodeBlock * block_node) {
     std::list<std::shared_ptr<ASTNode>> new_decls;
-    for (auto & block : block->decls) {
+    for (auto & block : block_node->decls) {
         TypeResult block_res = std::visit(*this, block->as_variant());
         new_decls.emplace_back(block_res.node);
     }
