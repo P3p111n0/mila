@@ -1,0 +1,46 @@
+program matrix_mult;
+
+const n = 2;
+      m = 2;
+
+function matrix_mult(lhs : array [0 .. n] of array [0 .. m] of integer;
+                     rhs : array [0 .. m] of array [0 .. n] of integer): array [0 .. n] of array [0 .. n] of integer;
+begin
+    for i := 0 to n do begin
+        for j := 0 to n do begin
+            for k := 0 to m do begin
+                matrix_mult[i][j] := matrix_mult[i][j] + lhs[i][k] * rhs[k][j];
+            end;
+        end;
+    end;
+end;
+
+procedure print_matrix(arg : array [0 .. n] of array [0 .. n] of integer);
+begin
+    for i := 0 to n do begin
+        for j := 0 to m do begin
+            write(arg[i][j]);
+            if (j <> m) then
+                write(' ');
+        end;
+        writeln('');
+    end;
+end;
+
+var lhs : array [0 .. n] of array [0 .. m] of integer;
+    rhs : array [0 .. m] of array [0 .. n] of integer;
+begin
+    for i := 0 to n do begin
+        for j := 0 to m do begin
+            readln(lhs[i][j]);
+        end;
+    end;
+
+    for i := 0 to m do begin
+        for j := 0 to n do begin
+            readln(rhs[i][j]);
+        end;
+    end;
+
+    print_matrix(matrix_mult(lhs, rhs));
+end.
