@@ -11,35 +11,37 @@ Parser::Parser(std::istream & is)
     type_ptr int_ty = type_ptr(_tf.get_int_t());
     type_ptr int_ref_ty = type_ptr(new RefType(int_ty));
     type_ptr str_ty = type_ptr(_tf.get_string_t());
+    type_ptr double_ty = type_ptr(_tf.get_double_t());
+    type_ptr double_ref_ty = type_ptr(new RefType(double_ty));
     FunctionRecord writeln{"writeln",
                            int_ty,
-                           {{"x", type_ptr(new MimicType({int_ty, str_ty}))}},
+                           {{"x", type_ptr(new MimicType({int_ty, str_ty, double_ty}))}},
                            1,
                            _st->derive(),
                            std::shared_ptr<FnType>(new FnType(
-                               {type_ptr(new MimicType({int_ty}))}, int_ty))};
+                               {type_ptr(new MimicType({int_ty, str_ty, double_ty}))}, int_ty))};
     FunctionRecord write{"write",
                          int_ty,
                          {{"x", type_ptr(new MimicType({int_ty, str_ty}))}},
                          1,
                          _st->derive(),
                          std::shared_ptr<FnType>(new FnType(
-                             {type_ptr(new MimicType({int_ty}))}, int_ty))};
+                             {type_ptr(new MimicType({int_ty, str_ty, double_ty}))}, int_ty))};
     FunctionRecord readln{
         "readln",
         int_ty,
-        {{"x", type_ptr(new MimicType({int_ref_ty})), true}},
+        {{"x", type_ptr(new MimicType({int_ref_ty, double_ref_ty})), true}},
         1,
         _st->derive(),
         std::shared_ptr<FnType>(
-            new FnType({type_ptr(new MimicType({int_ref_ty}))}, int_ty))};
+            new FnType({type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty))};
     FunctionRecord dec{"dec",
                        int_ty,
-                       {{"x", type_ptr(new MimicType({int_ref_ty})), true}},
+                       {{"x", type_ptr(new MimicType({int_ref_ty, double_ref_ty})), true}},
                        1,
                        _st->derive(),
                        std::shared_ptr<FnType>(new FnType(
-                           {type_ptr(new MimicType({int_ref_ty}))}, int_ty))};
+                           {type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty))};
 
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[write.name] = std::move(write);
@@ -55,6 +57,15 @@ void Parser::llvm_init_lib() {
             llvm::Type::getInt32Ty(MilaContext), Ints, false);
         llvm::Function * F = llvm::Function::Create(
             FT, llvm::Function::ExternalLinkage, "writeln_int", MilaModule);
+        for (auto & Arg : F->args())
+            Arg.setName("x");
+    }
+    {
+        std::vector<llvm::Type *> Doubles(1, llvm::Type::getDoubleTy(MilaContext));
+        llvm::FunctionType * FT = llvm::FunctionType::get(
+            llvm::Type::getInt32Ty(MilaContext), Doubles, false);
+        llvm::Function * F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage, "writeln_double", MilaModule);
         for (auto & Arg : F->args())
             Arg.setName("x");
     }
@@ -79,6 +90,16 @@ void Parser::llvm_init_lib() {
             Arg.setName("x");
     }
     {
+        std::vector<llvm::Type *> Doubles(
+            1, llvm::Type::getDoubleTy(MilaContext));
+        llvm::FunctionType * FT = llvm::FunctionType::get(
+            llvm::Type::getInt32Ty(MilaContext), Doubles, false);
+        llvm::Function * F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage, "write_double", MilaModule);
+        for (auto & Arg : F->args())
+            Arg.setName("x");
+    }
+    {
         std::vector<llvm::Type *> PtrToStr(
             1, llvm::Type::getInt8PtrTy(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
@@ -99,12 +120,32 @@ void Parser::llvm_init_lib() {
             Arg.setName("x");
     }
     {
+        std::vector<llvm::Type *> DoublePtr(
+            1, llvm::Type::getDoublePtrTy(MilaContext));
+        llvm::FunctionType * FT = llvm::FunctionType::get(
+            llvm::Type::getInt32Ty(MilaContext), DoublePtr, false);
+        llvm::Function * F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage, "readln_double__ref", MilaModule);
+        for (auto & Arg : F->args())
+            Arg.setName("x");
+    }
+    {
         std::vector<llvm::Type *> IntPtr(
             1, llvm::Type::getInt32PtrTy(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), IntPtr, false);
         llvm::Function * F = llvm::Function::Create(
             FT, llvm::Function::ExternalLinkage, "dec_int__ref", MilaModule);
+        for (auto & Arg : F->args())
+            Arg.setName("x");
+    }
+    {
+        std::vector<llvm::Type *> DoublePtr(
+            1, llvm::Type::getDoublePtrTy(MilaContext));
+        llvm::FunctionType * FT = llvm::FunctionType::get(
+            llvm::Type::getInt32Ty(MilaContext), DoublePtr, false);
+        llvm::Function * F = llvm::Function::Create(
+            FT, llvm::Function::ExternalLinkage, "dec_double__ref", MilaModule);
         for (auto & Arg : F->args())
             Arg.setName("x");
     }
@@ -225,6 +266,9 @@ Type * Parser::Var_type() {
         Type * elem_t = Var_type();
         return new ArrayType(elem_t, lower_bound, upper_bound);
     }
+    case TokenType::Double:
+        _lexer.match(TokenType::Double);
+        return _tf.get_double_t();
     default: {
         Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,
@@ -1251,6 +1295,7 @@ ASTNode * Parser::Call(const Token & id) {
                                   id.get_str());
         }
         std::shared_ptr<Type> type = std::shared_ptr<Type>(Var_type());
+        _st->variables[id.get_str()] = {id.get_str(), type, false};
         return new ASTNodeVar({{id.get_str(), type}});
     }
     case TokenType::Br_Open: {

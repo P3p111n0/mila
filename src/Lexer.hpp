@@ -17,6 +17,7 @@ enum class TokenType {
     Const,
     Var,
     Integer,
+    Double,
     Begin,
     End,
     If,

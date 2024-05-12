@@ -335,6 +335,15 @@ TypeResult TypeChecker::operator()(ASTNodeBlock * block_node) {
     return {new ASTNodeBlock(new_decls), nullptr};
 }
 
+TypeResult TypeChecker::operator()(ASTNodeVar * vnode) {
+    for (auto & decl : vnode->vars) {
+        if (!_st->lookup_variable(decl.name)) {
+            _st->variables[decl.name] = decl;
+        }
+    }
+    return {vnode->shallow_copy(), nullptr};
+}
+
 TypeResult TypeChecker::operator()(ASTNode * node) {
     return {node->shallow_copy(), nullptr};
 }
