@@ -19,12 +19,12 @@ Parser::Parser(std::istream & is)
                            std::shared_ptr<FnType>(new FnType(
                                {type_ptr(new MimicType({int_ty}))}, int_ty))};
     FunctionRecord write{"write",
-                           int_ty,
-                           {{"x", type_ptr(new MimicType({int_ty, str_ty}))}},
-                           1,
-                           _st->derive(),
-                           std::shared_ptr<FnType>(new FnType(
-                               {type_ptr(new MimicType({int_ty}))}, int_ty))};
+                         int_ty,
+                         {{"x", type_ptr(new MimicType({int_ty, str_ty}))}},
+                         1,
+                         _st->derive(),
+                         std::shared_ptr<FnType>(new FnType(
+                             {type_ptr(new MimicType({int_ty}))}, int_ty))};
     FunctionRecord readln{
         "readln",
         int_ty,
@@ -59,7 +59,8 @@ void Parser::llvm_init_lib() {
             Arg.setName("x");
     }
     {
-        std::vector<llvm::Type *> PtrToStr(1, llvm::Type::getInt8PtrTy(MilaContext));
+        std::vector<llvm::Type *> PtrToStr(
+            1, llvm::Type::getInt8PtrTy(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), PtrToStr, false);
         llvm::Function * F = llvm::Function::Create(
@@ -68,7 +69,8 @@ void Parser::llvm_init_lib() {
             Arg.setName("x");
     }
     {
-        std::vector<llvm::Type *> PtrToStr(1, llvm::Type::getInt8PtrTy(MilaContext));
+        std::vector<llvm::Type *> PtrToStr(
+            1, llvm::Type::getInt8PtrTy(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), PtrToStr, false);
         llvm::Function * F = llvm::Function::Create(
@@ -77,7 +79,8 @@ void Parser::llvm_init_lib() {
             Arg.setName("x");
     }
     {
-        std::vector<llvm::Type *> PtrToStr(1, llvm::Type::getInt8PtrTy(MilaContext));
+        std::vector<llvm::Type *> PtrToStr(
+            1, llvm::Type::getInt8PtrTy(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), PtrToStr, false);
         llvm::Function * F = llvm::Function::Create(
@@ -162,35 +165,49 @@ bool Parser::is_statement(TokenType t) {
 
 std::pair<int, int> Parser::ArrayBounds() {
     if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Br_Open)) {
-        _err.emplace_back(tok.pos, "in array decl: '[' expected, got : " + tok.get_str());
+        _err.emplace_back(tok.pos, "in array decl: '[' expected, got : " +
+                                       tok.get_str());
     }
     ExprEvaluator<int> evaluator(_st);
     Position approx_pos = _lexer.peek().pos;
     std::unique_ptr<ASTNode> lower_bound(Expression());
-    std::optional<int> lb_val = evaluator.eval(lower_bound.get());
-    if (!lb_val.has_value()) {
+    std::optional<int> lb_opt = evaluator.eval(lower_bound.get());
+    if (!lb_opt.has_value()) {
         _err.emplace_back(
-            approx_pos, "in array decl: lower bound cannot be calculated at compile time.");
+            approx_pos,
+            "in array decl: lower bound cannot be calculated at compile time.");
     }
     if (auto tok = _lexer.peek(); !_lexer.match(TokenType::DoubleDot)) {
-        _err.emplace_back(tok.pos, "in array decl: '..' expected, got : " + tok.get_str());
+        _err.emplace_back(tok.pos, "in array decl: '..' expected, got : " +
+                                       tok.get_str());
     }
     approx_pos = _lexer.peek().pos;
     std::unique_ptr<ASTNode> upper_bound(Expression());
-    std::optional<int> ub_val = evaluator.eval(upper_bound.get());
-    if (!ub_val.has_value()) {
+    std::optional<int> ub_opt = evaluator.eval(upper_bound.get());
+    if (!ub_opt.has_value()) {
         _err.emplace_back(
-            approx_pos, "in array decl: upper bound cannot be calculated at compile time.");
+            approx_pos,
+            "in array decl: upper bound cannot be calculated at compile time.");
     }
     if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Br_Close)) {
-        _err.emplace_back(tok.pos, "in array decl: ']' expected, got : " + tok.get_str());
+        _err.emplace_back(tok.pos, "in array decl: ']' expected, got : " +
+                                       tok.get_str());
     }
 
-    if (!lb_val.has_value() || !ub_val.has_value()) {
+    if (!lb_opt.has_value() || !ub_opt.has_value()) {
         return {};
     }
 
-    return {lb_val.value(), ub_val.value()};
+    int lb = lb_opt.value();
+    int ub = ub_opt.value();
+
+    if (ub <= lb) {
+        _err.emplace_back(
+            approx_pos,
+            "in array decl: upper bound has to be greater than lower bound");
+    }
+
+    return {lb_opt.value(), ub_opt.value()};
 }
 
 Type * Parser::Var_type() {
@@ -202,7 +219,8 @@ Type * Parser::Var_type() {
         _lexer.match(TokenType::Array);
         auto [lower_bound, upper_bound] = ArrayBounds();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Of)) {
-            _err.emplace_back(tok.pos, "in array decl: 'of' expected, got : " + tok.get_str());
+            _err.emplace_back(tok.pos, "in array decl: 'of' expected, got : " +
+                                           tok.get_str());
         }
         Type * elem_t = Var_type();
         return new ArrayType(elem_t, lower_bound, upper_bound);
@@ -1275,13 +1293,15 @@ ASTNode * Parser::VarByRef() {
 
 ASTNodeAssignable * Parser::ArrayAccess(const std::string & name) {
     std::vector<std::shared_ptr<ASTNode>> idx;
-    switch(_lexer.peek().type()) {
+    switch (_lexer.peek().type()) {
     case TokenType::Br_Open: {
         while (_lexer.peek().type() == TokenType::Br_Open) {
             _lexer.match(TokenType::Br_Open);
             ASTNode * expr = Expression();
             if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Br_Close)) {
-                _err.emplace_back(tok.pos, "in array access: ']' expected, got: " + tok.get_str());
+                _err.emplace_back(tok.pos,
+                                  "in array access: ']' expected, got: " +
+                                      tok.get_str());
             }
             idx.emplace_back(expr);
         }
@@ -1289,9 +1309,8 @@ ASTNodeAssignable * Parser::ArrayAccess(const std::string & name) {
     }
     default: {
         Token tok = _lexer.peek();
-        _err.emplace_back(tok.pos,
-                          "Unknown token when parsing array acces: " +
-                              tok.get_str());
+        _err.emplace_back(tok.pos, "Unknown token when parsing array acces: " +
+                                       tok.get_str());
         return nullptr;
     }
     }
