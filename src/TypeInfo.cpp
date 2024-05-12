@@ -118,7 +118,8 @@ class TypeIdVisitor {
     std::string operator()(ArrayType * arr) {
         std::string elem_name = std::visit(*this, arr->elem_type->as_variant());
         if (_special_charactes) {
-            elem_name += "[]";
+            elem_name += "[" + std::to_string(arr->lower_bound) + "-" +
+                         std::to_string(arr->upper_bound) + "]";
         } else {
             elem_name += "__arr";
         }
