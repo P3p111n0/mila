@@ -70,7 +70,7 @@ void Parser::llvm_init_lib() {
     }
     {
         std::vector<llvm::Type *> PtrToStr(
-            1, llvm::Type::getInt8PtrTy(MilaContext));
+            1, llvm::Type::getInt32Ty(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), PtrToStr, false);
         llvm::Function * F = llvm::Function::Create(
