@@ -23,6 +23,7 @@ class TypeChecker {
     std::shared_ptr<ASTNode> tree_rebuild(ASTNode *);
 
     TypeResult operator()(ASTNodeInt *);
+    TypeResult operator()(ASTNodeDouble *);
     TypeResult operator()(ASTNodeString *);
     TypeResult operator()(ASTNodeUnary *);
     TypeResult operator()(ASTNodeBinary *);
