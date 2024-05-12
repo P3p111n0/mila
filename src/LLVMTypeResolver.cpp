@@ -26,3 +26,12 @@ llvm::Type * LLVMTypeResolver::operator()(ArrayType * ptr) {
     llvm::Type * type = llvm::ArrayType::get(elem, ptr->size());
     return type;
 }
+
+llvm::Type * LLVMTypeResolver::operator()(RefType * ptr) {
+    llvm::Type * underlying_type = std::visit(*this, ptr->base->as_variant());
+    return underlying_type->getPointerTo();
+}
+
+llvm::Type * LLVMTypeResolver::operator()(MimicType *) {
+    assert(0 && "mimic is intended only as a compilation intermediate.");
+}
