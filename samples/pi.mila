@@ -1,0 +1,23 @@
+program pi_approx;
+
+var pi : double;
+    n : integer;
+
+const nominator = 4.0;
+
+begin
+    readln(n);
+
+    { init }
+    pi := 1;
+
+    {
+        pi approximation after n iterations
+        using John Wallis's formula
+    }
+    for i := 1 to n do begin
+        pi := pi * ((4.0 * i * i) / (4.0 * i * i - 1));
+    end;
+    pi := pi * 2;
+    writeln(pi);
+end.
