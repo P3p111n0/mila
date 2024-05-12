@@ -60,7 +60,7 @@ class TypeEqualityVisitor {
     }
 
     bool operator()(ArrayType * lhs, ArrayType * rhs) {
-        if (lhs->lower_bound != rhs->lower_bound || lhs->upper_bound != rhs->upper_bound) {
+        if (lhs->size() != rhs->size()) {
             return false;
         }
         return std::visit(*this, lhs->elem_type->as_variant(),
