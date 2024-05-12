@@ -195,6 +195,12 @@ dec: {
         _pos.advance(c);
         goto dec;
     }
+    if (c == '.') {
+        (void)_in.get();
+        str_val += c;
+        _pos.advance(c);
+        goto double_val;
+    }
     int_val = std::stoi(str_val, nullptr, 10);
     return Token(TokenType::IntVal, int_val, _pos);
 }
@@ -267,5 +273,16 @@ dots: {
         return Token(TokenType::DoubleDot, str_val, _pos);
     }
     return Token(TokenType::Dot, str_val, _pos);
-};
+}
+double_val: {
+    c = _in.peek();
+    if (isdigit(c)) {
+        (void)_in.get();
+        str_val += c;
+        _pos.advance(c);
+        goto double_val;
+    }
+    double value = std::stod(str_val);
+    return Token(TokenType::DoubleVal, value, _pos);
+}
 }
