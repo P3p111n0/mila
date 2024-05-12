@@ -190,7 +190,19 @@ class ASTNodeBinary : public ASTNode {
 
 class ASTNodeFBinary : public ASTNode {
   public:
-    enum class Operator { Add, Sub, Mul, Div };
+    enum class Operator {
+        Add,
+        Sub,
+        Mul,
+        Div,
+        Mod,
+        Eq,
+        NEq,
+        Lt,
+        Gt,
+        LtE,
+        GtE
+    };
     ASTNodeFBinary(ASTNode * lhs, ASTNode * rhs, Operator op)
         : lhs(lhs), rhs(rhs), op(op) {}
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,

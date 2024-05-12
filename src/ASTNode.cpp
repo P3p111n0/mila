@@ -106,6 +106,41 @@ llvm::Value * ASTNodeBinary::codegen(llvm::Module & module,
     }
 }
 
+llvm::Value * ASTNodeFBinary::codegen(llvm::Module & module,
+                                     llvm::IRBuilder<> & builder,
+                                     llvm::LLVMContext & ctx,
+                                     CodegenData & cdg) {
+    llvm::Value * lhs_val = lhs->codegen(module, builder, ctx, cdg);
+    llvm::Value * rhs_val = rhs->codegen(module, builder, ctx, cdg);
+
+    switch (op) {
+    case Operator::Add:
+        return builder.CreateFAdd(lhs_val, rhs_val, "fadd_tmp");
+    case Operator::Sub:
+        return builder.CreateFSub(lhs_val, rhs_val, "fsub_tmp");
+    case Operator::Mul:
+        return builder.CreateFMul(lhs_val, rhs_val, "fmul_tmp");
+    case Operator::Div:
+        return builder.CreateFDiv(lhs_val, rhs_val, "fdiv_tmp");
+    case Operator::Mod:
+        return builder.CreateFRem(lhs_val, rhs_val, "fmod_tmp");
+    case Operator::Eq:
+        return builder.CreateFCmpOEQ(lhs_val, rhs_val, "foeq_tmp");
+    case Operator::NEq:
+        return builder.CreateFCmpONE(lhs_val, rhs_val, "foneq_tmp");
+    case Operator::Lt:
+        return builder.CreateFCmpOLT(lhs_val, rhs_val, "folt_tmp");
+    case Operator::Gt:
+        return builder.CreateFCmpOGT(lhs_val, rhs_val, "fogt_tmp");
+    case Operator::LtE:
+        return builder.CreateFCmpOLE(lhs_val, rhs_val, "folte_tmp");
+    case Operator::GtE:
+        return builder.CreateFCmpOGE(lhs_val, rhs_val, "fogte_tmp");
+    default:
+        return nullptr;
+    }
+}
+
 llvm::Function * ASTNodePrototype::codegen(llvm::Module & module,
                                            llvm::IRBuilder<> &,
                                            llvm::LLVMContext & ctx,
@@ -477,12 +512,6 @@ llvm::Value * ASTNodeTypeCast::codegen(llvm::Module & module,
     } else {
         assert(0 && "this shouldn't happen");
     }
-}
-
-llvm::Value * ASTNodeFBinary::codegen(llvm::Module &, llvm::IRBuilder<> &,
-                                      llvm::LLVMContext &, CodegenData &) {
-    assert(0); // TODO
-    return nullptr;
 }
 
 llvm::Value * ASTNodeBuiltinCall::codegen(llvm::Module &, llvm::IRBuilder<> &,
