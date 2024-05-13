@@ -23,8 +23,14 @@
 #include <stack>
 #include <variant>
 
+struct MemoryLocation {
+    llvm::Value * ptr;
+    llvm::Type * pointee_type;
+};
+
 struct CodegenData {
-    std::shared_ptr<ValMap<llvm::AllocaInst *>> vars;
+    CodegenData() = default;
+    std::shared_ptr<ValMap<MemoryLocation>> vars;
     std::shared_ptr<ValMap<llvm::Value *>> consts;
     std::stack<llvm::BasicBlock *> break_addrs;
     std::stack<llvm::BasicBlock *> cont_addrs;

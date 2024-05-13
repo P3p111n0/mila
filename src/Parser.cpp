@@ -1525,10 +1525,7 @@ bool Parser::Parse() {
 
 const llvm::Module & Parser::Generate() {
     llvm_init_lib();
-    CodegenData data{std::make_shared<ValMap<llvm::AllocaInst *>>(),
-                     std::make_shared<ValMap<llvm::Value *>>(),
-                     {},
-                     {}};
+    CodegenData data;
     _current_code->codegen(MilaModule, MilaBuilder, MilaContext, data);
     return this->MilaModule;
 }
