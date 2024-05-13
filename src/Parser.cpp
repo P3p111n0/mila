@@ -221,6 +221,7 @@ bool Parser::is_statement(TokenType t) {
     case TokenType::While:
     case TokenType::For:
     case TokenType::Break:
+    case TokenType::Continue:
     case TokenType::Begin:
         return true;
     default:
@@ -310,6 +311,7 @@ ast_ptr Parser::Body() {
     case TokenType::While:
     case TokenType::For:
     case TokenType::Break:
+    case TokenType::Continue:
         /* rule 34: Body_h -> Statement_h */
         return Stmt_helper();
     case TokenType::Begin: {
@@ -530,6 +532,13 @@ ast_ptr Parser::Stmt_helper() {
             _err.emplace_back(tok.pos, "\'break\' used outside of loop.");
         }
         return ast_ptr(new ASTNodeBreak());
+    }
+    case TokenType::Continue: {
+        auto tok = _lexer.get();
+        if (_st->current_scope != SymbolTable::Scope::Loop) {
+            _err.emplace_back(tok.pos, "\'continue\' used outside of loop.");
+        }
+        return ast_ptr(new ASTNodeContinue());
     }
     case TokenType::Begin: {
         auto old_st = _st;

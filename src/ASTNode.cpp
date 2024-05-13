@@ -438,6 +438,14 @@ llvm::Value * ASTNodeBreak::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
     return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
+llvm::Value * ASTNodeContinue::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
+                                       llvm::LLVMContext & ctx, CodegenData & cdg) {
+    assert(!cdg.cont_addrs.empty());
+    llvm::BasicBlock * mutate_block = cdg.cont_addrs.top();
+    builder.CreateBr(mutate_block);
+    return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
+}
+
 llvm::Value * ASTNodeVar::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
                                   llvm::LLVMContext & ctx, CodegenData & cdg) {
     llvm::Function * function = builder.GetInsertBlock()->getParent();
