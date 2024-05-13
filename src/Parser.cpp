@@ -1,6 +1,7 @@
 #include "Parser.hpp"
 #include "ExprEvaluator.hpp"
 #include "TypeChecker.hpp"
+#include "LambdaLifter.hpp"
 #include <memory>
 
 Parser::Parser(std::istream & is)
@@ -1522,6 +1523,9 @@ bool Parser::Parse() {
         }
         return false;
     }
+    LambdaLifter ll(_st);
+    ll.lift_tree(_current_code);
+
     TypeChecker tc(_st);
     _current_code = tc.tree_rebuild(_current_code.get());
     if (!_current_code) {
