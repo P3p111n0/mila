@@ -14,8 +14,8 @@ template <typename T> class ExprEvaluator {
     std::optional<T> operator()(const ASTNode *) const {
         return std::nullopt;
     }
-    std::optional<T> operator()(const ASTNodeInt *) const {
-        return std::nullopt;
+    std::optional<T> operator()(const ASTNodeInt * inode) const {
+        return inode->val;
     }
     std::optional<T> operator()(const ASTNodeUnary * unary) const {
         std::optional<T> arg = std::visit(*this, unary->arg->as_variant());
@@ -118,8 +118,3 @@ template <typename T> class ExprEvaluator {
   private:
     std::shared_ptr<SymbolTable> _st;
 };
-
-template<>
-std::optional<int> ExprEvaluator<int>::operator()(const ASTNodeInt * inode) const {
-    return inode->val;
-}
