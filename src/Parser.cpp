@@ -528,14 +528,14 @@ ast_ptr Parser::Stmt_helper() {
     case TokenType::Break: {
         /* rule 27: Statement_h -> break */
         auto tok = _lexer.get();
-        if (_st->current_scope != SymbolTable::Scope::Loop) {
+        if (!_st->running_in_scope(SymbolTable::Scope::Loop)) {
             _err.emplace_back(tok.pos, "\'break\' used outside of loop.");
         }
         return ast_ptr(new ASTNodeBreak());
     }
     case TokenType::Continue: {
         auto tok = _lexer.get();
-        if (_st->current_scope != SymbolTable::Scope::Loop) {
+        if (!_st->running_in_scope(SymbolTable::Scope::Loop)) {
             _err.emplace_back(tok.pos, "\'continue\' used outside of loop.");
         }
         return ast_ptr(new ASTNodeContinue());

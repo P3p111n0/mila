@@ -39,6 +39,8 @@ struct SymbolTable {
     bool unique_in_current_scope(const std::string &) const;
     bool unique_global(const std::string &) const;
 
+    bool running_in_scope(Scope) const;
+
     std::unordered_map<std::string, FunctionRecord> functions;
     std::unordered_map<std::string, std::shared_ptr<ASTNode>> constants;
     std::unordered_map<std::string, VariableRecord> variables;

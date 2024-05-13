@@ -72,3 +72,13 @@ void SymbolTable::edit_function(const std::string & fn, FunctionRecord record) {
         _parent->edit_function(fn, std::move(record));
     }
 }
+
+bool SymbolTable::running_in_scope(SymbolTable::Scope s) const {
+    if (current_scope == s) {
+        return true;
+    }
+    if (_parent) {
+        return _parent->running_in_scope(s);
+    }
+    return false;
+}
