@@ -1,6 +1,7 @@
 #include "Parser.hpp"
 #include "ExprEvaluator.hpp"
 #include "TypeChecker.hpp"
+#include "LambdaLifter.hpp"
 #include <memory>
 
 Parser::Parser(std::istream & is)
@@ -42,12 +43,27 @@ Parser::Parser(std::istream & is)
                        _st->derive(),
                        std::shared_ptr<FnType>(new FnType(
                            {type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty))};
-
+    FunctionRecord int_cast{"to_int",
+                       int_ty,
+                       {{"x", type_ptr(new MimicType({int_ty, double_ty})), false}},
+                       1,
+                       _st->derive(),
+                       std::shared_ptr<FnType>(new FnType(
+                           {type_ptr(new MimicType({int_ty, double_ty}))}, int_ty))};
+    FunctionRecord double_cast{"to_double",
+                            double_ty,
+                            {{"x", type_ptr(new MimicType({int_ty, double_ty})), false}},
+                            1,
+                            _st->derive(),
+                            std::shared_ptr<FnType>(new FnType(
+                                {type_ptr(new MimicType({int_ty, double_ty}))}, double_ty))};
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[write.name] = std::move(write);
     _st->functions[readln.name] = std::move(readln);
     _st->functions[dec.name] = std::move(dec);
-    _builtin_names = {"writeln", "write", "readln", "dec"};
+    _st->functions[int_cast.name] = std::move(int_cast);
+    _st->functions[double_cast.name] = std::move(double_cast);
+    _builtin_names = {"writeln", "write", "readln", "dec", "to_int", "to_double"};
 }
 
 void Parser::llvm_init_lib() {
@@ -317,6 +333,10 @@ ASTNode * Parser::If() {
             _err.emplace_back(tok.pos,
                               "\'then\' expected, got: " + tok.get_str());
         }
+        auto old_st = _st;
+        _st = _st->derive();
+        _st->current_scope = SymbolTable::Scope::If;
+
         ASTNode * body = Body();
 
         switch (_lexer.peek().type()) {
@@ -324,12 +344,16 @@ ASTNode * Parser::If() {
             /* rule 38: If_else_h -> else If_else_h1 */
             _lexer.match(TokenType::Else);
             ASTNode * else_branch = Body();
+            _st = old_st;
             return new ASTNodeIf(cond, body, else_branch);
         }
         case TokenType::Semicolon:
-        case TokenType::End:
+        case TokenType::End: {
+            _st = old_st;
             return new ASTNodeIf(cond, body);
+        }
         default: {
+            _st = old_st;
             Token tok = _lexer.peek();
             _err.emplace_back(tok.pos, "else/end/semicolon expected, got: " +
                                            tok.get_str());
@@ -1249,7 +1273,9 @@ ASTNode * Parser::Call(const Token & id) {
         if (_builtin_names.contains(id.get_str())) {
             return new ASTNodeBuiltinCall(id.get_str(), args);
         }
-        return new ASTNodeCall(id.get_str(), args);
+        ASTNodeCall * ptr = new ASTNodeCall(id.get_str(), args);
+        _st->add_callsite(id.get_str(), ptr);
+        return ptr;
     }
     case TokenType::Op_Mul:
     case TokenType::Op_Div:
@@ -1497,6 +1523,9 @@ bool Parser::Parse() {
         }
         return false;
     }
+    LambdaLifter ll(_st);
+    ll.lift_tree(_current_code);
+
     TypeChecker tc(_st);
     _current_code = tc.tree_rebuild(_current_code.get());
     if (!_current_code) {
@@ -1508,10 +1537,7 @@ bool Parser::Parse() {
 
 const llvm::Module & Parser::Generate() {
     llvm_init_lib();
-    CodegenData data{std::make_shared<ValMap<llvm::AllocaInst *>>(),
-                     std::make_shared<ValMap<llvm::Value *>>(),
-                     {},
-                     {}};
+    CodegenData data;
     _current_code->codegen(MilaModule, MilaBuilder, MilaContext, data);
     return this->MilaModule;
 }

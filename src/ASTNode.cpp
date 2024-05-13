@@ -1,5 +1,6 @@
 #include "ASTNode.hpp"
 #include "LLVMTypeResolver.hpp"
+#include <TypeInfo.hpp>
 #include <stack>
 #include <variant>
 
@@ -17,6 +18,16 @@ static llvm::Type * resolve_llvm_type(llvm::LLVMContext & ctx,
                                       std::shared_ptr<Type> t) {
     LLVMTypeResolver llvmtr(ctx);
     return std::visit(llvmtr, t->as_variant());
+}
+
+static llvm::Type * get_ptr_elem_type(llvm::LLVMContext & ctx, ASTNodeFunction * f, int n) {
+    auto arg_it = f->proto->args.begin();
+    std::advance(arg_it, n);
+    type_ptr arg_type = (*arg_it).type;
+    assert(type_info::is_ref_type(arg_type));
+    std::shared_ptr<RefType> ref = type_info::to_ref_type(arg_type);
+    assert(type_info::is_base_type(ref->base));
+    return resolve_llvm_type(ctx, ref->base);
 }
 
 llvm::Value * ASTNodeInt::codegen(llvm::Module &, llvm::IRBuilder<> &,
@@ -38,8 +49,8 @@ llvm::Value * ASTNodeIdentifier::codegen(llvm::Module &,
     } else {
         auto val_opt = cdg.vars->lookup(name);
         assert(val_opt.has_value());
-        llvm::AllocaInst * val = val_opt.value();
-        return builder.CreateLoad(val->getAllocatedType(), val, name);
+        MemoryLocation val = val_opt.value();
+        return builder.CreateLoad(val.pointee_type, val.ptr, name);
     }
 }
 
@@ -49,7 +60,7 @@ llvm::Value * ASTNodeIdentifier::get_allocated_ptr(llvm::Module &,
                                                    CodegenData & cdg) const {
     auto var_lookup = cdg.vars->lookup(name);
     assert(var_lookup.has_value());
-    return var_lookup.value();
+    return var_lookup.value().ptr;
 }
 
 llvm::Value * ASTNodeUnary::codegen(llvm::Module & module,
@@ -195,14 +206,19 @@ llvm::Function * ASTNodeFunction::codegen(llvm::Module & module,
     if (function->getReturnType()->getTypeID() != llvm::Type::VoidTyID) {
         llvm::AllocaInst * ret_var = CreateEntryBlockAlloca(
             function, function->getReturnType(), function->getName().str());
-        cdg.vars->data[function->getName().str()] = ret_var;
+        cdg.vars->data[function->getName().str()] = {ret_var, function->getReturnType()};
     }
 
     for (auto & arg : function->args()) {
-        llvm::AllocaInst * alloca = CreateEntryBlockAlloca(
-            function, arg.getType(), arg.getName().str());
-        builder.CreateStore(&arg, alloca);
-        cdg.vars->data[arg.getName().str()] = alloca;
+        if (arg.getType()->isPointerTy()) {
+            llvm::Type * pointee = get_ptr_elem_type(ctx, this, arg.getArgNo());
+            cdg.vars->data[arg.getName().str()] = {&arg, pointee};
+        } else {
+            llvm::AllocaInst * alloca = CreateEntryBlockAlloca(
+                function, arg.getType(), arg.getName().str());
+            builder.CreateStore(&arg, alloca);
+            cdg.vars->data[arg.getName().str()] = {alloca, alloca->getAllocatedType()};
+        }
     }
 
     block->codegen(module, builder, ctx, cdg);
@@ -219,12 +235,12 @@ llvm::Function * ASTNodeFunction::codegen(llvm::Module & module,
     if (function->getReturnType()->getTypeID() != llvm::Type::VoidTyID) {
         // load return value if expected
         ret_val = builder.CreateLoad(function->getReturnType(),
-                                     cdg.vars->data[function->getName().str()],
+                                     cdg.vars->data[function->getName().str()].ptr,
                                      "return_value");
     }
 
     builder.CreateRet(ret_val);
-    // assert(!verifyFunction(*function, &llvm::errs()));
+    assert(!verifyFunction(*function, &llvm::errs()));
     //  restore symbol table
     cdg.vars = std::move(old_vars);
     cdg.consts = std::move(old_consts);
@@ -317,8 +333,8 @@ llvm::Value * ASTNodeExit::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
     llvm::Function * function = builder.GetInsertBlock()->getParent();
     llvm::Value * ret = nullptr;
     if (function->getReturnType()->getTypeID() != llvm::Type::VoidTyID) {
-        llvm::AllocaInst * ret_alloca =
-            cdg.vars->lookup(function->getName().str()).value();
+        llvm::Value * ret_alloca =
+            cdg.vars->lookup(function->getName().str()).value().ptr;
         ret = builder.CreateLoad(function->getReturnType(), ret_alloca,
                                  "return_value");
     }
@@ -336,13 +352,13 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     // TODO compile error handling
 
     llvm::Function * function = builder.GetInsertBlock()->getParent();
-    llvm::AllocaInst * loop_var = nullptr;
+    llvm::Value * loop_var = nullptr;
     if (!cdg.vars->lookup(var).has_value()) {
         loop_var =
             CreateEntryBlockAlloca(function, llvm::Type::getInt32Ty(ctx), var);
-        cdg.vars->data[var] = loop_var;
+        cdg.vars->data[var] = {loop_var, llvm::Type::getInt32Ty(ctx)};
     } else {
-        loop_var = cdg.vars->lookup(var).value();
+        loop_var = cdg.vars->lookup(var).value().ptr;
     }
     builder.CreateStore(init_val, loop_var);
 
@@ -422,7 +438,7 @@ llvm::Value * ASTNodeVar::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
         llvm::Type * type = resolve_llvm_type(ctx, var.type);
         llvm::AllocaInst * alloca =
             CreateEntryBlockAlloca(function, type, var.name);
-        cdg.vars->data[var.name] = alloca;
+        cdg.vars->data[var.name] = {alloca, alloca->getAllocatedType()};
     }
     return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
@@ -541,8 +557,9 @@ llvm::Value * ASTNodeArrAccess::codegen(llvm::Module & module,
     llvm::Value * ptr = get_allocated_ptr(module, builder, ctx, cdg);
     auto alloca_lookup = cdg.vars->lookup(name);
     assert(alloca_lookup.has_value());
-    llvm::Type * type = alloca_lookup.value()->getAllocatedType();
+    llvm::Type * type = alloca_lookup.value().pointee_type;
     for (size_t i = 0; i < idx_list.size(); i++) {
+        assert(type->isArrayTy());
         type = type->getArrayElementType();
     }
 
@@ -563,8 +580,8 @@ llvm::Value * ASTNodeArrAccess::get_allocated_ptr(llvm::Module & module,
 
     auto alloca_lookup = cdg.vars->lookup(name);
     assert(alloca_lookup.has_value());
-    llvm::AllocaInst * alloca = alloca_lookup.value();
+    MemoryLocation mem = alloca_lookup.value();
 
-    return builder.CreateGEP(alloca->getAllocatedType(), alloca, idxs,
+    return builder.CreateGEP(mem.pointee_type, mem.ptr, idxs,
                              name + "_gep", true);
 }

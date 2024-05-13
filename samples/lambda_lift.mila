@@ -1,0 +1,21 @@
+program lambda;
+
+var x : integer;
+
+procedure foo();
+    var y : double;
+    procedure inner();
+    begin
+        readln(x);
+        readln(y);
+        y := y * x;
+    end;
+begin
+    inner();
+    writeln(y);
+end;
+
+begin
+    foo();
+    writeln(x);
+end.

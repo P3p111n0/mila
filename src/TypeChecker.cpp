@@ -196,10 +196,22 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
 }
 
 TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
-    // TODO better overload checking
     auto lookup = _st->lookup_function(cnode->fn);
     assert(lookup.has_value());
     FunctionRecord fnr = lookup.value();
+
+    if (fnr.name == "to_int" || fnr.name == "to_double") {
+        assert(cnode->args.size() == 1);
+        type_ptr tgt = fnr.name == "to_int" ? type_ptr(_tf.get_int_t()) : type_ptr(_tf.get_double_t());
+        std::shared_ptr<ASTNode> arg = *(cnode->args.begin());
+        TypeResult to_cast = std::visit(*this, arg->as_variant());
+        if (!type_info::is_convertible(to_cast.type, tgt)) {
+            auto src_type_id = type_info::get_type_identifier(to_cast.type);
+            auto tgt_type_id = type_info::get_type_identifier(tgt);
+            _errs.emplace_back("Cannot cast type " + src_type_id + " to type " + tgt_type_id);
+        }
+        return {new ASTNodeTypeCast(tgt, to_cast.node), tgt};
+    }
 
     std::string new_name = cnode->fn;
     std::list<std::shared_ptr<ASTNode>> new_args;
@@ -214,8 +226,10 @@ TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
 
         if (!common_type) {
             _errs.emplace_back("No viable overload for builtin: " + cnode->fn);
-            delete arg_res.node;
-            break;
+        }
+
+        if (!type_info::equal(arg_res.type, common_type)) {
+            arg_res.node = new ASTNodeTypeCast(common_type, arg_res.node);
         }
 
         new_name += "_" + type_info::get_printable_id(common_type);
@@ -256,11 +270,17 @@ TypeResult TypeChecker::operator()(ASTNodeFunction * fn) {
 
 TypeResult TypeChecker::operator()(ASTNodeIf * if_) {
     TypeResult cond = std::visit(*this, if_->cond->as_variant());
+
+    auto old_st = _st;
+    _st = _st->derive();
+
     TypeResult body = std::visit(*this, if_->body->as_variant());
     TypeResult else_branch;
     if (if_->else_.has_value()) {
         else_branch = std::visit(*this, if_->else_.value()->as_variant());
     }
+
+    _st = old_st;
 
     ASTNodeIf * if_node = if_->shallow_copy();
     if_node->cond = std::shared_ptr<ASTNode>(cond.node);
@@ -337,7 +357,7 @@ TypeResult TypeChecker::operator()(ASTNodeBlock * block_node) {
 
 TypeResult TypeChecker::operator()(ASTNodeVar * vnode) {
     for (auto & decl : vnode->vars) {
-        if (!_st->lookup_variable(decl.name)) {
+        if (!_st->variables.contains(decl.name)) {
             _st->variables[decl.name] = decl;
         }
     }
