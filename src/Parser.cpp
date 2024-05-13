@@ -42,12 +42,27 @@ Parser::Parser(std::istream & is)
                        _st->derive(),
                        std::shared_ptr<FnType>(new FnType(
                            {type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty))};
-
+    FunctionRecord int_cast{"to_int",
+                       int_ty,
+                       {{"x", type_ptr(new MimicType({int_ty, double_ty})), false}},
+                       1,
+                       _st->derive(),
+                       std::shared_ptr<FnType>(new FnType(
+                           {type_ptr(new MimicType({int_ty, double_ty}))}, int_ty))};
+    FunctionRecord double_cast{"to_double",
+                            double_ty,
+                            {{"x", type_ptr(new MimicType({int_ty, double_ty})), false}},
+                            1,
+                            _st->derive(),
+                            std::shared_ptr<FnType>(new FnType(
+                                {type_ptr(new MimicType({int_ty, double_ty}))}, double_ty))};
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[write.name] = std::move(write);
     _st->functions[readln.name] = std::move(readln);
     _st->functions[dec.name] = std::move(dec);
-    _builtin_names = {"writeln", "write", "readln", "dec"};
+    _st->functions[int_cast.name] = std::move(int_cast);
+    _st->functions[double_cast.name] = std::move(double_cast);
+    _builtin_names = {"writeln", "write", "readln", "dec", "to_int", "to_double"};
 }
 
 void Parser::llvm_init_lib() {

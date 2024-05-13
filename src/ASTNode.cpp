@@ -224,7 +224,7 @@ llvm::Function * ASTNodeFunction::codegen(llvm::Module & module,
     }
 
     builder.CreateRet(ret_val);
-    // assert(!verifyFunction(*function, &llvm::errs()));
+    assert(!verifyFunction(*function, &llvm::errs()));
     //  restore symbol table
     cdg.vars = std::move(old_vars);
     cdg.consts = std::move(old_consts);
