@@ -368,8 +368,10 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     llvm::BasicBlock * loop_bb =
         llvm::BasicBlock::Create(ctx, "loop", function);
     llvm::BasicBlock * loop_end = llvm::BasicBlock::Create(ctx, "loop_end");
+    llvm::BasicBlock * var_mutate = llvm::BasicBlock::Create(ctx, "var_mutate");
+
     cdg.break_addrs.push(loop_end);
-    cdg.cont_addrs.push(loop_cond);
+    cdg.cont_addrs.push(var_mutate);
     builder.CreateBr(loop_cond);
     builder.SetInsertPoint(loop_cond);
     llvm::Value * current_val = builder.CreateLoad(
@@ -390,18 +392,23 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
     llvm::Value * step = llvm::ConstantInt::get(ctx, llvm::APInt(32, 1, true));
 
     if (!builder.GetInsertBlock()->getTerminator()) {
-        // mutate iter var
-        current_val = builder.CreateLoad(llvm::Type::getInt32Ty(ctx), loop_var,
-                                         "loop_var_fetch");
-        llvm::Value * next_val = nullptr;
-        if (is_downto) {
-            next_val = builder.CreateSub(current_val, step, "step");
-        } else {
-            next_val = builder.CreateAdd(current_val, step, "step");
-        }
-        builder.CreateStore(next_val, loop_var);
-        builder.CreateBr(loop_cond);
+        builder.CreateBr(var_mutate);
     }
+
+    // mutate iter var
+    function->insert(function->end(), var_mutate);
+    builder.SetInsertPoint(var_mutate);
+    current_val = builder.CreateLoad(llvm::Type::getInt32Ty(ctx), loop_var,
+                                     "loop_var_fetch");
+    llvm::Value * next_val = nullptr;
+    if (is_downto) {
+        next_val = builder.CreateSub(current_val, step, "step");
+    } else {
+        next_val = builder.CreateAdd(current_val, step, "step");
+    }
+    builder.CreateStore(next_val, loop_var);
+    builder.CreateBr(loop_cond);
+
     function->insert(function->end(), loop_end);
     builder.SetInsertPoint(loop_end);
 
