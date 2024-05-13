@@ -270,11 +270,17 @@ TypeResult TypeChecker::operator()(ASTNodeFunction * fn) {
 
 TypeResult TypeChecker::operator()(ASTNodeIf * if_) {
     TypeResult cond = std::visit(*this, if_->cond->as_variant());
+
+    auto old_st = _st;
+    _st = _st->derive();
+
     TypeResult body = std::visit(*this, if_->body->as_variant());
     TypeResult else_branch;
     if (if_->else_.has_value()) {
         else_branch = std::visit(*this, if_->else_.value()->as_variant());
     }
+
+    _st = old_st;
 
     ASTNodeIf * if_node = if_->shallow_copy();
     if_node->cond = std::shared_ptr<ASTNode>(cond.node);
@@ -351,7 +357,7 @@ TypeResult TypeChecker::operator()(ASTNodeBlock * block_node) {
 
 TypeResult TypeChecker::operator()(ASTNodeVar * vnode) {
     for (auto & decl : vnode->vars) {
-        if (!_st->lookup_variable(decl.name)) {
+        if (!_st->variables.contains(decl.name)) {
             _st->variables[decl.name] = decl;
         }
     }

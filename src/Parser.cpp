@@ -332,6 +332,10 @@ ASTNode * Parser::If() {
             _err.emplace_back(tok.pos,
                               "\'then\' expected, got: " + tok.get_str());
         }
+        auto old_st = _st;
+        _st = _st->derive();
+        _st->current_scope = SymbolTable::Scope::If;
+
         ASTNode * body = Body();
 
         switch (_lexer.peek().type()) {
@@ -339,12 +343,16 @@ ASTNode * Parser::If() {
             /* rule 38: If_else_h -> else If_else_h1 */
             _lexer.match(TokenType::Else);
             ASTNode * else_branch = Body();
+            _st = old_st;
             return new ASTNodeIf(cond, body, else_branch);
         }
         case TokenType::Semicolon:
-        case TokenType::End:
+        case TokenType::End: {
+            _st = old_st;
             return new ASTNodeIf(cond, body);
+        }
         default: {
+            _st = old_st;
             Token tok = _lexer.peek();
             _err.emplace_back(tok.pos, "else/end/semicolon expected, got: " +
                                            tok.get_str());

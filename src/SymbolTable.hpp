@@ -25,7 +25,8 @@ struct SymbolTable {
     enum class Scope {
         Global,
         Function,
-        Loop
+        Loop,
+        If
     };
 
     SymbolTable() : _parent(nullptr) {}
