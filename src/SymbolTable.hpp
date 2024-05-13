@@ -31,9 +31,9 @@ struct SymbolTable {
     SymbolTable() : _parent(nullptr) {}
     std::shared_ptr<SymbolTable> derive();
 
-    std::optional<FunctionRecord> lookup_function(const std::string &) const;
-    std::optional<VariableRecord> lookup_variable(const std::string &) const;
-    std::optional<std::shared_ptr<ASTNode>> lookup_constant(const std::string &) const;
+    std::optional<FunctionRecord> lookup_function(const std::string &, Scope = Scope::Global) const;
+    std::optional<VariableRecord> lookup_variable(const std::string &, Scope = Scope::Global) const;
+    std::optional<std::shared_ptr<ASTNode>> lookup_constant(const std::string &, Scope = Scope::Global) const;
     void add_callsite(const std::string &, ASTNodeCall *);
 
     bool unique_in_current_scope(const std::string &) const;

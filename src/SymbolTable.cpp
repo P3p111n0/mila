@@ -6,31 +6,31 @@ std::shared_ptr<SymbolTable> SymbolTable::derive() {
     return child;
 }
 
-std::optional<std::shared_ptr<ASTNode>> SymbolTable::lookup_constant(const std::string & name) const {
+std::optional<std::shared_ptr<ASTNode>> SymbolTable::lookup_constant(const std::string & name, Scope top) const {
     if (constants.count(name)) {
         return constants.at(name);
     }
-    if (_parent) {
+    if (_parent && current_scope != top) {
         return _parent->lookup_constant(name);
     }
     return std::nullopt;
 }
 
-std::optional<FunctionRecord> SymbolTable::lookup_function(const std::string & name) const {
+std::optional<FunctionRecord> SymbolTable::lookup_function(const std::string & name, Scope top) const {
     if (functions.count(name)) {
         return functions.at(name);
     }
-    if (_parent) {
+    if (_parent && current_scope != top) {
         return _parent->lookup_function(name);
     }
     return std::nullopt;
 }
 
-std::optional<VariableRecord> SymbolTable::lookup_variable(const std::string & name) const {
+std::optional<VariableRecord> SymbolTable::lookup_variable(const std::string & name, Scope top) const {
     if (variables.count(name)) {
         return variables.at(name);
     }
-    if (_parent) {
+    if (_parent && current_scope != top) {
         return _parent->lookup_variable(name);
     }
     return std::nullopt;
