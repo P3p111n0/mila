@@ -46,3 +46,14 @@ bool SymbolTable::unique_global(const std::string & name) const {
     auto cst = lookup_constant(name);
     return !(fn.has_value() || var.has_value() || cst.has_value());
 }
+
+void SymbolTable::add_callsite(const std::string & fn_name, ASTNodeCall * node) {
+    if (functions.contains(fn_name)) {
+        functions[fn_name].callsites.emplace_back(node);
+    } else {
+        if (_parent) {
+            _parent->add_callsite(fn_name, node);
+        }
+        return;
+    }
+}

@@ -1,5 +1,6 @@
 #include "ASTNode.hpp"
 #include "LLVMTypeResolver.hpp"
+#include <TypeInfo.hpp>
 #include <stack>
 #include <variant>
 
@@ -17,6 +18,16 @@ static llvm::Type * resolve_llvm_type(llvm::LLVMContext & ctx,
                                       std::shared_ptr<Type> t) {
     LLVMTypeResolver llvmtr(ctx);
     return std::visit(llvmtr, t->as_variant());
+}
+
+static llvm::Type * get_ptr_elem_type(llvm::LLVMContext & ctx, ASTNodeFunction * f, int n) {
+    auto arg_it = f->proto->args.begin();
+    std::advance(arg_it, n);
+    type_ptr arg_type = (*arg_it).type;
+    assert(type_info::is_ref_type(arg_type));
+    std::shared_ptr<RefType> ref = type_info::to_ref_type(arg_type);
+    assert(type_info::is_base_type(ref->base));
+    return resolve_llvm_type(ctx, ref->base);
 }
 
 llvm::Value * ASTNodeInt::codegen(llvm::Module &, llvm::IRBuilder<> &,

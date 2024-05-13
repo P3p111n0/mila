@@ -1264,7 +1264,9 @@ ASTNode * Parser::Call(const Token & id) {
         if (_builtin_names.contains(id.get_str())) {
             return new ASTNodeBuiltinCall(id.get_str(), args);
         }
-        return new ASTNodeCall(id.get_str(), args);
+        ASTNodeCall * ptr = new ASTNodeCall(id.get_str(), args);
+        _st->add_callsite(id.get_str(), ptr);
+        return ptr;
     }
     case TokenType::Op_Mul:
     case TokenType::Op_Div:
