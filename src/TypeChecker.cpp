@@ -17,15 +17,15 @@ std::shared_ptr<ASTNode> TypeChecker::tree_rebuild(ASTNode * main_node) {
 }
 
 TypeResult TypeChecker::operator()(ASTNodeInt * node) {
-    return {node->shallow_copy(), type_ptr(_tf.get_int_t())};
+    return {ast_ptr(node->shallow_copy()), type_ptr(_tf.get_int_t())};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeString * str) {
-    return {str->shallow_copy(), type_ptr(_tf.get_string_t())};
+    return {ast_ptr(str->shallow_copy()), type_ptr(_tf.get_string_t())};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeDouble * dval) {
-    return {dval->shallow_copy(), type_ptr(_tf.get_double_t())};
+    return {ast_ptr(dval->shallow_copy()), type_ptr(_tf.get_double_t())};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeUnary * node) {
@@ -33,8 +33,7 @@ TypeResult TypeChecker::operator()(ASTNodeUnary * node) {
     if (!type_info::is_int(arg.type)) {
         _errs.emplace_back("argument of unary operation has to be of type int");
     }
-    ASTNodeUnary * new_node = node->shallow_copy();
-    new_node->arg = std::shared_ptr<ASTNode>(arg.node);
+    ast_ptr new_node(new ASTNodeUnary(arg.node, node->op));
     return {new_node, arg.type};
 }
 
@@ -51,33 +50,34 @@ TypeResult TypeChecker::operator()(ASTNodeBinary * binary_node) {
                            " to a common type.");
     }
 
-    ASTNode * final_lhs;
+    ast_ptr final_lhs;
     if (!type_info::equal(common_type, lhs_res.type)) {
-        final_lhs = new ASTNodeTypeCast(common_type, lhs_res.node);
+        final_lhs = ast_ptr(new ASTNodeTypeCast(common_type, lhs_res.node));
     } else {
         final_lhs = lhs_res.node;
     }
 
-    ASTNode * final_rhs;
+    ast_ptr final_rhs;
     if (!type_info::equal(common_type, rhs_res.type)) {
-        final_rhs = new ASTNodeTypeCast(common_type, rhs_res.node);
+        final_rhs = ast_ptr(new ASTNodeTypeCast(common_type, rhs_res.node));
     } else {
         final_rhs = rhs_res.node;
     }
 
-    ASTNode * final_binary_node;
+    ast_ptr final_binary_node;
     if (type_info::is_int(common_type)) {
         final_binary_node =
-            new ASTNodeBinary(final_lhs, final_rhs, binary_node->op);
+            ast_ptr(new ASTNodeBinary(final_lhs, final_rhs, binary_node->op));
     } else if (type_info::is_double(common_type)) {
         auto op = type_info::int_to_fp_arithmetic(binary_node->op);
         if (!op.has_value()) {
             _errs.emplace_back("operation not supported for fp type");
-            final_binary_node = new ASTNodeFBinary(final_lhs, final_rhs,
-                                      ASTNodeFBinary::Operator(-1));
+            final_binary_node = ast_ptr(new ASTNodeFBinary(
+                final_lhs, final_rhs, ASTNodeFBinary::Operator(-1)));
+        } else {
+            final_binary_node =
+                ast_ptr(new ASTNodeFBinary(final_lhs, final_rhs, op.value()));
         }
-        final_binary_node = new ASTNodeFBinary(final_lhs, final_rhs,
-                                               op.value());
     } else {
         assert(0 && "this shouldn't happen");
     }
@@ -97,13 +97,11 @@ TypeResult TypeChecker::operator()(ASTNodeIdentifier * id) {
         consts_lookup.has_value()); // xor - exactly one has to contain a value
 
     if (var_lookup.has_value()) {
-        return {id->shallow_copy(), var_lookup.value().type};
+        return {ast_ptr(id->shallow_copy()), var_lookup.value().type};
     } else {
         TypeResult const_result =
             std::visit(*this, consts_lookup.value()->as_variant());
-        std::shared_ptr<ASTNode> const_node(
-            const_result.node); // prevents leaks, TODO
-        return {id->shallow_copy(), const_result.type};
+        return {ast_ptr(id->shallow_copy()), const_result.type};
     }
 }
 
@@ -112,7 +110,7 @@ TypeResult TypeChecker::operator()(ASTNodeArrAccess * arr) {
     assert(lookup.has_value());
 
     type_ptr type = lookup->type;
-    std::vector<std::shared_ptr<ASTNode>> new_idx;
+    std::vector<ast_ptr> new_idx;
     for (auto & idx : arr->idx_list) {
         if (!type_info::is_array_type(type)) {
             _errs.emplace_back("Cannot index a variable of non-array type: " +
@@ -127,12 +125,12 @@ TypeResult TypeChecker::operator()(ASTNodeArrAccess * arr) {
                                arr->name);
         }
         new_idx.emplace_back(new ASTNodeBinary(
-            idx_res.node, new ASTNodeInt(array_type->normalizer),
+            idx_res.node, ast_ptr(new ASTNodeInt(array_type->normalizer)),
             ASTNodeBinary::Operator::Add));
         type = array_type->elem_type;
     }
 
-    return {new ASTNodeArrAccess(arr->name, new_idx), type};
+    return {ast_ptr(new ASTNodeArrAccess(arr->name, new_idx)), type};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeAssign * assign) {
@@ -144,18 +142,17 @@ TypeResult TypeChecker::operator()(ASTNodeAssign * assign) {
         _errs.emplace_back("Cannot cast " + rhs_id + " to " + var_id);
     }
 
-    ASTNode * rhs_node;
+    ast_ptr rhs_node;
     if (!type_info::equal(var.type, rhs.type)) {
-        rhs_node = new ASTNodeTypeCast(var.type, rhs.node);
+        rhs_node = ast_ptr(new ASTNodeTypeCast(var.type, rhs.node));
     } else {
         rhs_node = rhs.node;
     }
 
-    ASTNodeAssign * assign_node = assign->shallow_copy();
-    auto * tgt = static_cast<ASTNodeAssignable *>(var.node);
+    std::shared_ptr<ASTNodeAssignable> tgt =
+        std::dynamic_pointer_cast<ASTNodeAssignable>(var.node);
     assert(tgt);
-    assign_node->target = std::shared_ptr<ASTNodeAssignable>(tgt);
-    assign_node->rhs = std::shared_ptr<ASTNode>(rhs_node);
+    ast_ptr assign_node = ast_ptr(new ASTNodeAssign(tgt, rhs_node));
 
     return {assign_node, nullptr};
 }
@@ -179,9 +176,9 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
                                fn_arg_id);
         }
 
-        ASTNode * argument;
+        ast_ptr argument;
         if (!type_info::equal(arg, call_arg.type)) {
-            argument = new ASTNodeTypeCast(arg, call_arg.node);
+            argument = ast_ptr(new ASTNodeTypeCast(arg, call_arg.node));
         } else {
             argument = call_arg.node;
         }
@@ -189,8 +186,7 @@ TypeResult TypeChecker::operator()(ASTNodeCall * cnode) {
         ++call_arg_it;
     }
 
-    ASTNodeCall * call_node = cnode->shallow_copy();
-    call_node->args = std::move(new_args);
+    ast_ptr call_node = ast_ptr(new ASTNodeCall(cnode->fn, new_args));
 
     return {call_node, fn_lookup.value().fn_type->return_type};
 }
@@ -202,19 +198,21 @@ TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
 
     if (fnr.name == "to_int" || fnr.name == "to_double") {
         assert(cnode->args.size() == 1);
-        type_ptr tgt = fnr.name == "to_int" ? type_ptr(_tf.get_int_t()) : type_ptr(_tf.get_double_t());
+        type_ptr tgt = fnr.name == "to_int" ? type_ptr(_tf.get_int_t())
+                                            : type_ptr(_tf.get_double_t());
         std::shared_ptr<ASTNode> arg = *(cnode->args.begin());
         TypeResult to_cast = std::visit(*this, arg->as_variant());
         if (!type_info::is_convertible(to_cast.type, tgt)) {
             auto src_type_id = type_info::get_type_identifier(to_cast.type);
             auto tgt_type_id = type_info::get_type_identifier(tgt);
-            _errs.emplace_back("Cannot cast type " + src_type_id + " to type " + tgt_type_id);
+            _errs.emplace_back("Cannot cast type " + src_type_id + " to type " +
+                               tgt_type_id);
         }
-        return {new ASTNodeTypeCast(tgt, to_cast.node), tgt};
+        return {ast_ptr(new ASTNodeTypeCast(tgt, to_cast.node)), tgt};
     }
 
     std::string new_name = cnode->fn;
-    std::list<std::shared_ptr<ASTNode>> new_args;
+    std::list<ast_ptr> new_args;
     auto f_arg_it = fnr.args.begin();
     auto c_arg_it = cnode->args.begin();
     assert(fnr.args.size() == cnode->args.size());
@@ -229,21 +227,24 @@ TypeResult TypeChecker::operator()(ASTNodeBuiltinCall * cnode) {
         }
 
         if (!type_info::equal(arg_res.type, common_type)) {
-            arg_res.node = new ASTNodeTypeCast(common_type, arg_res.node);
+            arg_res.node =
+                ast_ptr(new ASTNodeTypeCast(common_type, arg_res.node));
         }
 
         new_name += "_" + type_info::get_printable_id(common_type);
         new_args.emplace_back(arg_res.node);
     }
 
-    return {new ASTNodeCall(new_name, new_args), fnr.return_type};
+    return {ast_ptr(new ASTNodeCall(new_name, new_args)), fnr.return_type};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeVarByRef * ref) {
     auto reffd_val = std::visit(*this, ref->var->as_variant());
-    auto * var = static_cast<ASTNodeAssignable*>(reffd_val.node);
+    std::shared_ptr<ASTNodeAssignable> var =
+        std::dynamic_pointer_cast<ASTNodeAssignable>(reffd_val.node);
+    assert(var);
     type_ptr t(new RefType(reffd_val.type));
-    return {new ASTNodeVarByRef(var), t};
+    return {ast_ptr(new ASTNodeVarByRef(var)), t};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeFunction * fn) {
@@ -260,9 +261,8 @@ TypeResult TypeChecker::operator()(ASTNodeFunction * fn) {
     TypeResult block = std::visit(*this, fn->block->as_variant());
     TypeResult body = std::visit(*this, fn->body->as_variant());
 
-    ASTNodeFunction * fn_node = fn->shallow_copy();
-    fn_node->block = std::shared_ptr<ASTNode>(block.node);
-    fn_node->body = std::shared_ptr<ASTNode>(body.node);
+    ast_ptr fn_node =
+        ast_ptr(new ASTNodeFunction(fn->proto, block.node, body.node));
 
     _st = old_st;
     return {fn_node, nullptr};
@@ -282,11 +282,9 @@ TypeResult TypeChecker::operator()(ASTNodeIf * if_) {
 
     _st = old_st;
 
-    ASTNodeIf * if_node = if_->shallow_copy();
-    if_node->cond = std::shared_ptr<ASTNode>(cond.node);
-    if_node->body = std::shared_ptr<ASTNode>(body.node);
+    std::shared_ptr<ASTNodeIf> if_node(new ASTNodeIf(cond.node, body.node));
     if (else_branch.node) {
-        if_node->else_ = std::shared_ptr<ASTNode>(else_branch.node);
+        if_node->else_ = else_branch.node;
     }
 
     return {if_node, nullptr};
@@ -299,9 +297,7 @@ TypeResult TypeChecker::operator()(ASTNodeWhile * wnode) {
     TypeResult cond = std::visit(*this, wnode->cond->as_variant());
     TypeResult body = std::visit(*this, wnode->body->as_variant());
 
-    ASTNodeWhile * while_node = wnode->shallow_copy();
-    while_node->cond = std::shared_ptr<ASTNode>(cond.node);
-    while_node->body = std::shared_ptr<ASTNode>(body.node);
+    ast_ptr while_node(new ASTNodeWhile(cond.node, body.node));
 
     _st = old_st;
     return {while_node, nullptr};
@@ -326,10 +322,8 @@ TypeResult TypeChecker::operator()(ASTNodeFor * fnode) {
 
     _st = old_st;
 
-    ASTNodeFor * for_node = fnode->shallow_copy();
-    for_node->body = std::shared_ptr<ASTNode>(body.node);
-    for_node->it_start = std::shared_ptr<ASTNode>(it_start.node);
-    for_node->it_stop = std::shared_ptr<ASTNode>(it_stop.node);
+    ast_ptr for_node(new ASTNodeFor(fnode->var, it_start.node, it_stop.node,
+                                    body.node, fnode->is_downto));
     return {for_node, nullptr};
 }
 
@@ -340,8 +334,7 @@ TypeResult TypeChecker::operator()(ASTNodeBody * bnode) {
         statements.emplace_back(statement_res.node);
     }
 
-    ASTNodeBody * body = bnode->shallow_copy();
-    body->stmts = std::move(statements);
+    ast_ptr body(new ASTNodeBody(statements));
     return {body, nullptr};
 }
 
@@ -352,7 +345,7 @@ TypeResult TypeChecker::operator()(ASTNodeBlock * block_node) {
         new_decls.emplace_back(block_res.node);
     }
 
-    return {new ASTNodeBlock(new_decls), nullptr};
+    return {ast_ptr(new ASTNodeBlock(new_decls)), nullptr};
 }
 
 TypeResult TypeChecker::operator()(ASTNodeVar * vnode) {
@@ -361,9 +354,9 @@ TypeResult TypeChecker::operator()(ASTNodeVar * vnode) {
             _st->variables[decl.name] = decl;
         }
     }
-    return {vnode->shallow_copy(), nullptr};
+    return {ast_ptr(vnode->shallow_copy()), nullptr};
 }
 
 TypeResult TypeChecker::operator()(ASTNode * node) {
-    return {node->shallow_copy(), nullptr};
+    return {ast_ptr(node->shallow_copy()), nullptr};
 }

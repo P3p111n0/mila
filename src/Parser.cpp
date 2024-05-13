@@ -1,7 +1,7 @@
 #include "Parser.hpp"
 #include "ExprEvaluator.hpp"
-#include "TypeChecker.hpp"
 #include "LambdaLifter.hpp"
+#include "TypeChecker.hpp"
 #include <memory>
 
 Parser::Parser(std::istream & is)
@@ -14,56 +14,62 @@ Parser::Parser(std::istream & is)
     type_ptr str_ty = type_ptr(_tf.get_string_t());
     type_ptr double_ty = type_ptr(_tf.get_double_t());
     type_ptr double_ref_ty = type_ptr(new RefType(double_ty));
-    FunctionRecord writeln{"writeln",
-                           int_ty,
-                           {{"x", type_ptr(new MimicType({int_ty, str_ty, double_ty}))}},
-                           1,
-                           _st->derive(),
-                           std::shared_ptr<FnType>(new FnType(
-                               {type_ptr(new MimicType({int_ty, str_ty, double_ty}))}, int_ty))};
-    FunctionRecord write{"write",
-                         int_ty,
-                         {{"x", type_ptr(new MimicType({int_ty, str_ty}))}},
-                         1,
-                         _st->derive(),
-                         std::shared_ptr<FnType>(new FnType(
-                             {type_ptr(new MimicType({int_ty, str_ty, double_ty}))}, int_ty))};
+    FunctionRecord writeln{
+        "writeln",
+        int_ty,
+        {{"x", type_ptr(new MimicType({int_ty, str_ty, double_ty}))}},
+        1,
+        _st->derive(),
+        std::shared_ptr<FnType>(new FnType(
+            {type_ptr(new MimicType({int_ty, str_ty, double_ty}))}, int_ty))};
+    FunctionRecord write{
+        "write",
+        int_ty,
+        {{"x", type_ptr(new MimicType({int_ty, str_ty}))}},
+        1,
+        _st->derive(),
+        std::shared_ptr<FnType>(new FnType(
+            {type_ptr(new MimicType({int_ty, str_ty, double_ty}))}, int_ty))};
     FunctionRecord readln{
         "readln",
         int_ty,
         {{"x", type_ptr(new MimicType({int_ref_ty, double_ref_ty})), true}},
         1,
         _st->derive(),
-        std::shared_ptr<FnType>(
-            new FnType({type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty))};
-    FunctionRecord dec{"dec",
-                       int_ty,
-                       {{"x", type_ptr(new MimicType({int_ref_ty, double_ref_ty})), true}},
-                       1,
-                       _st->derive(),
-                       std::shared_ptr<FnType>(new FnType(
-                           {type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty))};
-    FunctionRecord int_cast{"to_int",
-                       int_ty,
-                       {{"x", type_ptr(new MimicType({int_ty, double_ty})), false}},
-                       1,
-                       _st->derive(),
-                       std::shared_ptr<FnType>(new FnType(
-                           {type_ptr(new MimicType({int_ty, double_ty}))}, int_ty))};
-    FunctionRecord double_cast{"to_double",
-                            double_ty,
-                            {{"x", type_ptr(new MimicType({int_ty, double_ty})), false}},
-                            1,
-                            _st->derive(),
-                            std::shared_ptr<FnType>(new FnType(
-                                {type_ptr(new MimicType({int_ty, double_ty}))}, double_ty))};
+        std::shared_ptr<FnType>(new FnType(
+            {type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty))};
+    FunctionRecord dec{
+        "dec",
+        int_ty,
+        {{"x", type_ptr(new MimicType({int_ref_ty, double_ref_ty})), true}},
+        1,
+        _st->derive(),
+        std::shared_ptr<FnType>(new FnType(
+            {type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty))};
+    FunctionRecord int_cast{
+        "to_int",
+        int_ty,
+        {{"x", type_ptr(new MimicType({int_ty, double_ty})), false}},
+        1,
+        _st->derive(),
+        std::shared_ptr<FnType>(new FnType(
+            {type_ptr(new MimicType({int_ty, double_ty}))}, int_ty))};
+    FunctionRecord double_cast{
+        "to_double",
+        double_ty,
+        {{"x", type_ptr(new MimicType({int_ty, double_ty})), false}},
+        1,
+        _st->derive(),
+        std::shared_ptr<FnType>(new FnType(
+            {type_ptr(new MimicType({int_ty, double_ty}))}, double_ty))};
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[write.name] = std::move(write);
     _st->functions[readln.name] = std::move(readln);
     _st->functions[dec.name] = std::move(dec);
     _st->functions[int_cast.name] = std::move(int_cast);
     _st->functions[double_cast.name] = std::move(double_cast);
-    _builtin_names = {"writeln", "write", "readln", "dec", "to_int", "to_double"};
+    _builtin_names = {"writeln", "write",  "readln",
+                      "dec",     "to_int", "to_double"};
 }
 
 void Parser::llvm_init_lib() {
@@ -77,7 +83,8 @@ void Parser::llvm_init_lib() {
             Arg.setName("x");
     }
     {
-        std::vector<llvm::Type *> Doubles(1, llvm::Type::getDoubleTy(MilaContext));
+        std::vector<llvm::Type *> Doubles(1,
+                                          llvm::Type::getDoubleTy(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), Doubles, false);
         llvm::Function * F = llvm::Function::Create(
@@ -96,8 +103,8 @@ void Parser::llvm_init_lib() {
             Arg.setName("x");
     }
     {
-        std::vector<llvm::Type *> PtrToStr(
-            1, llvm::Type::getInt32Ty(MilaContext));
+        std::vector<llvm::Type *> PtrToStr(1,
+                                           llvm::Type::getInt32Ty(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), PtrToStr, false);
         llvm::Function * F = llvm::Function::Create(
@@ -106,8 +113,8 @@ void Parser::llvm_init_lib() {
             Arg.setName("x");
     }
     {
-        std::vector<llvm::Type *> Doubles(
-            1, llvm::Type::getDoubleTy(MilaContext));
+        std::vector<llvm::Type *> Doubles(1,
+                                          llvm::Type::getDoubleTy(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), Doubles, false);
         llvm::Function * F = llvm::Function::Create(
@@ -140,8 +147,9 @@ void Parser::llvm_init_lib() {
             1, llvm::Type::getDoublePtrTy(MilaContext));
         llvm::FunctionType * FT = llvm::FunctionType::get(
             llvm::Type::getInt32Ty(MilaContext), DoublePtr, false);
-        llvm::Function * F = llvm::Function::Create(
-            FT, llvm::Function::ExternalLinkage, "readln_double__ref", MilaModule);
+        llvm::Function * F =
+            llvm::Function::Create(FT, llvm::Function::ExternalLinkage,
+                                   "readln_double__ref", MilaModule);
         for (auto & Arg : F->args())
             Arg.setName("x");
     }
@@ -227,7 +235,7 @@ std::pair<int, int> Parser::ArrayBounds() {
     }
     ExprEvaluator<int> evaluator(_st);
     Position approx_pos = _lexer.peek().pos;
-    std::unique_ptr<ASTNode> lower_bound(Expression());
+    ast_ptr lower_bound(Expression());
     std::optional<int> lb_opt = evaluator.eval(lower_bound.get());
     if (!lb_opt.has_value()) {
         _err.emplace_back(
@@ -239,7 +247,7 @@ std::pair<int, int> Parser::ArrayBounds() {
                                        tok.get_str());
     }
     approx_pos = _lexer.peek().pos;
-    std::unique_ptr<ASTNode> upper_bound(Expression());
+    ast_ptr upper_bound(Expression());
     std::optional<int> ub_opt = evaluator.eval(upper_bound.get());
     if (!ub_opt.has_value()) {
         _err.emplace_back(
@@ -294,7 +302,7 @@ Type * Parser::Var_type() {
     }
 }
 
-ASTNode * Parser::Body() {
+ast_ptr Parser::Body() {
     switch (_lexer.peek().type()) {
     case TokenType::Identifier:
     case TokenType::Exit:
@@ -312,7 +320,7 @@ ASTNode * Parser::Body() {
             _err.emplace_back(tok.pos,
                               "\'end\' expected, got: " + tok.get_str());
         }
-        return new ASTNodeBody(stmts);
+        return ast_ptr(new ASTNodeBody(stmts));
     }
     default: {
         Token tok = _lexer.peek();
@@ -323,12 +331,12 @@ ASTNode * Parser::Body() {
     }
 }
 
-ASTNode * Parser::If() {
+ast_ptr Parser::If() {
     switch (_lexer.peek().type()) {
     case TokenType::If: {
         /* rule 40: If -> if Expression then If_body_h If_else_h */
         _lexer.match(TokenType::If);
-        ASTNode * cond = Expression();
+        ast_ptr cond = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Then)) {
             _err.emplace_back(tok.pos,
                               "\'then\' expected, got: " + tok.get_str());
@@ -337,20 +345,20 @@ ASTNode * Parser::If() {
         _st = _st->derive();
         _st->current_scope = SymbolTable::Scope::If;
 
-        ASTNode * body = Body();
+        ast_ptr body = Body();
 
         switch (_lexer.peek().type()) {
         case TokenType::Else: {
             /* rule 38: If_else_h -> else If_else_h1 */
             _lexer.match(TokenType::Else);
-            ASTNode * else_branch = Body();
+            ast_ptr else_branch = Body();
             _st = old_st;
-            return new ASTNodeIf(cond, body, else_branch);
+            return ast_ptr(new ASTNodeIf(cond, body, else_branch));
         }
         case TokenType::Semicolon:
         case TokenType::End: {
             _st = old_st;
-            return new ASTNodeIf(cond, body);
+            return ast_ptr(new ASTNodeIf(cond, body));
         }
         default: {
             _st = old_st;
@@ -370,12 +378,12 @@ ASTNode * Parser::If() {
     }
 }
 
-ASTNode * Parser::While() {
+ast_ptr Parser::While() {
     switch (_lexer.peek().type()) {
     case TokenType::While: {
         /* rule 41: While -> while Expression do Body_h */
         _lexer.match(TokenType::While);
-        ASTNode * cond = Expression();
+        ast_ptr cond = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Do)) {
             _err.emplace_back(tok.pos,
                               "\'do\' expected, got: " + tok.get_str());
@@ -383,9 +391,9 @@ ASTNode * Parser::While() {
         auto old_st = _st;
         _st = _st->derive();
         _st->current_scope = SymbolTable::Scope::Loop;
-        ASTNode * body = Body();
+        ast_ptr body = Body();
         _st = old_st;
-        return new ASTNodeWhile(cond, body);
+        return ast_ptr(new ASTNodeWhile(cond, body));
     }
     default: {
         Token tok = _lexer.peek();
@@ -396,7 +404,7 @@ ASTNode * Parser::While() {
     }
 }
 
-ASTNode * Parser::For() {
+ast_ptr Parser::For() {
     switch (_lexer.peek().type()) {
     case TokenType::For: {
         /* rule 44: For -> for Assignment For_to Expression do Body_h */
@@ -419,7 +427,7 @@ ASTNode * Parser::For() {
         _st->variables[id.get_str()] = {
             id.get_str(), std::shared_ptr<Type>(_tf.get_int_t()), false};
 
-        ASTNode * it_start = Expression();
+        ast_ptr it_start = Expression();
 
         bool is_downto = false;
 
@@ -441,14 +449,15 @@ ASTNode * Parser::For() {
         }
         }
 
-        ASTNode * it_stop = Expression();
+        ast_ptr it_stop = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Do)) {
             _err.emplace_back(tok.pos,
                               "\'do\' expected, got: " + tok.get_str());
         }
-        ASTNode * body = Body();
+        ast_ptr body = Body();
         _st = old_st; // restore symbol table
-        return new ASTNodeFor(id.get_str(), it_start, it_stop, body, is_downto);
+        return ast_ptr(
+            new ASTNodeFor(id.get_str(), it_start, it_stop, body, is_downto));
     }
     default: {
         Token tok = _lexer.peek();
@@ -459,16 +468,17 @@ ASTNode * Parser::For() {
     }
 }
 
-ASTNode * Parser::Stmt_helper() {
+ast_ptr Parser::Stmt_helper() {
     switch (_lexer.peek().type()) {
     case TokenType::Identifier: {
         /* rule 22: Statement_h -> Assignment */
         Token id = _lexer.get();
-        ASTNodeAssignable * target_ptr = nullptr;
+        std::shared_ptr<ASTNodeAssignable> target_ptr;
         if (_lexer.peek().type() == TokenType::Br_Open) {
             target_ptr = ArrayAccess(id.get_str());
         } else {
-            target_ptr = new ASTNodeIdentifier(id.get_str());
+            target_ptr = std::shared_ptr<ASTNodeAssignable>(
+                new ASTNodeIdentifier(id.get_str()));
         }
 
         switch (_lexer.peek().type()) {
@@ -479,12 +489,11 @@ ASTNode * Parser::Stmt_helper() {
                 _err.emplace_back(id.pos,
                                   "unbound identifier: " + id.get_str());
             }
-            ASTNode * rhs = Expression();
-            return new ASTNodeAssign(target_ptr, rhs);
+            ast_ptr rhs = Expression();
+            return ast_ptr(new ASTNodeAssign(target_ptr, rhs));
         }
         case TokenType::Colon:
         case TokenType::Par_Open: { // call
-            delete target_ptr;
             return Call(id);
         }
         default: {
@@ -512,7 +521,7 @@ ASTNode * Parser::Stmt_helper() {
             _err.emplace_back(tok.pos,
                               "\'exit\' not permitted in global scope.");
         }
-        return new ASTNodeExit();
+        return ast_ptr(new ASTNodeExit());
     }
     case TokenType::Break: {
         /* rule 27: Statement_h -> break */
@@ -520,13 +529,13 @@ ASTNode * Parser::Stmt_helper() {
         if (_st->current_scope != SymbolTable::Scope::Loop) {
             _err.emplace_back(tok.pos, "\'break\' used outside of loop.");
         }
-        return new ASTNodeBreak();
+        return ast_ptr(new ASTNodeBreak());
     }
     case TokenType::Begin: {
         auto old_st = _st;
         _st = _st->derive();
         _st->current_scope = old_st->current_scope;
-        ASTNode * body = Body();
+        ast_ptr body = Body();
         _st = old_st;
         return body;
     }
@@ -539,7 +548,7 @@ ASTNode * Parser::Stmt_helper() {
     }
 }
 
-std::list<std::shared_ptr<ASTNode>> Parser::Statement() {
+std::list<ast_ptr> Parser::Statement() {
     std::list<std::shared_ptr<ASTNode>> res;
     res.emplace_back(Stmt_helper());
 
@@ -590,7 +599,7 @@ std::list<VariableRecord> Parser::Function_arg() {
     }
 }
 
-ASTNode * Parser::Function() {
+ast_ptr Parser::Function() {
     switch (_lexer.peek().type()) {
     case TokenType::Function: {
         /* rule 60: Function -> function Id ( Function_arg ) : Type ; Var_opt
@@ -654,16 +663,17 @@ ASTNode * Parser::Function() {
             }
             _st = old_st;
             _forward_declared.emplace(fn.name);
-            return new ASTNodePrototype(fn.name, fn.args, fn.return_type);
+            return ast_ptr(
+                new ASTNodePrototype(fn.name, fn.args, fn.return_type));
         }
 
-        ASTNode * block = Block();
+        ast_ptr block = Block();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
             _err.emplace_back(tok.pos,
                               "in function body: \'begin\' expected, got: " +
                                   tok.get_str());
         }
-        ASTNode * body = new ASTNodeBody(Statement());
+        ast_ptr body(new ASTNodeBody(Statement()));
         old_st->functions[fn.name] = fn; // update after parsing body
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
             _err.emplace_back(tok.pos,
@@ -679,8 +689,9 @@ ASTNode * Parser::Function() {
         if (_forward_declared.count(fn.name)) {
             _forward_declared.erase(fn.name);
         }
-        auto * proto = new ASTNodePrototype(fn.name, fn.args, fn.return_type);
-        return new ASTNodeFunction(proto, block, body);
+        std::shared_ptr<ASTNodePrototype> proto(
+            new ASTNodePrototype(fn.name, fn.args, fn.return_type));
+        return ast_ptr(new ASTNodeFunction(proto, block, body));
     }
     default: {
         Token tok = _lexer.peek();
@@ -692,7 +703,7 @@ ASTNode * Parser::Function() {
     }
 }
 
-ASTNode * Parser::Procedure() {
+ast_ptr Parser::Procedure() {
     switch (_lexer.peek().type()) {
     case TokenType::Procedure: {
         /* rule 61: Procedure -> procedure Id ( Function_arg ) ; Var_opt begin
@@ -757,16 +768,17 @@ ASTNode * Parser::Procedure() {
             }
             _st = old_st;
             _forward_declared.emplace(fn.name);
-            return new ASTNodePrototype(fn.name, fn.args, fn.return_type);
+            return ast_ptr(
+                new ASTNodePrototype(fn.name, fn.args, fn.return_type));
         }
 
-        ASTNode * block = Block();
+        ast_ptr block = Block();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
             _err.emplace_back(tok.pos,
                               "in procedure body: \'begin\' expected, got: " +
                                   tok.get_str());
         }
-        ASTNode * body = new ASTNodeBody(Statement());
+        ast_ptr body(new ASTNodeBody(Statement()));
         old_st->functions[fn.name] = fn; // update after parsing body
         if (fn.symbol_table->variables.count(fn.name)) {
             _err.emplace_back(fn_sign_pos,
@@ -787,8 +799,9 @@ ASTNode * Parser::Procedure() {
             _forward_declared.erase(fn.name);
         }
 
-        auto * proto = new ASTNodePrototype(fn.name, fn.args, fn.return_type);
-        return new ASTNodeFunction(proto, block, body);
+        std::shared_ptr<ASTNodePrototype> proto(
+            new ASTNodePrototype(fn.name, fn.args, fn.return_type));
+        return ast_ptr(new ASTNodeFunction(proto, block, body));
     }
     default: {
         Token tok = _lexer.peek();
@@ -834,7 +847,7 @@ ASTNodeConst::ConstExpr Parser::Const_declaration() {
     }
 }
 
-ASTNode * Parser::Const() {
+ast_ptr Parser::Const() {
     std::list<ASTNodeConst::ConstExpr> constants;
     switch (_lexer.peek().type()) {
     case TokenType::Const: {
@@ -863,7 +876,7 @@ ASTNode * Parser::Const() {
             case TokenType::Procedure:
             case TokenType::Var:
             case TokenType::Begin:
-                return new ASTNodeConst(constants);
+                return ast_ptr(new ASTNodeConst(constants));
             default: {
                 Token tok = _lexer.peek();
                 _err.emplace_back(tok.pos,
@@ -968,7 +981,7 @@ VariableRecord Parser::Var_declaration() {
     }
 }
 
-ASTNode * Parser::Var() {
+ast_ptr Parser::Var() {
     std::list<VariableRecord> vars;
     switch (_lexer.peek().type()) {
     case TokenType::Var: {
@@ -1000,7 +1013,7 @@ ASTNode * Parser::Var() {
             case TokenType::Begin:
             case TokenType::Var:
                 /* rule 50: Var_h ->  */
-                return new ASTNodeVar(vars);
+                return ast_ptr(new ASTNodeVar(vars));
             default: {
                 Token tok = _lexer.peek();
                 _err.emplace_back(
@@ -1021,7 +1034,7 @@ ASTNode * Parser::Var() {
     }
 }
 
-ASTNode * Parser::Expression() {
+ast_ptr Parser::Expression() {
     switch (_lexer.peek().type()) {
     case TokenType::Op_Minus:
     case TokenType::Op_Plus:
@@ -1032,28 +1045,34 @@ ASTNode * Parser::Expression() {
     case TokenType::StringLiteral:
     case TokenType::Par_Open: {
         /* rule 20: Expression -> Add Expression_h */
-        ASTNode * lhs = Add();
+        ast_ptr lhs = Add();
         while (is_rel_operator(_lexer.peek().type())) {
             TokenType op = _lexer.get().type();
-            ASTNode * rhs = Add();
+            ast_ptr rhs = Add();
             switch (op) {
             case TokenType::Op_Equal:
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Eq);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Eq));
                 break;
             case TokenType::Op_NotEqual:
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::NEq);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::NEq));
                 break;
             case TokenType::Op_Lt:
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Lt);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Lt));
                 break;
             case TokenType::Op_Gt:
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Gt);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Gt));
                 break;
             case TokenType::Op_LtE:
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::LtE);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::LtE));
                 break;
             case TokenType::Op_GtE:
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::GtE);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::GtE));
                 break;
             default:
                 throw std::runtime_error("expr - this shouldnt happen");
@@ -1070,7 +1089,7 @@ ASTNode * Parser::Expression() {
     }
 }
 
-ASTNode * Parser::Add() {
+ast_ptr Parser::Add() {
     switch (_lexer.peek().type()) {
     case TokenType::Op_Minus:
     case TokenType::Op_Plus:
@@ -1081,25 +1100,29 @@ ASTNode * Parser::Add() {
     case TokenType::StringLiteral:
     case TokenType::Par_Open: {
         /* rule 17: Add -> Mul Add_h */
-        ASTNode * lhs = Mul();
+        ast_ptr lhs = Mul();
         while (is_add_operator(_lexer.peek().type())) {
             TokenType op = _lexer.get().type();
-            ASTNode * rhs = Mul();
+            ast_ptr rhs = Mul();
             switch (op) {
             case TokenType::Op_Plus: {
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Add);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Add));
                 break;
             }
             case TokenType::Op_Minus: {
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Sub);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Sub));
                 break;
             }
             case TokenType::Op_Or: {
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Or);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Or));
                 break;
             }
             case TokenType::Op_Xor: {
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Xor);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Xor));
                 break;
             }
             default:
@@ -1117,7 +1140,7 @@ ASTNode * Parser::Add() {
     }
 }
 
-ASTNode * Parser::Mul() {
+ast_ptr Parser::Mul() {
     switch (_lexer.peek().type()) {
     case TokenType::Op_Minus:
     case TokenType::Op_Plus:
@@ -1128,25 +1151,29 @@ ASTNode * Parser::Mul() {
     case TokenType::StringLiteral:
     case TokenType::Par_Open: {
         /* rule 14: Mul -> Unary Mul_h */
-        ASTNode * lhs = Unary();
+        ast_ptr lhs = Unary();
         while (is_mul_operator(_lexer.peek().type())) {
             TokenType op = _lexer.get().type();
-            ASTNode * rhs = Unary();
+            ast_ptr rhs = Unary();
             switch (op) {
             case TokenType::Op_Mul: {
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Mul);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Mul));
                 break;
             }
             case TokenType::Op_Div: {
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Div);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Div));
                 break;
             }
             case TokenType::Op_Mod: {
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Mod);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::Mod));
                 break;
             }
             case TokenType::Op_And: {
-                lhs = new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::And);
+                lhs = ast_ptr(
+                    new ASTNodeBinary(lhs, rhs, ASTNodeBinary::Operator::And));
                 break;
             }
             default:
@@ -1164,14 +1191,14 @@ ASTNode * Parser::Mul() {
     }
 }
 
-ASTNode * Parser::Unary() {
+ast_ptr Parser::Unary() {
     switch (_lexer.peek().type()) {
     case TokenType::Op_Minus: {
         /* rule 8: Unary -> - Factor */
         _lexer.match(TokenType::Op_Minus);
-        ASTNode * arg = Factor();
-        return new ASTNodeBinary(new ASTNodeInt(-1), arg,
-                                 ASTNodeBinary::Operator::Mul);
+        ast_ptr arg = Factor();
+        return ast_ptr(new ASTNodeBinary(ast_ptr(new ASTNodeInt(-1)), arg,
+                                         ASTNodeBinary::Operator::Mul));
     }
     case TokenType::Op_Plus: {
         /* rule 9: Unary -> + Factor */
@@ -1181,8 +1208,8 @@ ASTNode * Parser::Unary() {
     case TokenType::Op_Not: {
         /* rule 10: Unary -> not Factor */
         _lexer.match(TokenType::Op_Not);
-        ASTNode * arg = Factor();
-        return new ASTNodeUnary(arg, ASTNodeUnary::Operator::Not);
+        ast_ptr arg = Factor();
+        return ast_ptr(new ASTNodeUnary(arg, ASTNodeUnary::Operator::Not));
     }
     case TokenType::Identifier:
     case TokenType::IntVal:
@@ -1200,7 +1227,7 @@ ASTNode * Parser::Unary() {
     }
 }
 
-ASTNode * Parser::Call(const Token & id) {
+ast_ptr Parser::Call(const Token & id) {
     std::list<std::shared_ptr<ASTNode>> args;
     switch (_lexer.peek().type()) {
     case TokenType::Par_Open: {
@@ -1271,9 +1298,9 @@ ASTNode * Parser::Call(const Token & id) {
                               "in call: \')\' expected, got: " + tok.get_str());
         }
         if (_builtin_names.contains(id.get_str())) {
-            return new ASTNodeBuiltinCall(id.get_str(), args);
+            return ast_ptr(new ASTNodeBuiltinCall(id.get_str(), args));
         }
-        ASTNodeCall * ptr = new ASTNodeCall(id.get_str(), args);
+        std::shared_ptr<ASTNodeCall> ptr(new ASTNodeCall(id.get_str(), args));
         _st->add_callsite(id.get_str(), ptr);
         return ptr;
     }
@@ -1310,7 +1337,7 @@ ASTNode * Parser::Call(const Token & id) {
             _err.emplace_back(id.pos, "name is ambiguous: " + id.get_str());
         }
 
-        return new ASTNodeIdentifier(id.get_str());
+        return ast_ptr(new ASTNodeIdentifier(id.get_str()));
     }
     case TokenType::Colon: {
         _lexer.match(TokenType::Colon);
@@ -1322,7 +1349,7 @@ ASTNode * Parser::Call(const Token & id) {
         }
         std::shared_ptr<Type> type = std::shared_ptr<Type>(Var_type());
         _st->variables[id.get_str()] = {id.get_str(), type, false};
-        return new ASTNodeVar({{id.get_str(), type}});
+        return ast_ptr(new ASTNodeVar({{id.get_str(), type}}));
     }
     case TokenType::Br_Open: {
         return ArrayAccess(id.get_str());
@@ -1336,7 +1363,7 @@ ASTNode * Parser::Call(const Token & id) {
     }
 }
 
-ASTNode * Parser::VarByRef() {
+ast_ptr Parser::VarByRef() {
     switch (_lexer.peek().type()) {
     case TokenType::Identifier: {
         Token tok = _lexer.get();
@@ -1356,14 +1383,14 @@ ASTNode * Parser::VarByRef() {
                 tok.pos, "cannot pass a mutable reference to function: " + id);
         }
 
-        ASTNodeAssignable * ptr;
+        std::shared_ptr<ASTNodeAssignable> ptr;
         if (_lexer.peek().type() == TokenType::Br_Open) {
             ptr = ArrayAccess(id);
         } else {
-            ptr = new ASTNodeIdentifier(id);
+            ptr = std::shared_ptr<ASTNodeAssignable>(new ASTNodeIdentifier(id));
         }
 
-        return new ASTNodeVarByRef(ptr);
+        return ast_ptr(new ASTNodeVarByRef(ptr));
     }
     default:
         Token tok = _lexer.peek();
@@ -1374,13 +1401,14 @@ ASTNode * Parser::VarByRef() {
     }
 }
 
-ASTNodeAssignable * Parser::ArrayAccess(const std::string & name) {
+std::shared_ptr<ASTNodeAssignable>
+Parser::ArrayAccess(const std::string & name) {
     std::vector<std::shared_ptr<ASTNode>> idx;
     switch (_lexer.peek().type()) {
     case TokenType::Br_Open: {
         while (_lexer.peek().type() == TokenType::Br_Open) {
             _lexer.match(TokenType::Br_Open);
-            ASTNode * expr = Expression();
+            ast_ptr expr = Expression();
             if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Br_Close)) {
                 _err.emplace_back(tok.pos,
                                   "in array access: ']' expected, got: " +
@@ -1388,7 +1416,8 @@ ASTNodeAssignable * Parser::ArrayAccess(const std::string & name) {
             }
             idx.emplace_back(expr);
         }
-        return new ASTNodeArrAccess(name, idx);
+        return std::shared_ptr<ASTNodeAssignable>(
+            new ASTNodeArrAccess(name, idx));
     }
     default: {
         Token tok = _lexer.peek();
@@ -1399,11 +1428,11 @@ ASTNodeAssignable * Parser::ArrayAccess(const std::string & name) {
     }
 }
 
-ASTNode * Parser::Factor() {
+ast_ptr Parser::Factor() {
     switch (_lexer.peek().type()) {
     case TokenType::Par_Open: { /* rule 4: Factor -> ( Expression ) */
         _lexer.match(TokenType::Par_Open);
-        ASTNode * expr = Expression();
+        ast_ptr expr = Expression();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Close)) {
             _err.emplace_back(tok.pos, "\')\' expected, got: " + tok.get_str());
         }
@@ -1411,15 +1440,15 @@ ASTNode * Parser::Factor() {
     }
     case TokenType::IntVal: {
         auto token = _lexer.get();
-        return new ASTNodeInt(token.get_int());
+        return ast_ptr(new ASTNodeInt(token.get_int()));
     }
     case TokenType::DoubleVal: {
         auto token = _lexer.get();
-        return new ASTNodeDouble(token.get_double());
+        return ast_ptr(new ASTNodeDouble(token.get_double()));
     }
     case TokenType::StringLiteral: {
         auto token = _lexer.get();
-        return new ASTNodeString(token.get_str());
+        return ast_ptr(new ASTNodeString(token.get_str()));
     }
     case TokenType::Identifier: {
         Token id = _lexer.get();
@@ -1434,7 +1463,7 @@ ASTNode * Parser::Factor() {
     }
 }
 
-ASTNode * Parser::Block() {
+ast_ptr Parser::Block() {
     std::list<std::shared_ptr<ASTNode>> declarations;
     while (true) {
         switch (_lexer.peek().type()) {
@@ -1451,7 +1480,7 @@ ASTNode * Parser::Block() {
             declarations.emplace_back(Procedure());
             continue;
         case TokenType::Begin:
-            return new ASTNodeBlock(declarations);
+            return ast_ptr(new ASTNodeBlock(declarations));
         default: {
             auto tok = _lexer.peek();
             _err.emplace_back(tok.pos, "Unknown token when parsing block: " +
@@ -1462,7 +1491,7 @@ ASTNode * Parser::Block() {
     }
 }
 
-ASTNode * Parser::Mila() {
+ast_ptr Parser::Mila() {
     switch (_lexer.peek().type()) {
     case TokenType::Program: {
         /* rule 1: Mila -> program Id ; Const_opt Var_opt Fn_prod begin
@@ -1479,12 +1508,12 @@ ASTNode * Parser::Mila() {
             _err.emplace_back(tok.pos,
                               "in main: \';\' expected, got: " + tok.get_str());
         }
-        ASTNode * block = Block();
+        ast_ptr block = Block();
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Begin)) {
             _err.emplace_back(tok.pos, "in main: \'begin\' expected, got: " +
                                            tok.get_str());
         }
-        auto * main_body = new ASTNodeBody(Statement());
+        ast_ptr main_body(new ASTNodeBody(Statement()));
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::End)) {
             _err.emplace_back(tok.pos, "in main: \'end\' expected, got: " +
                                            tok.get_str());
@@ -1502,9 +1531,9 @@ ASTNode * Parser::Mila() {
             }
         }
 
-        auto * proto = new ASTNodePrototype(
-            "main", {}, std::shared_ptr<Type>(_tf.get_int_t()));
-        return new ASTNodeFunction(proto, block, main_body);
+        std::shared_ptr<ASTNodePrototype> proto(new ASTNodePrototype(
+            "main", {}, std::shared_ptr<Type>(_tf.get_int_t())));
+        return ast_ptr(new ASTNodeFunction(proto, block, main_body));
     }
     default: {
         auto tok = _lexer.peek();

@@ -1,15 +1,15 @@
 #pragma once
 
 #include "ASTNode.hpp"
+#include "BaseTypeFactory.hpp"
 #include "SymbolTable.hpp"
 #include "Type.hpp"
-#include "BaseTypeFactory.hpp"
 #include <memory>
-#include <vector>
 #include <ostream>
+#include <vector>
 
 struct TypeResult {
-    ASTNode * node;
+    ast_ptr node;
     type_ptr type;
 };
 
@@ -46,8 +46,7 @@ class TypeChecker {
   private:
     class TypeError {
       public:
-        TypeError(std::string msg)
-            : _msg(std::move(msg)) {}
+        TypeError(std::string msg) : _msg(std::move(msg)) {}
         friend std::ostream & operator<<(std::ostream & os,
                                          const TypeError & err) {
             const char * red_fmt = "\033[31m";

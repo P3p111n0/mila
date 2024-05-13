@@ -6,7 +6,8 @@ std::shared_ptr<SymbolTable> SymbolTable::derive() {
     return child;
 }
 
-std::optional<std::shared_ptr<ASTNode>> SymbolTable::lookup_constant(const std::string & name, Scope top) const {
+std::optional<std::shared_ptr<ASTNode>>
+SymbolTable::lookup_constant(const std::string & name, Scope top) const {
     if (constants.count(name)) {
         return constants.at(name);
     }
@@ -16,7 +17,8 @@ std::optional<std::shared_ptr<ASTNode>> SymbolTable::lookup_constant(const std::
     return std::nullopt;
 }
 
-std::optional<FunctionRecord> SymbolTable::lookup_function(const std::string & name, Scope top) const {
+std::optional<FunctionRecord>
+SymbolTable::lookup_function(const std::string & name, Scope top) const {
     if (functions.count(name)) {
         return functions.at(name);
     }
@@ -26,7 +28,8 @@ std::optional<FunctionRecord> SymbolTable::lookup_function(const std::string & n
     return std::nullopt;
 }
 
-std::optional<VariableRecord> SymbolTable::lookup_variable(const std::string & name, Scope top) const {
+std::optional<VariableRecord>
+SymbolTable::lookup_variable(const std::string & name, Scope top) const {
     if (variables.count(name)) {
         return variables.at(name);
     }
@@ -37,7 +40,8 @@ std::optional<VariableRecord> SymbolTable::lookup_variable(const std::string & n
 }
 
 bool SymbolTable::unique_in_current_scope(const std::string & name) const {
-    return !(constants.count(name) || variables.count(name) || functions.count(name));
+    return !(constants.count(name) || variables.count(name) ||
+             functions.count(name));
 }
 
 bool SymbolTable::unique_global(const std::string & name) const {
@@ -47,7 +51,8 @@ bool SymbolTable::unique_global(const std::string & name) const {
     return !(fn.has_value() || var.has_value() || cst.has_value());
 }
 
-void SymbolTable::add_callsite(const std::string & fn_name, ASTNodeCall * node) {
+void SymbolTable::add_callsite(const std::string & fn_name,
+                               std::shared_ptr<ASTNodeCall> node) {
     if (functions.contains(fn_name)) {
         functions[fn_name].callsites.emplace_back(node);
     } else {

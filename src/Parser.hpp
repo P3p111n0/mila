@@ -2,10 +2,10 @@
 #define PJPPROJECT_PARSER_HPP
 
 #include "ASTNode.hpp"
+#include "BaseTypeFactory.hpp"
 #include "Lexer.hpp"
 #include "SymbolTable.hpp"
 #include "Type.hpp"
-#include "BaseTypeFactory.hpp"
 
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/STLExtras.h>
@@ -19,8 +19,8 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
-#include <vector>
 #include <unordered_set>
+#include <vector>
 
 class Parser {
   public:
@@ -71,31 +71,31 @@ class Parser {
 
     void llvm_init_lib();
 
-    ASTNode * Factor();
-    ASTNode * Expression();
-    ASTNode * Unary();
-    ASTNode * Mul();
-    ASTNode * Add();
-    ASTNode * Const();
+    ast_ptr Factor();
+    ast_ptr Expression();
+    ast_ptr Unary();
+    ast_ptr Mul();
+    ast_ptr Add();
+    ast_ptr Const();
     ASTNodeConst::ConstExpr Const_declaration();
-    ASTNode * Var();
-    ASTNode * Block();
+    ast_ptr Var();
+    ast_ptr Block();
     VariableRecord Var_declaration();
     std::list<VariableRecord> Var_decl_list();
-    ASTNode * Function();
+    ast_ptr Function();
     std::list<VariableRecord> Function_arg();
     Type * Var_type();
-    std::list<std::shared_ptr<ASTNode>> Statement();
-    ASTNode * Stmt_helper();
-    ASTNode * Procedure();
-    ASTNode * If();
-    ASTNode * Body();
-    ASTNode * While();
-    ASTNode * For();
-    ASTNode * Call(const Token &);
-    ASTNode * Mila();
-    ASTNode * VarByRef();
-    ASTNodeAssignable * ArrayAccess(const std::string &);
+    std::list<ast_ptr> Statement();
+    ast_ptr Stmt_helper();
+    ast_ptr Procedure();
+    ast_ptr If();
+    ast_ptr Body();
+    ast_ptr While();
+    ast_ptr For();
+    ast_ptr Call(const Token &);
+    ast_ptr Mila();
+    ast_ptr VarByRef();
+    std::shared_ptr<ASTNodeAssignable> ArrayAccess(const std::string &);
     std::pair<int, int> ArrayBounds();
 
     static bool is_mul_operator(TokenType);
