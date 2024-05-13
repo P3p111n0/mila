@@ -20,8 +20,13 @@ void LambdaLifter::lift(std::shared_ptr<ASTNodeAssignable> node) {
     assert(var_lookup.has_value());
 
     VariableRecord var = var_lookup.value();
-    var.type = type_ptr(new RefType(var.type));
+    type_ptr old_type = var.type;
+    var.type = type_ptr(new RefType(old_type));
     function_args.emplace_back(var);
+    fnr.fn_type->args.emplace_back(var.type);
+    fnr.args.emplace_back(var);
+    fnr.arity++;
+    _st->edit_function(fnr.name, fnr);
 
     std::shared_ptr<ASTNodeVarByRef> call_arg(new ASTNodeVarByRef(nullptr));
     call_arg->var = node;
@@ -29,6 +34,8 @@ void LambdaLifter::lift(std::shared_ptr<ASTNodeAssignable> node) {
     for (auto call_site : fnr.callsites) {
         call_site->args.emplace_back(call_arg);
     }
+
+    var.type = old_type;
     fnr.symbol_table->variables[var.name] = std::move(var);
 }
 
@@ -137,7 +144,6 @@ void LambdaLifter::operator()(ASTNodeIf * if_node) {
 void LambdaLifter::operator()(ASTNodeIdentifier * id) {
     auto var_lookup = _st->lookup_variable(id->name, SymbolTable::Scope::Function);
     auto const_lookup = _st->lookup_constant(id->name);
-    assert(var_lookup.has_value() ^ const_lookup.has_value());
 
     if (const_lookup.has_value()) {
         return;
