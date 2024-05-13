@@ -53,7 +53,7 @@ class FnType : public Type {
 
 class ArrayType : public Type {
   public:
-    explicit ArrayType(Type * t, int lb, int ub)
+    explicit ArrayType(type_ptr t, int lb, int ub)
         : elem_type(t), lower_bound(lb), upper_bound(ub) {
         normalizer = -lower_bound;
     }

@@ -275,11 +275,11 @@ std::pair<int, int> Parser::ArrayBounds() {
     return {lb_opt.value(), ub_opt.value()};
 }
 
-Type * Parser::Var_type() {
+type_ptr Parser::Var_type() {
     switch (_lexer.peek().type()) {
     case TokenType::Integer:
         _lexer.match(TokenType::Integer);
-        return _tf.get_int_t();
+        return type_ptr(_tf.get_int_t());
     case TokenType::Array: {
         _lexer.match(TokenType::Array);
         auto [lower_bound, upper_bound] = ArrayBounds();
@@ -287,12 +287,12 @@ Type * Parser::Var_type() {
             _err.emplace_back(tok.pos, "in array decl: 'of' expected, got : " +
                                            tok.get_str());
         }
-        Type * elem_t = Var_type();
-        return new ArrayType(elem_t, lower_bound, upper_bound);
+        type_ptr elem_t = Var_type();
+        return type_ptr(new ArrayType(elem_t, lower_bound, upper_bound));
     }
     case TokenType::Double:
         _lexer.match(TokenType::Double);
-        return _tf.get_double_t();
+        return type_ptr(_tf.get_double_t());
     default: {
         Token tok = _lexer.peek();
         _err.emplace_back(tok.pos,

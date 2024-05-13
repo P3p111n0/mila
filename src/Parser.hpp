@@ -83,7 +83,7 @@ class Parser {
     std::list<VariableRecord> Var_decl_list();
     ast_ptr Function();
     std::list<VariableRecord> Function_arg();
-    Type * Var_type();
+    type_ptr Var_type();
     std::list<ast_ptr> Statement();
     ast_ptr Stmt_helper();
     ast_ptr Procedure();
