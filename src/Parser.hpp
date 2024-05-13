@@ -1,5 +1,4 @@
-#ifndef PJPPROJECT_PARSER_HPP
-#define PJPPROJECT_PARSER_HPP
+#pragma once
 
 #include "ASTNode.hpp"
 #include "BaseTypeFactory.hpp"
@@ -103,5 +102,3 @@ class Parser {
     static bool is_rel_operator(TokenType);
     static bool is_statement(TokenType);
 };
-
-#endif // PJPPROJECT_PARSER_HPP
