@@ -38,7 +38,8 @@ const std::unordered_map<std::string, Token> _keyword_map = {
     {"forward", Token(TokenType::Forward, "forward")},
     {"array", Token(TokenType::Array, "array")},
     {"of", Token(TokenType::Of, "of")},
-    {"double", Token(TokenType::Double, "double")}};
+    {"double", Token(TokenType::Double, "double")},
+    {"continue", Token(TokenType::Continue, "continue")}};
 
 const std::unordered_map<std::string, Token> _op_map = {
     {"+", Token(TokenType::Op_Plus, "+")},

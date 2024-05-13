@@ -27,6 +27,7 @@ enum class TokenType {
     Do,
     For,
     Break,
+    Continue,
     Function,
     Procedure,
     Exit,
