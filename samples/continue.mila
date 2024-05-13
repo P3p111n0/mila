@@ -1,0 +1,15 @@
+program cont;
+
+var limit : integer;
+    exclude : integer;
+
+begin
+    readln(limit);
+    readln(exclude);
+
+    for i := 0 to limit do begin
+        if i = exclude then
+            continue;
+        writeln(i);
+    end;
+end.
