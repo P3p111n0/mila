@@ -36,6 +36,7 @@ struct SymbolTable {
     std::optional<VariableRecord> lookup_variable(const std::string &, Scope = Scope::Global) const;
     std::optional<std::shared_ptr<ASTNode>> lookup_constant(const std::string &, Scope = Scope::Global) const;
     void add_callsite(const std::string &, ASTNodeCall *);
+    void edit_function(const std::string &, FunctionRecord);
 
     bool unique_in_current_scope(const std::string &) const;
     bool unique_global(const std::string &) const;

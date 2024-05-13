@@ -57,3 +57,13 @@ void SymbolTable::add_callsite(const std::string & fn_name, ASTNodeCall * node) 
         return;
     }
 }
+
+void SymbolTable::edit_function(const std::string & fn, FunctionRecord record) {
+    if (functions.contains(fn)) {
+        functions[fn] = std::move(record);
+        return;
+    }
+    if (_parent) {
+        _parent->edit_function(fn, std::move(record));
+    }
+}
