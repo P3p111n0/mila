@@ -61,6 +61,7 @@ class ASTNodeBuiltinCall;
 class ASTNodeString;
 class ASTNodeArrAccess;
 class ASTNodeDouble;
+class ASTNodeContinue;
 
 using ast_ptr = std::shared_ptr<ASTNode>;
 
@@ -70,7 +71,7 @@ using ASTVariant = std::variant<
     ASTNodeFor *, ASTNodeBreak *, ASTNodeCall *, ASTNodeVar *, ASTNodeConst *,
     ASTNodePrototype *, ASTNodeFunction *, ASTNodeBlock *, ASTNodeVarByRef *,
     ASTNodeTypeCast *, ASTNodeFBinary *, ASTNodeBuiltinCall *, ASTNodeString *,
-    ASTNodeArrAccess *, ASTNodeDouble *>;
+    ASTNodeArrAccess *, ASTNodeDouble *, ASTNodeContinue *>;
 
 class ASTNode {
   public:
@@ -305,6 +306,15 @@ class ASTNodeBreak : public ASTNode {
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
     ASTNodeBreak * shallow_copy() const override { return new ASTNodeBreak(); }
+};
+
+class ASTNodeContinue : public ASTNode {
+  public:
+    ASTNodeContinue() = default;
+    llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
+                          llvm::LLVMContext &, CodegenData &) override;
+    ASTVariant as_variant() override { return this; }
+    ASTNodeContinue * shallow_copy() const override { return new ASTNodeContinue(); }
 };
 
 class ASTNodeCall : public ASTNode {
