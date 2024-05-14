@@ -48,7 +48,7 @@ void LambdaLifter::lift_rename(ASTNodePrototype * proto) {
     assert(_st->functions.contains(old_name));
     FunctionRecord & fnr = _st->functions[old_name];
 
-    std::string new_name = prefix + "_" + old_name;
+    std::string new_name = prefix + "-" + old_name;
     proto->fn_name = new_name;
     fnr.name = new_name;
     for (auto & callsite : *fnr.callsites) {
