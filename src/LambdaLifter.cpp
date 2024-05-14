@@ -1,5 +1,6 @@
 #include "LambdaLifter.hpp"
 #include "BaseTypeFactory.hpp"
+#include "TypeInfo.hpp"
 
 void LambdaLifter::lift_tree(std::shared_ptr<ASTNode> root) {
     std::visit(*this, root->as_variant());
@@ -11,7 +12,8 @@ void LambdaLifter::lift(std::shared_ptr<ASTNodeAssignable> node) {
     if (fn->proto->name() == "main") {
         return;
     }
-    std::optional<FunctionRecord> function_lookup = _st->lookup_function(fn->proto->name());
+    std::optional<FunctionRecord> function_lookup =
+        _st->lookup_function(fn->proto->name());
     assert(function_lookup.has_value());
 
     FunctionRecord fnr = function_lookup.value();
@@ -31,12 +33,35 @@ void LambdaLifter::lift(std::shared_ptr<ASTNodeAssignable> node) {
     std::shared_ptr<ASTNodeVarByRef> call_arg(new ASTNodeVarByRef(nullptr));
     call_arg->var = node;
 
-    for (auto call_site : fnr.callsites) {
+    for (auto call_site : *fnr.callsites) {
         call_site->args.emplace_back(call_arg);
     }
 
     var.type = old_type;
     fnr.symbol_table->variables[var.name] = std::move(var);
+}
+
+void LambdaLifter::lift_rename(ASTNodePrototype * proto) {
+    assert(!_parent_fn.empty());
+    std::string prefix = _parent_fn.top()->proto->fn_name;
+    std::string old_name = proto->fn_name;
+    assert(_st->functions.contains(old_name));
+    FunctionRecord & fnr = _st->functions[old_name];
+
+    std::string new_name = prefix + "_" + old_name;
+    proto->fn_name = new_name;
+    fnr.name = new_name;
+    for (auto & callsite : *fnr.callsites) {
+        callsite->fn = new_name;
+    }
+
+    if (_st->functions.contains(new_name)) {
+        return;
+    }
+
+    _st->functions[new_name] = fnr;
+    //_st->functions.erase(old_name);
+    _fn_names[old_name] = new_name;
 }
 
 void LambdaLifter::operator()(ASTNode *) {}
@@ -61,21 +86,45 @@ void LambdaLifter::operator()(ASTNodeVar * var) {
     }
 }
 
+void LambdaLifter::operator()(ASTNodePrototype * proto) {
+    if (proto->fn_name == "main") {
+        return;
+    }
+    std::string old_name = proto->fn_name;
+    lift_rename(proto);
+    auto lookup = _st->lookup_function(proto->name());
+    assert(lookup.has_value());
+    FunctionRecord fnr = lookup.value();
+
+    if (proto->is_forward_declared) {
+        return;
+    }
+
+    _st->functions.erase(old_name);
+    _st = fnr.symbol_table;
+    _st->current_scope = SymbolTable::Scope::Function;
+
+    if (!type_info::is_void(fnr.return_type)) {
+        assert(_st->variables.contains(old_name) &&
+               !_st->variables.contains(proto->fn_name));
+        _st->variables[proto->fn_name] = _st->variables[old_name];
+        _st->variables.erase(old_name);
+    }
+}
+
 void LambdaLifter::operator()(ASTNodeFunction * fn) {
     auto old_st = _st;
-    if (fn->proto->name() != "main") {
-        auto lookup = _st->lookup_function(fn->proto->name());
-        assert(lookup.has_value());
-        FunctionRecord fnr = lookup.value();
-
-        _st = fnr.symbol_table;
-        _st->current_scope = SymbolTable::Scope::Function;
-    }
+    std::string old_name = fn->proto->fn_name;
+    std::visit(*this, fn->proto->as_variant());
 
     _parent_fn.push(fn);
     std::visit(*this, fn->block->as_variant());
     std::visit(*this, fn->body->as_variant());
     _parent_fn.pop();
+
+    if (_fn_names.contains(old_name)) {
+        _fn_names.erase(old_name);
+    }
 
     _st = old_st;
 }
@@ -142,7 +191,11 @@ void LambdaLifter::operator()(ASTNodeIf * if_node) {
 }
 
 void LambdaLifter::operator()(ASTNodeIdentifier * id) {
-    auto var_lookup = _st->lookup_variable(id->name, SymbolTable::Scope::Function);
+    if (_fn_names.contains(id->name)) { // id is a return value
+        id->name = _fn_names[id->name];
+    }
+    auto var_lookup =
+        _st->lookup_variable(id->name, SymbolTable::Scope::Function);
     auto const_lookup = _st->lookup_constant(id->name);
 
     if (const_lookup.has_value()) {
@@ -156,6 +209,9 @@ void LambdaLifter::operator()(ASTNodeIdentifier * id) {
 }
 
 void LambdaLifter::operator()(ASTNodeArrAccess * arr) {
+    if (_fn_names.contains(arr->name)) { // name references a return value
+        arr->name = _fn_names[arr->name];
+    }
     auto lookup = _st->lookup_variable(arr->name, SymbolTable::Scope::Function);
     if (!lookup.has_value()) {
         std::shared_ptr<ASTNodeAssignable> to_lift(arr->shallow_copy());

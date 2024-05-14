@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 struct SymbolTable;
-
+using callsite_ptr = std::shared_ptr<std::vector<std::shared_ptr<ASTNodeCall>>>;
 struct FunctionRecord {
     std::string name;
     std::shared_ptr<Type> return_type;
@@ -17,7 +17,7 @@ struct FunctionRecord {
     std::size_t arity;
     std::shared_ptr<SymbolTable> symbol_table;
     std::shared_ptr<FnType> fn_type;
-    std::vector<std::shared_ptr<ASTNodeCall>> callsites = {};
+    callsite_ptr callsites;
 };
 
 struct SymbolTable {
@@ -40,6 +40,10 @@ struct SymbolTable {
     bool unique_global(const std::string &) const;
 
     bool running_in_scope(Scope) const;
+
+    static callsite_ptr make_callsite_ptr() {
+        return std::make_shared<std::vector<std::shared_ptr<ASTNodeCall>>>();
+    }
 
     std::unordered_map<std::string, FunctionRecord> functions;
     std::unordered_map<std::string, std::shared_ptr<ASTNode>> constants;

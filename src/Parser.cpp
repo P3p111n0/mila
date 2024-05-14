@@ -21,7 +21,8 @@ Parser::Parser(std::istream & is)
         1,
         _st->derive(),
         std::shared_ptr<FnType>(new FnType(
-            {type_ptr(new MimicType({int_ty, str_ty, double_ty}))}, int_ty))};
+            {type_ptr(new MimicType({int_ty, str_ty, double_ty}))}, int_ty)),
+        SymbolTable::make_callsite_ptr()};
     FunctionRecord write{
         "write",
         int_ty,
@@ -29,7 +30,8 @@ Parser::Parser(std::istream & is)
         1,
         _st->derive(),
         std::shared_ptr<FnType>(new FnType(
-            {type_ptr(new MimicType({int_ty, str_ty, double_ty}))}, int_ty))};
+            {type_ptr(new MimicType({int_ty, str_ty, double_ty}))}, int_ty)),
+        SymbolTable::make_callsite_ptr()};
     FunctionRecord readln{
         "readln",
         int_ty,
@@ -37,7 +39,8 @@ Parser::Parser(std::istream & is)
         1,
         _st->derive(),
         std::shared_ptr<FnType>(new FnType(
-            {type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty))};
+            {type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty)),
+        SymbolTable::make_callsite_ptr()};
     FunctionRecord dec{
         "dec",
         int_ty,
@@ -45,15 +48,17 @@ Parser::Parser(std::istream & is)
         1,
         _st->derive(),
         std::shared_ptr<FnType>(new FnType(
-            {type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty))};
+            {type_ptr(new MimicType({int_ref_ty, double_ref_ty}))}, int_ty)),
+        SymbolTable::make_callsite_ptr()};
     FunctionRecord int_cast{
         "to_int",
         int_ty,
         {{"x", type_ptr(new MimicType({int_ty, double_ty})), false}},
         1,
         _st->derive(),
-        std::shared_ptr<FnType>(new FnType(
-            {type_ptr(new MimicType({int_ty, double_ty}))}, int_ty))};
+        std::shared_ptr<FnType>(
+            new FnType({type_ptr(new MimicType({int_ty, double_ty}))}, int_ty)),
+        SymbolTable::make_callsite_ptr()};
     FunctionRecord double_cast{
         "to_double",
         double_ty,
@@ -61,7 +66,8 @@ Parser::Parser(std::istream & is)
         1,
         _st->derive(),
         std::shared_ptr<FnType>(new FnType(
-            {type_ptr(new MimicType({int_ty, double_ty}))}, double_ty))};
+            {type_ptr(new MimicType({int_ty, double_ty}))}, double_ty)),
+        SymbolTable::make_callsite_ptr()};
     _st->functions[writeln.name] = std::move(writeln);
     _st->functions[write.name] = std::move(write);
     _st->functions[readln.name] = std::move(readln);
@@ -624,11 +630,19 @@ ast_ptr Parser::Function() {
             _err.emplace_back(id.pos,
                               "function name is not unique: " + id.get_str());
         }
-        _st->functions[id.get_str()]; // reserve function name
         auto old_st = _st;
+        callsite_ptr callsites;
+        if (auto lookup = old_st->lookup_function(id.get_str());
+            lookup.has_value()) {
+            callsites = lookup.value().callsites;
+        } else {
+            callsites = SymbolTable::make_callsite_ptr();
+        }
+        _st->functions[id.get_str()]; // reserve function name
         _st = _st->derive();
         _st->current_scope = SymbolTable::Scope::Function;
         FunctionRecord fn;
+        fn.callsites = callsites;
         fn.name = id.get_str(), fn.symbol_table = _st;
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Open)) {
             _err.emplace_back(tok.pos,
@@ -673,7 +687,7 @@ ast_ptr Parser::Function() {
             _st = old_st;
             _forward_declared.emplace(fn.name);
             return ast_ptr(
-                new ASTNodePrototype(fn.name, fn.args, fn.return_type));
+                new ASTNodePrototype(fn.name, fn.args, fn.return_type, true));
         }
 
         ast_ptr block = Block();
@@ -699,7 +713,7 @@ ast_ptr Parser::Function() {
             _forward_declared.erase(fn.name);
         }
         std::shared_ptr<ASTNodePrototype> proto(
-            new ASTNodePrototype(fn.name, fn.args, fn.return_type));
+            new ASTNodePrototype(fn.name, fn.args, fn.return_type, false));
         return ast_ptr(new ASTNodeFunction(proto, block, body));
     }
     default: {
@@ -732,6 +746,13 @@ ast_ptr Parser::Procedure() {
                     id.get_str());
         }
         auto old_st = _st;
+        callsite_ptr callsites;
+        if (auto lookup = old_st->lookup_function(id.get_str());
+            lookup.has_value()) {
+            callsites = lookup.value().callsites;
+        } else {
+            callsites = SymbolTable::make_callsite_ptr();
+        }
         old_st->functions[id.get_str()]; // reserve procedure name
         _st = _st->derive();
         _st->current_scope = SymbolTable::Scope::Function;
@@ -741,7 +762,8 @@ ast_ptr Parser::Procedure() {
                           .args = {},
                           .arity = 0,
                           .symbol_table = _st,
-                          .fn_type = nullptr};
+                          .fn_type = nullptr,
+                          .callsites = callsites};
         if (auto tok = _lexer.peek(); !_lexer.match(TokenType::Par_Open)) {
             _err.emplace_back(tok.pos,
                               "in procedure signature: \'(\' expected, got: " +
@@ -778,7 +800,7 @@ ast_ptr Parser::Procedure() {
             _st = old_st;
             _forward_declared.emplace(fn.name);
             return ast_ptr(
-                new ASTNodePrototype(fn.name, fn.args, fn.return_type));
+                new ASTNodePrototype(fn.name, fn.args, fn.return_type, true));
         }
 
         ast_ptr block = Block();
@@ -809,7 +831,7 @@ ast_ptr Parser::Procedure() {
         }
 
         std::shared_ptr<ASTNodePrototype> proto(
-            new ASTNodePrototype(fn.name, fn.args, fn.return_type));
+            new ASTNodePrototype(fn.name, fn.args, fn.return_type, false));
         return ast_ptr(new ASTNodeFunction(proto, block, body));
     }
     default: {
@@ -1541,7 +1563,7 @@ ast_ptr Parser::Mila() {
         }
 
         std::shared_ptr<ASTNodePrototype> proto(new ASTNodePrototype(
-            "main", {}, std::shared_ptr<Type>(_tf.get_int_t())));
+            "main", {}, std::shared_ptr<Type>(_tf.get_int_t()), false));
         return ast_ptr(new ASTNodeFunction(proto, block, main_body));
     }
     default: {

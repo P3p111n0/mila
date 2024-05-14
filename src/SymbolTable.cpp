@@ -54,7 +54,7 @@ bool SymbolTable::unique_global(const std::string & name) const {
 void SymbolTable::add_callsite(const std::string & fn_name,
                                std::shared_ptr<ASTNodeCall> node) {
     if (functions.contains(fn_name)) {
-        functions[fn_name].callsites.emplace_back(node);
+        functions[fn_name].callsites->emplace_back(node);
     } else {
         if (_parent) {
             _parent->add_callsite(fn_name, node);

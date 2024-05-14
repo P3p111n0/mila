@@ -191,7 +191,7 @@ llvm::Function * ASTNodeFunction::codegen(llvm::Module & module,
     }
 
     if (!function->empty()) {
-        // TODO error
+        assert(0 && "function conflict");
     }
 
     llvm::BasicBlock * entry = llvm::BasicBlock::Create(ctx, "entry", function);

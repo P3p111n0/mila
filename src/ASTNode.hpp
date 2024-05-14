@@ -314,7 +314,9 @@ class ASTNodeContinue : public ASTNode {
     llvm::Value * codegen(llvm::Module &, llvm::IRBuilder<> &,
                           llvm::LLVMContext &, CodegenData &) override;
     ASTVariant as_variant() override { return this; }
-    ASTNodeContinue * shallow_copy() const override { return new ASTNodeContinue(); }
+    ASTNodeContinue * shallow_copy() const override {
+        return new ASTNodeContinue();
+    }
 };
 
 class ASTNodeCall : public ASTNode {
@@ -379,9 +381,10 @@ class ASTNodeConst : public ASTNode {
 class ASTNodePrototype : public ASTNode {
   public:
     ASTNodePrototype(std::string name, std::list<VariableRecord> arguments,
-                     std::shared_ptr<Type> return_type)
+                     std::shared_ptr<Type> return_type, bool forward)
         : fn_name(std::move(name)), args(std::move(arguments)),
-          arity(args.size()), return_type(std::move(return_type)) {}
+          arity(args.size()), return_type(std::move(return_type)),
+          is_forward_declared(forward) {}
 
     const std::string & name() const { return fn_name; }
     llvm::Function * codegen(llvm::Module &, llvm::IRBuilder<> &,
@@ -395,6 +398,7 @@ class ASTNodePrototype : public ASTNode {
     std::list<VariableRecord> args;
     std::size_t arity;
     std::shared_ptr<Type> return_type;
+    bool is_forward_declared;
 };
 
 class ASTNodeFunction : public ASTNode {

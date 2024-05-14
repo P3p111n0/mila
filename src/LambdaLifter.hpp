@@ -17,6 +17,7 @@ class LambdaLifter {
     void operator()(ASTNodeVar *);
     void operator()(ASTNodeVarByRef *);
     void operator()(ASTNodeFunction *);
+    void operator()(ASTNodePrototype *);
     void operator()(ASTNodeCall *);
     void operator()(ASTNodeBinary *);
     void operator()(ASTNodeUnary *);
@@ -30,7 +31,9 @@ class LambdaLifter {
 
   private:
     void lift(std::shared_ptr<ASTNodeAssignable>);
+    void lift_rename(ASTNodePrototype *);
 
     std::shared_ptr<SymbolTable> _st;
     std::stack<ASTNodeFunction*> _parent_fn;
+    std::map<std::string, std::string> _fn_names;
 };
