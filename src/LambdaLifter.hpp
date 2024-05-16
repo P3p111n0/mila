@@ -30,7 +30,8 @@ class LambdaLifter {
 
 
   private:
-    void lift(std::shared_ptr<ASTNodeAssignable>);
+    void lift_variable(std::shared_ptr<ASTNodeAssignable>);
+    void lift_constant(const std::string &);
     void lift_rename(ASTNodePrototype *);
 
     std::shared_ptr<SymbolTable> _st;

@@ -12,7 +12,7 @@ SymbolTable::lookup_constant(const std::string & name, Scope top) const {
         return constants.at(name);
     }
     if (_parent && current_scope != top) {
-        return _parent->lookup_constant(name);
+        return _parent->lookup_constant(name, top);
     }
     return std::nullopt;
 }
@@ -23,7 +23,7 @@ SymbolTable::lookup_function(const std::string & name, Scope top) const {
         return functions.at(name);
     }
     if (_parent && current_scope != top) {
-        return _parent->lookup_function(name);
+        return _parent->lookup_function(name, top);
     }
     return std::nullopt;
 }
@@ -34,7 +34,7 @@ SymbolTable::lookup_variable(const std::string & name, Scope top) const {
         return variables.at(name);
     }
     if (_parent && current_scope != top) {
-        return _parent->lookup_variable(name);
+        return _parent->lookup_variable(name, top);
     }
     return std::nullopt;
 }

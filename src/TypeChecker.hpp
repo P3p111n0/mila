@@ -20,7 +20,8 @@ class TypeChecker {
 
     void errs(std::ostream &) const;
 
-    std::shared_ptr<ASTNode> tree_rebuild(ASTNode *);
+    ast_ptr tree_rebuild(ast_ptr);
+    type_ptr get_expr_type(ast_ptr);
 
     TypeResult operator()(ASTNodeInt *);
     TypeResult operator()(ASTNodeDouble *);

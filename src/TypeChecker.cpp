@@ -7,13 +7,18 @@ void TypeChecker::errs(std::ostream & os) const {
     }
 }
 
-std::shared_ptr<ASTNode> TypeChecker::tree_rebuild(ASTNode * main_node) {
+std::shared_ptr<ASTNode> TypeChecker::tree_rebuild(ast_ptr main_node) {
     TypeResult main_node_tr = std::visit(*this, main_node->as_variant());
     auto result = std::shared_ptr<ASTNode>(main_node_tr.node);
     if (_errs.empty()) {
         return result;
     }
     return nullptr;
+}
+
+type_ptr TypeChecker::get_expr_type(ast_ptr expr) {
+    TypeResult res = std::visit(*this, expr->as_variant());
+    return res.type;
 }
 
 TypeResult TypeChecker::operator()(ASTNodeInt * node) {

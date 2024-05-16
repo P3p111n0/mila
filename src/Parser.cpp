@@ -1587,7 +1587,7 @@ bool Parser::Parse() {
     ll.lift_tree(_current_code);
 
     TypeChecker tc(_st);
-    _current_code = tc.tree_rebuild(_current_code.get());
+    _current_code = tc.tree_rebuild(_current_code);
     if (!_current_code) {
         tc.errs(std::cerr);
         return false;

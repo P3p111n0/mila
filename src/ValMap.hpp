@@ -8,24 +8,33 @@
 template<typename T>
 class ValMap {
   public:
-    ValMap() = default;
+    enum class Scope {
+        Global,
+        Function,
+        Loop,
+        Body,
+        If
+    };
+    ValMap() : current_scope(Scope::Global) {}
 
-    std::optional<T> lookup(const std::string & name) const {
+    std::optional<T> lookup(const std::string & name, Scope top_scope = Scope::Global) const {
         if (data.count(name)) {
             return data.at(name);
-        } else if (_parent) {
-            return _parent->lookup(name);
+        } else if (_parent && current_scope != top_scope) {
+            return _parent->lookup(name, top_scope);
         }
         return std::nullopt;
     }
 
-    std::shared_ptr<ValMap<T>> derive() {
+    std::shared_ptr<ValMap<T>> derive(Scope new_scope) {
         std::shared_ptr<ValMap<T>> child = std::make_shared<ValMap<T>>();
         child->_parent = this;
+        child->current_scope = new_scope;
         return child;
     }
 
     std::unordered_map<std::string, T> data;
+    Scope current_scope;
   private:
     ValMap<T> * _parent;
 };

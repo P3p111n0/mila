@@ -20,7 +20,8 @@ static llvm::Type * resolve_llvm_type(llvm::LLVMContext & ctx,
     return std::visit(llvmtr, t->as_variant());
 }
 
-static llvm::Type * get_ptr_elem_type(llvm::LLVMContext & ctx, ASTNodeFunction * f, int n) {
+static llvm::Type * get_ptr_elem_type(llvm::LLVMContext & ctx,
+                                      ASTNodeFunction * f, int n) {
     auto arg_it = f->proto->args.begin();
     std::advance(arg_it, n);
     type_ptr arg_type = (*arg_it).type;
@@ -44,14 +45,18 @@ llvm::Value * ASTNodeIdentifier::codegen(llvm::Module &,
                                          llvm::IRBuilder<> & builder,
                                          llvm::LLVMContext &,
                                          CodegenData & cdg) {
-    if (auto x = cdg.consts->lookup(name); x.has_value()) {
-        return x.value();
+    if (auto x =
+            cdg.consts->lookup(name, ValMap<llvm::Value *>::Scope::Function)) {
+        return cdg.consts->lookup(name).value();
     } else {
-        auto val_opt = cdg.vars->lookup(name);
+        auto val_opt =
+            cdg.vars->lookup(name, ValMap<MemoryLocation>::Scope::Function);
         assert(val_opt.has_value());
         MemoryLocation val = val_opt.value();
         return builder.CreateLoad(val.pointee_type, val.ptr, name);
     }
+
+    assert(0 && "unreachable");
 }
 
 llvm::Value * ASTNodeIdentifier::get_allocated_ptr(llvm::Module &,
@@ -118,9 +123,9 @@ llvm::Value * ASTNodeBinary::codegen(llvm::Module & module,
 }
 
 llvm::Value * ASTNodeFBinary::codegen(llvm::Module & module,
-                                     llvm::IRBuilder<> & builder,
-                                     llvm::LLVMContext & ctx,
-                                     CodegenData & cdg) {
+                                      llvm::IRBuilder<> & builder,
+                                      llvm::LLVMContext & ctx,
+                                      CodegenData & cdg) {
     llvm::Value * lhs_val = lhs->codegen(module, builder, ctx, cdg);
     llvm::Value * rhs_val = rhs->codegen(module, builder, ctx, cdg);
 
@@ -200,13 +205,14 @@ llvm::Function * ASTNodeFunction::codegen(llvm::Module & module,
 
     auto old_vars = cdg.vars;
     auto old_consts = cdg.consts;
-    cdg.vars = cdg.vars->derive();
-    cdg.consts = cdg.consts->derive();
+    cdg.vars = cdg.vars->derive(ValMap<MemoryLocation>::Scope::Function);
+    cdg.consts = cdg.consts->derive(ValMap<llvm::Value *>::Scope::Function);
     // insert return value var
     if (function->getReturnType()->getTypeID() != llvm::Type::VoidTyID) {
         llvm::AllocaInst * ret_var = CreateEntryBlockAlloca(
             function, function->getReturnType(), function->getName().str());
-        cdg.vars->data[function->getName().str()] = {ret_var, function->getReturnType()};
+        cdg.vars->data[function->getName().str()] = {ret_var,
+                                                     function->getReturnType()};
     }
 
     for (auto & arg : function->args()) {
@@ -217,7 +223,8 @@ llvm::Function * ASTNodeFunction::codegen(llvm::Module & module,
             llvm::AllocaInst * alloca = CreateEntryBlockAlloca(
                 function, arg.getType(), arg.getName().str());
             builder.CreateStore(&arg, alloca);
-            cdg.vars->data[arg.getName().str()] = {alloca, alloca->getAllocatedType()};
+            cdg.vars->data[arg.getName().str()] = {alloca,
+                                                   alloca->getAllocatedType()};
         }
     }
 
@@ -234,14 +241,14 @@ llvm::Function * ASTNodeFunction::codegen(llvm::Module & module,
     llvm::Value * ret_val = nullptr;
     if (function->getReturnType()->getTypeID() != llvm::Type::VoidTyID) {
         // load return value if expected
-        ret_val = builder.CreateLoad(function->getReturnType(),
-                                     cdg.vars->data[function->getName().str()].ptr,
-                                     "return_value");
+        ret_val = builder.CreateLoad(
+            function->getReturnType(),
+            cdg.vars->data[function->getName().str()].ptr, "return_value");
     }
 
     builder.CreateRet(ret_val);
     assert(!verifyFunction(*function, &llvm::errs()));
-    //  restore symbol table
+    //   restore symbol table
     cdg.vars = std::move(old_vars);
     cdg.consts = std::move(old_consts);
     if (old_insert_point) {
@@ -315,8 +322,8 @@ llvm::Value * ASTNodeBody::codegen(llvm::Module & module,
                                    llvm::LLVMContext & ctx, CodegenData & cdg) {
     auto old_vars = cdg.vars;
     auto old_consts = cdg.consts;
-    cdg.vars = cdg.vars->derive();
-    cdg.consts = cdg.consts->derive();
+    cdg.vars = cdg.vars->derive(ValMap<MemoryLocation>::Scope::Body);
+    cdg.consts = cdg.consts->derive(ValMap<llvm::Value*>::Scope::Body);
     for (auto & stmt : stmts) {
         stmt->codegen(module, builder, ctx, cdg);
         if (builder.GetInsertBlock()->getTerminator()) {
@@ -346,8 +353,8 @@ llvm::Value * ASTNodeFor::codegen(llvm::Module & module,
                                   llvm::LLVMContext & ctx, CodegenData & cdg) {
     auto old_vars = cdg.vars;
     auto old_consts = cdg.consts;
-    cdg.vars = cdg.vars->derive();
-    cdg.consts = cdg.consts->derive();
+    cdg.vars = cdg.vars->derive(ValMap<MemoryLocation>::Scope::Loop);
+    cdg.consts = cdg.consts->derive(ValMap<llvm::Value *>::Scope::Loop);
     llvm::Value * init_val = it_start->codegen(module, builder, ctx, cdg);
     // TODO compile error handling
 
@@ -438,8 +445,10 @@ llvm::Value * ASTNodeBreak::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
     return llvm::Constant::getNullValue(llvm::Type::getVoidTy(ctx));
 }
 
-llvm::Value * ASTNodeContinue::codegen(llvm::Module &, llvm::IRBuilder<> & builder,
-                                       llvm::LLVMContext & ctx, CodegenData & cdg) {
+llvm::Value * ASTNodeContinue::codegen(llvm::Module &,
+                                       llvm::IRBuilder<> & builder,
+                                       llvm::LLVMContext & ctx,
+                                       CodegenData & cdg) {
     assert(!cdg.cont_addrs.empty());
     llvm::BasicBlock * mutate_block = cdg.cont_addrs.top();
     builder.CreateBr(mutate_block);
@@ -490,8 +499,8 @@ llvm::Value * ASTNodeWhile::codegen(llvm::Module & module,
                                     CodegenData & cdg) {
     auto old_vars = cdg.vars;
     auto old_consts = cdg.consts;
-    cdg.vars = cdg.vars->derive();
-    cdg.consts = cdg.consts->derive();
+    cdg.vars = cdg.vars->derive(ValMap<MemoryLocation>::Scope::Loop);
+    cdg.consts = cdg.consts->derive(ValMap<llvm::Value *>::Scope::Loop);
 
     llvm::Function * function = builder.GetInsertBlock()->getParent();
     llvm::BasicBlock * loop_cond =
@@ -597,6 +606,6 @@ llvm::Value * ASTNodeArrAccess::get_allocated_ptr(llvm::Module & module,
     assert(alloca_lookup.has_value());
     MemoryLocation mem = alloca_lookup.value();
 
-    return builder.CreateGEP(mem.pointee_type, mem.ptr, idxs,
-                             name + "_gep", true);
+    return builder.CreateGEP(mem.pointee_type, mem.ptr, idxs, name + "_gep",
+                             true);
 }

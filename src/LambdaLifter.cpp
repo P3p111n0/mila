@@ -1,12 +1,13 @@
 #include "LambdaLifter.hpp"
 #include "BaseTypeFactory.hpp"
 #include "TypeInfo.hpp"
+#include "TypeChecker.hpp"
 
 void LambdaLifter::lift_tree(std::shared_ptr<ASTNode> root) {
     std::visit(*this, root->as_variant());
 }
 
-void LambdaLifter::lift(std::shared_ptr<ASTNodeAssignable> node) {
+void LambdaLifter::lift_variable(std::shared_ptr<ASTNodeAssignable> node) {
     assert(!_parent_fn.empty());
     ASTNodeFunction * fn = _parent_fn.top();
     if (fn->proto->name() == "main") {
@@ -39,6 +40,41 @@ void LambdaLifter::lift(std::shared_ptr<ASTNodeAssignable> node) {
 
     var.type = old_type;
     fnr.symbol_table->variables[var.name] = std::move(var);
+}
+
+void LambdaLifter::lift_constant(const std::string & name) {
+    assert(!_parent_fn.empty());
+    ASTNodeFunction * fn = _parent_fn.top();
+    if (fn->proto->name() == "main") {
+        return;
+    }
+    std::optional<FunctionRecord> function_lookup =
+        _st->lookup_function(fn->proto->name());
+    assert(function_lookup.has_value());
+
+    FunctionRecord fnr = function_lookup.value();
+    auto & function_args = fn->proto->args;
+    std::optional<ast_ptr> const_lookup = _st->lookup_constant(name);
+    assert(const_lookup.has_value());
+
+    ast_ptr expr = const_lookup.value();
+    TypeChecker tc(_st);
+    type_ptr type = tc.get_expr_type(expr);
+
+    VariableRecord new_arg{name, type, false};
+    function_args.emplace_back(new_arg);
+    fnr.fn_type->args.emplace_back(type);
+    fnr.args.emplace_back(new_arg);
+    fnr.arity++;
+    _st->edit_function(fnr.name, fnr);
+
+    ast_ptr call_arg(new ASTNodeIdentifier(name));
+
+    for (auto call_site : *fnr.callsites) {
+        call_site->args.emplace_back(call_arg);
+    }
+
+    fnr.symbol_table->constants[name] = expr;
 }
 
 void LambdaLifter::lift_rename(ASTNodePrototype * proto) {
@@ -148,6 +184,8 @@ void LambdaLifter::operator()(ASTNodeFor * for_node) {
     BaseTypeFactory btf;
     _st->variables[for_node->var] = {for_node->var, type_ptr(btf.get_int_t()),
                                      false};
+    std::visit(*this, for_node->it_start->as_variant());
+    std::visit(*this, for_node->it_stop->as_variant());
     std::visit(*this, for_node->body->as_variant());
 
     _st = old_st;
@@ -196,15 +234,20 @@ void LambdaLifter::operator()(ASTNodeIdentifier * id) {
     }
     auto var_lookup =
         _st->lookup_variable(id->name, SymbolTable::Scope::Function);
-    auto const_lookup = _st->lookup_constant(id->name);
+    auto const_lookup = _st->lookup_constant(id->name, SymbolTable::Scope::Function);
 
-    if (const_lookup.has_value()) {
+    if (var_lookup.has_value() || const_lookup.has_value()) {
         return;
     }
 
-    if (!var_lookup.has_value()) {
+    auto var_full_scope = _st->lookup_variable(id->name);
+    auto const_full_scope = _st->lookup_constant(id->name);
+
+    if (const_full_scope.has_value()) {
+        lift_constant(id->name);
+    } else if (var_full_scope.has_value()) {
         std::shared_ptr<ASTNodeAssignable> to_lift(id->shallow_copy());
-        lift(to_lift);
+        lift_variable(to_lift);
     }
 }
 
@@ -215,7 +258,7 @@ void LambdaLifter::operator()(ASTNodeArrAccess * arr) {
     auto lookup = _st->lookup_variable(arr->name, SymbolTable::Scope::Function);
     if (!lookup.has_value()) {
         std::shared_ptr<ASTNodeAssignable> to_lift(arr->shallow_copy());
-        lift(to_lift);
+        lift_variable(to_lift);
     }
     for (auto & idx : arr->idx_list) {
         std::visit(*this, idx->as_variant());
