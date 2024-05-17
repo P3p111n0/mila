@@ -15,6 +15,7 @@ class LambdaLifter {
     void operator()(ASTNodeBlock *);
     void operator()(ASTNodeBody *);
     void operator()(ASTNodeVar *);
+    void operator()(ASTNodeConst *);
     void operator()(ASTNodeVarByRef *);
     void operator()(ASTNodeFunction *);
     void operator()(ASTNodePrototype *);

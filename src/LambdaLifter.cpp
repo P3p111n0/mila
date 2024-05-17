@@ -1,7 +1,7 @@
 #include "LambdaLifter.hpp"
 #include "BaseTypeFactory.hpp"
-#include "TypeInfo.hpp"
 #include "TypeChecker.hpp"
+#include "TypeInfo.hpp"
 
 void LambdaLifter::lift_tree(std::shared_ptr<ASTNode> root) {
     std::visit(*this, root->as_variant());
@@ -234,7 +234,8 @@ void LambdaLifter::operator()(ASTNodeIdentifier * id) {
     }
     auto var_lookup =
         _st->lookup_variable(id->name, SymbolTable::Scope::Function);
-    auto const_lookup = _st->lookup_constant(id->name, SymbolTable::Scope::Function);
+    auto const_lookup =
+        _st->lookup_constant(id->name, SymbolTable::Scope::Function);
 
     if (var_lookup.has_value() || const_lookup.has_value()) {
         return;
@@ -262,5 +263,11 @@ void LambdaLifter::operator()(ASTNodeArrAccess * arr) {
     }
     for (auto & idx : arr->idx_list) {
         std::visit(*this, idx->as_variant());
+    }
+}
+
+void LambdaLifter::operator()(ASTNodeConst * const_node) {
+    for (auto & decl : const_node->constants) {
+        std::visit(*this, decl.value->as_variant());
     }
 }
