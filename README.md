@@ -1,27 +1,8 @@
-# Semestral Work
+# Mila
 
-This is the repository that serves as a simple template for semestral work.
-
-
-# Semestral work structure
-
-- `CMakeLists.txt` - CMake source file
-- `main.hpp` - main function definition
-- `Lexan.hpp`, `Lexan.cpp` - Lexan related sources
-- `Parser.hpp`, `Parser.cpp` - Parser related sources
-- `fce.c`  - grue for `write`, `writeln`, `read` function, it is compiled together with the program
-- `samples` - directory with samples describing syntax
-- `mila` - wrapper script for your compiler
+An LLVM frontend for a Pascal-like language
 
 Compilation tests and correct output tests for sample files are implemented using `ctest` and defined in `CMakeLists.txt`.
-
-## Literature
-
-LLVM supplies a set of tutorials which is available here: https://llvm.org/docs/tutorial/
-
-These tutorials are highly recommended and contains everything from lexical analysis up to transforming AST into LLVM IR.
-
-A nice explanation of LLVM IR can be found here: https://mukulrathi.co.uk/create-your-own-programming-language/llvm-ir-cpp-api-tutorial/
 
 ## Dependencies
 
@@ -242,66 +223,3 @@ rm -f "$OutputFileBaseName.s"
 llc "$OutputFileBaseName.ir" -o "$OutputFileBaseName.s" &&
 clang "$OutputFileBaseName.s" "${DIR}/fce.c" -o "$OutputFileName"
 ```
-
-## How should your semestral work behave?
-Compiler processes source code supplied on the stdin and produces LLVM ir on its stdout.
-All errors should be written to the stderr, non zero return code should be return in case of error.
-No arguments are required, but the mila wrapper is prepared for -v/--verbose, -d/--debug options which can be passed to the compiler.
-Other arguments can be also added for various purposes.
-
-## What template of semestral work does?
-Regardless of the source code supplied, all produced binaries gives "Answer to the Ultimate Question of Life, the Universe, and Everything":
-```
-42
-```
-
-Generated intermediate code looks like this:
-```
-; ModuleID = 'mila'
-source_filename = "mila"
-
-declare i32 @writeln(i32)
-
-define i32 @main() {
-entry:
-  %0 = call i32 @writeln(i32 42)
-  ret i32 0
-}
-```
-
-You can try this example without mila wrapper as well:
-
-```
-echo 42 | ./build/mila
-```
-
-## How to add your own files?
-
-You want to add `Tree.hpp` and `Tree.cpp`, change `CMakeLists.txt` by adding into `add_executable`:
-```
-add_executable(mila main.cpp Lexer.hpp Lexer.cpp Parser.hpp Parser.cpp)
-```
-Result:
-```
-add_executable(mila main.cpp Lexer.hpp Lexer.cpp Parser.hpp Parser.cpp Tree.hpp Tree.cpp)
-```
-
-## How to process input source code?
-
-You want to print number from the source file, change `Lexan.hpp`:
-
-```
-int Lexer::gettok() {
-    m_NumVal = 42;
-    return tok_number;
-}
-```
-Result:
-```
-int Lexer::gettok() {
-    std::cin >> m_NumVal;
-    return tok_number;
-}
-```
-
-For processing input `getc` (`ungetc`) is recommended. But `scanf` or `std::cin` should work as well.
